@@ -1,0 +1,320 @@
+<%
+  scope = User.order(id: :asc)
+
+  if params.dig(:q, :query).present?
+    q = params[:q][:query].strip
+    scope = scope.where("first_name ILIKE :q OR last_name ILIKE :q OR name ILIKE :q OR phone_number ILIKE :q", q: "%#{q}%")
+  end
+
+  if params.dig(:q, :verified).present? && params.dig(:q, :verified) != ""
+    scope = scope.where(verified: params[:q][:verified] == "true")
+  end
+
+  page     = (params[:page] || 1).to_i
+  per_page = 15
+  users    = scope.page(page).per(per_page)
+
+  total_count  = User.count
+  active_count = User.where(verified: true).count
+  closed_count = User.where(verified: false).count
+  today_count  = User.where(created_at: Time.current.beginning_of_day..Time.current.end_of_day).count
+%>
+
+<style>
+  .index_content .scopes, #titlebar { display:none !important; }
+  body.active_admin, #wrapper, #active_admin_content, #main_content,
+  .index_content, #main, .flashes { background:#f4f6f9 !important; }
+  .index_content > .panel,
+  .index_as_table,
+  #main_content .panel:first-child { background:transparent !important; border:none !important; box-shadow:none !important; padding:0 !important; margin:0 !important; }
+  .index_content > .panel > .panel_contents,
+  .index_as_table > .panel_contents { padding:0 !important; background:transparent !important; }
+
+  .us-page { --brand:#27bc9c; --brand-d:#1e9e82; --ink:#1f2a37; --muted:#6b7684; --line:#e9edf2; --soft:#f4f6f9;
+             color:var(--ink); font-family:"Noto Sans Lao","Phetsarath OT",system-ui,sans-serif; }
+
+  /* ── Page Header ── */
+  .us-head { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:24px; }
+  .us-head-l { display:flex; align-items:center; gap:14px; }
+  .us-head-ico { width:48px; height:48px; border-radius:14px; display:grid; place-items:center;
+                 color:#fff; font-size:20px; background:linear-gradient(135deg,#27bc9c,#1e9e82);
+                 box-shadow:0 8px 18px rgba(39,188,156,.35); flex-shrink:0; }
+  .us-head h2 { font-size:20px; font-weight:800; margin:0; letter-spacing:-.2px; }
+  .us-head p  { font-size:12.5px; color:var(--muted); margin:3px 0 0; }
+  .us-btn-dl { border:none; border-radius:11px; padding:10px 20px; font-size:13.5px; font-weight:700;
+               background:linear-gradient(135deg,#27bc9c,#1e9e82); color:#fff !important;
+               box-shadow:0 6px 14px rgba(39,188,156,.32); cursor:pointer; display:inline-flex;
+               align-items:center; gap:8px; text-decoration:none !important; transition:.15s; }
+  .us-btn-dl:hover { filter:brightness(1.06); color:#fff !important; transform:translateY(-1px); }
+
+  /* ── Stat Cards ── */
+  .us-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:22px; }
+  .us-stat { background:#fff; border-radius:16px; padding:18px 20px;
+             box-shadow:0 4px 16px rgba(16,24,40,.05); display:flex; align-items:center; gap:16px;
+             border-left:4px solid transparent; }
+  .us-stat.teal  { border-left-color:#27bc9c; }
+  .us-stat.green { border-left-color:#16a34a; }
+  .us-stat.red   { border-left-color:#dc2626; }
+  .us-stat.amber { border-left-color:#f59e0b; }
+  .us-stat-ico { width:44px; height:44px; border-radius:12px; display:grid; place-items:center; font-size:18px; flex-shrink:0; }
+  .us-stat.teal  .us-stat-ico { background:#e6f7f3; color:#27bc9c; }
+  .us-stat.green .us-stat-ico { background:#dcfce7; color:#16a34a; }
+  .us-stat.red   .us-stat-ico { background:#fef2f2; color:#dc2626; }
+  .us-stat.amber .us-stat-ico { background:#fef3c7; color:#f59e0b; }
+  .us-stat-label { font-size:12px; color:var(--muted); font-weight:600; margin:0 0 4px; }
+  .us-stat-val   { font-size:24px; font-weight:800; margin:0; letter-spacing:-.5px; }
+
+  /* ── Filter Card ── */
+  .us-filter { background:#fff; border-radius:16px; padding:18px 20px; margin-bottom:20px;
+               box-shadow:0 4px 16px rgba(16,24,40,.05); }
+  .us-filter-label { display:block; font-size:12.5px; font-weight:700; color:#334155; margin-bottom:6px; }
+  .us-filter-input { width:100%; border:1px solid var(--line); border-radius:10px; padding:10px 14px;
+                     font-size:13.5px; background:#fff; box-shadow:none; outline:none;
+                     font-family:inherit; color:var(--ink); }
+  .us-filter-input:focus { border-color:#27bc9c; box-shadow:0 0 0 3px rgba(39,188,156,.12); }
+  .us-btn-search { border:none; border-radius:10px; padding:10px 18px; font-size:13.5px; font-weight:700;
+                   background:#27bc9c; color:#fff; cursor:pointer; display:inline-flex; align-items:center; gap:6px; }
+  .us-btn-search:hover { background:#1e9e82; }
+  .us-btn-reset { border:1px solid var(--line); border-radius:10px; padding:10px 18px; font-size:13.5px;
+                  font-weight:600; background:#fff; color:var(--muted); text-decoration:none;
+                  display:inline-flex; align-items:center; gap:6px; }
+  .us-btn-reset:hover { background:#f8fafc; color:var(--ink); }
+
+  /* ── Table Card ── */
+  .us-table-card { background:#fff; border-radius:20px; overflow:hidden; box-shadow:0 4px 20px rgba(16,24,40,.06); }
+  .us-table-head { display:flex; align-items:center; justify-content:space-between; padding:18px 24px;
+                   border-bottom:1px solid var(--line); }
+  .us-table-head h3 { font-size:15px; font-weight:800; margin:0; display:flex; align-items:center; gap:10px; }
+  .us-table-head .us-chip { width:34px; height:34px; border-radius:10px; display:grid; place-items:center;
+                             background:linear-gradient(135deg,#27bc9c,#1e9e82); color:#fff; font-size:14px; }
+  .us-count-badge { font-size:12px; font-weight:700; color:var(--brand-d); background:#e7f7f2;
+                    padding:4px 12px; border-radius:20px; margin-left:auto; }
+  .us-table { width:100%; border-collapse:collapse; }
+  .us-table thead th { background:#f8fafc; padding:12px 16px; font-size:12px; font-weight:700;
+                       color:var(--muted); text-transform:uppercase; letter-spacing:.5px;
+                       border-bottom:1px solid var(--line); white-space:nowrap; }
+  .us-table thead th:first-child { padding-left:24px; }
+  .us-table thead th:last-child  { padding-right:24px; text-align:right; }
+  .us-table tbody td { padding:14px 16px; font-size:13.5px; border-bottom:1px solid var(--line); vertical-align:middle; }
+  .us-table tbody td:first-child { padding-left:24px; }
+  .us-table tbody td:last-child  { padding-right:24px; text-align:right; }
+  .us-table tbody tr:last-child td { border-bottom:none; }
+  .us-table tbody tr:hover td { background:#fafcfb; }
+
+  /* Avatar */
+  .us-avatar { width:38px; height:38px; border-radius:12px; display:flex; align-items:center;
+               justify-content:center; font-size:14px; font-weight:800; color:#fff; flex-shrink:0;
+               background:linear-gradient(135deg,#27bc9c,#1e9e82); }
+
+  /* Gender badge */
+  .us-badge-m { background:#dbeafe; color:#1e40af; padding:4px 10px; border-radius:20px; font-size:12px; font-weight:700; white-space:nowrap; }
+  .us-badge-f { background:#fce7f3; color:#be185d; padding:4px 10px; border-radius:20px; font-size:12px; font-weight:700; white-space:nowrap; }
+
+  /* Status badge */
+  .us-badge-on  { background:#d1fae5; color:#065f46; padding:5px 12px; border-radius:20px; font-size:12px; font-weight:700; white-space:nowrap; }
+  .us-badge-off { background:#fee2e2; color:#991b1b; padding:5px 12px; border-radius:20px; font-size:12px; font-weight:700; white-space:nowrap; }
+
+  /* Action buttons */
+  .us-actions { display:flex; gap:6px; justify-content:flex-end; }
+  .us-btn-view { border:1px solid #0ea5e9; background:#f0f9ff; color:#0369a1; border-radius:8px;
+                 padding:6px 12px; font-size:12.5px; font-weight:700; text-decoration:none;
+                 display:inline-flex; align-items:center; gap:5px; transition:.15s; }
+  .us-btn-view:hover { background:#0ea5e9; color:#fff; }
+  .us-btn-edit { border:1px solid #f59e0b; background:#fffbeb; color:#92400e; border-radius:8px;
+                 padding:6px 12px; font-size:12.5px; font-weight:700; text-decoration:none;
+                 display:inline-flex; align-items:center; gap:5px; transition:.15s; }
+  .us-btn-edit:hover { background:#f59e0b; color:#fff; }
+  .us-btn-del { border:1px solid #f87171; background:#fff1f2; color:#991b1b; border-radius:8px;
+                padding:6px 12px; font-size:12.5px; font-weight:700; cursor:pointer;
+                display:inline-flex; align-items:center; gap:5px; transition:.15s; }
+  .us-btn-del:hover { background:#dc2626; color:#fff; border-color:#dc2626; }
+  .us-btn-del form { margin:0; }
+
+  /* Empty state */
+  .us-empty { text-align:center; padding:60px 20px; }
+  .us-empty i { font-size:3rem; color:#cbd5e1; display:block; margin-bottom:12px; }
+  .us-empty p { color:var(--muted); font-size:14px; margin:0; }
+
+  /* Pagination */
+  .us-page-wrap .pagination .page.current a,
+  .us-page-wrap .pagination .page.current span { background:#27bc9c; border-color:#27bc9c; color:#fff; border-radius:8px; }
+  .us-page-wrap .pagination a, .us-page-wrap .pagination span { border-radius:8px; }
+</style>
+
+<div class="us-page">
+
+  <%# ── Page Header ── %>
+  <div class="us-head">
+    <div class="us-head-l">
+      <div class="us-head-ico"><i class="fas fa-mobile-alt"></i></div>
+      <div>
+        <h2>ລູກຄ້າທີ່ສະໝັກໃຊ້ງານຜ່ານແອັບມືຖື</h2>
+        <p>ຈັດການຂໍ້ມູນລູກຄ້າທີ່ລົງທະບຽນຜ່ານແອັບພລິເຄຊັນ</p>
+      </div>
+    </div>
+    <a href="/admin/users.csv" class="us-btn-dl">
+      <i class="fas fa-download"></i>ດາວໂຫຼດລາຍງານ
+    </a>
+  </div>
+
+  <%# ── Stats ── %>
+  <div class="us-stats">
+    <div class="us-stat teal">
+      <div class="us-stat-ico"><i class="fas fa-users"></i></div>
+      <div>
+        <p class="us-stat-label">ລູກຄ້າທັງໝົດ</p>
+        <p class="us-stat-val"><%= number_with_delimiter(total_count) %></p>
+      </div>
+    </div>
+    <div class="us-stat green">
+      <div class="us-stat-ico"><i class="fas fa-user-check"></i></div>
+      <div>
+        <p class="us-stat-label">ເປີດໃຊ້ງານ</p>
+        <p class="us-stat-val"><%= number_with_delimiter(active_count) %></p>
+      </div>
+    </div>
+    <div class="us-stat red">
+      <div class="us-stat-ico"><i class="fas fa-user-times"></i></div>
+      <div>
+        <p class="us-stat-label">ປິດໃຊ້ງານ</p>
+        <p class="us-stat-val"><%= number_with_delimiter(closed_count) %></p>
+      </div>
+    </div>
+    <div class="us-stat amber">
+      <div class="us-stat-ico"><i class="fas fa-calendar-day"></i></div>
+      <div>
+        <p class="us-stat-label">ລົງທະບຽນວັນນີ້</p>
+        <p class="us-stat-val"><%= number_with_delimiter(today_count) %></p>
+      </div>
+    </div>
+  </div>
+
+  <%# ── Filter ── %>
+  <div class="us-filter">
+    <form method="GET" action="/admin/users">
+      <div style="display:flex !important;flex-direction:row !important;gap:12px;align-items:flex-end;flex-wrap:nowrap;">
+        <div style="flex:2;min-width:0;">
+          <label class="us-filter-label">ຄົ້ນຫາ</label>
+          <input type="text" name="q[query]" class="us-filter-input"
+                 value="<%= params.dig(:q, :query) %>" placeholder="ຊື່, ເບີໂທ...">
+        </div>
+        <div style="flex:1.5;min-width:0;">
+          <label class="us-filter-label">ສະຖານະ</label>
+          <select name="q[verified]" class="us-filter-input">
+            <option value="">ທັງໝົດ</option>
+            <option value="true"  <%= 'selected' if params.dig(:q, :verified) == 'true'  %>>ເປີດໃຊ້ງານ</option>
+            <option value="false" <%= 'selected' if params.dig(:q, :verified) == 'false' %>>ປິດໃຊ້ງານ</option>
+          </select>
+        </div>
+        <div style="flex-shrink:0;">
+          <button type="submit" class="us-btn-search">
+            <i class="fas fa-search"></i> ຄົ້ນຫາ
+          </button>
+        </div>
+        <div style="flex-shrink:0;">
+          <a href="/admin/users" class="us-btn-reset">
+            <i class="fas fa-redo"></i> ລ້າງ
+          </a>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <%# ── Table ── %>
+  <div class="us-table-card">
+    <div class="us-table-head">
+      <h3>
+        <div class="us-chip"><i class="fas fa-list"></i></div>
+        ລາຍການລູກຄ້າ
+      </h3>
+      <span class="us-count-badge"><%= number_with_delimiter(total_count) %> ຄົນ</span>
+    </div>
+
+    <div class="table-responsive">
+      <table class="us-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>ໂປຣໄຟລ໌</th>
+            <th>ຊື່ - ນາມສະກຸນ</th>
+            <th>ເພດ</th>
+            <th>ວັນເດືອນປີເກີດ</th>
+            <th>ເບີໂທລະສັບ</th>
+            <th>ສະຖານະ</th>
+            <th>ຈັດການ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% users.each_with_index do |u, idx| %>
+            <% row_no  = (page - 1) * per_page + idx + 1 %>
+            <% av_name = [u.first_name, u.last_name].compact_blank.join(" ").presence || u.name.to_s %>
+            <% av_init = av_name.present? ? av_name[0].upcase : (u.phone_number&.first || "?") %>
+            <tr>
+              <td class="fw-bold text-muted"><%= row_no %></td>
+              <td>
+                <div class="us-avatar"><%= av_init %></div>
+              </td>
+              <td>
+                <div class="fw-bold" style="font-size:14px;"><%= [u.first_name, u.last_name].compact_blank.join(" ").presence || u.name.presence || "—" %></div>
+                <div style="font-size:12px;color:#94a3b8;"><%= u.phone_number.presence || "" %></div>
+              </td>
+              <td>
+                <% if u.gender =~ /ຍິງ|female|f/i %>
+                  <span class="us-badge-f"><i class="fas fa-venus me-1"></i>ຍິງ</span>
+                <% elsif u.gender.present? %>
+                  <span class="us-badge-m"><i class="fas fa-mars me-1"></i>ຊາຍ</span>
+                <% else %>
+                  <span style="color:#cbd5e1;">—</span>
+                <% end %>
+              </td>
+              <td style="color:var(--muted);"><%= u.date_of_birth.present? ? u.date_of_birth.strftime("%d/%m/%Y") : "—" %></td>
+              <td><%= u.phone_number.presence || "—" %></td>
+              <td>
+                <% if u.verified %>
+                  <span class="us-badge-on"><i class="fas fa-circle me-1" style="font-size:8px;"></i>ເປີດໃຊ້ງານ</span>
+                <% else %>
+                  <span class="us-badge-off"><i class="fas fa-circle me-1" style="font-size:8px;"></i>ປິດໃຊ້ງານ</span>
+                <% end %>
+              </td>
+              <td>
+                <div class="us-actions">
+                  <%= link_to admin_user_path(u), class: "us-btn-view" do %>
+                    <i class="fas fa-eye"></i>ເບີ່ງ
+                  <% end %>
+                  <%= link_to edit_admin_user_path(u), class: "us-btn-edit" do %>
+                    <i class="fas fa-edit"></i>ແກ້ໄຂ
+                  <% end %>
+                  <%= button_to admin_user_path(u), method: :delete,
+                        class: "us-btn-del",
+                        form: { style: "margin:0;" },
+                        data: { confirm: "ທ່ານແນ່ໃຈບໍ່ວ່າຕ້ອງການລົບ?" } do %>
+                    <i class="fas fa-trash"></i>
+                  <% end %>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+
+          <% if users.empty? %>
+            <tr>
+              <td colspan="8">
+                <div class="us-empty">
+                  <i class="fas fa-users-slash"></i>
+                  <p>ຍັງບໍ່ມີຂໍ້ມູນລູກຄ້າ</p>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <%# ── Pagination ── %>
+  <% if users.respond_to?(:total_pages) && users.total_pages > 1 %>
+    <div class="us-page-wrap d-flex justify-content-center mt-4">
+      <%= paginate users %>
+    </div>
+  <% end %>
+
+</div>

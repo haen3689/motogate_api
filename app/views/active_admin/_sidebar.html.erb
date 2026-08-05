@@ -1,0 +1,273 @@
+<%# MotoGate Admin Sidebar — mirrors includes/sidebar.php in the PHP demo %>
+<% cp = request.path %>
+
+<aside class="admin-sidebar" id="admin-sidebar">
+
+  <%# ===== Brand ===== %>
+  <div class="sidebar-brand">
+    <img src="/admin_logo.png" alt="MotoGate" class="sidebar-logo" onerror="this.style.display='none'">
+    <span class="sidebar-title">MotoGate</span>
+  </div>
+
+  <%# ===== Navigation ===== %>
+  <nav class="sidebar-nav">
+
+    <%# ========== ເມນູຫຼັກ ========== %>
+    <p class="menu-header">ເມນູຫຼັກ</p>
+
+    <%= link_to admin_dashboard_path,
+        class: "sidebar-link #{'active' if cp == '/admin' || cp.start_with?('/admin/dashboard')}" do %>
+      <i class="fas fa-home"></i><span>Dashboard</span>
+    <% end %>
+
+    <%= link_to admin_users_path,
+        class: "sidebar-link #{'active' if cp.start_with?('/admin/users')}" do %>
+      <i class="fas fa-users"></i><span>ລູກຄ້າທັງໝົດ</span>
+    <% end %>
+
+    <%= link_to admin_vehicles_path,
+        class: "sidebar-link #{'active' if cp.start_with?('/admin/vehicles')}" do %>
+      <i class="fas fa-car"></i><span>ລາຍການພາຫານະ</span>
+    <% end %>
+
+    <a href="/admin" class="sidebar-link">
+      <i class="fas fa-bell"></i><span>ແຈ້ງເຕືອນໝົດອາຍຸ</span>
+    </a>
+
+    <%# ========== ຈັດການ Product ========== %>
+    <p class="menu-header">ຈັດການ Product</p>
+
+    <%# Support System dropdown %>
+    <div class="sidebar-group">
+      <button class="sidebar-link sidebar-group-btn" type="button">
+        <i class="fas fa-comments"></i><span>Support System</span>
+        <i class="fas fa-chevron-down sidebar-arrow"></i>
+      </button>
+      <div class="sidebar-submenu">
+        <a href="#" class="submenu-link"><i class="fas fa-chart-line"></i>Dashboard Support</a>
+        <a href="#" class="submenu-link">
+          <i class="fas fa-list"></i>Support List
+          <span class="notification-badge">5</span>
+        </a>
+        <a href="#" class="submenu-link"><i class="fas fa-clipboard-list"></i>Case Management</a>
+        <a href="#" class="submenu-link"><i class="fas fa-file-alt"></i>Quick Templates</a>
+        <a href="#" class="submenu-link"><i class="fas fa-door-open"></i>Support Room</a>
+        <a href="#" class="submenu-link"><i class="fas fa-bolt"></i>Quick Replies</a>
+        <a href="#" class="submenu-link"><i class="fas fa-user-tie"></i>Support Agents</a>
+        <a href="#" class="submenu-link"><i class="fas fa-history"></i>Support Archives</a>
+        <a href="#" class="submenu-link"><i class="fas fa-comment-alt"></i>Feedback</a>
+      </div>
+    </div>
+
+    <%# Vehicle Info Management dropdown %>
+    <%= link_to admin_plate_types_path,
+        class: "sidebar-link #{'active' if cp.start_with?('/admin/plate_types')}" do %>
+      <i class="fas fa-id-card"></i><span>ຈັດການປ້າຍທະບຽນ</span>
+    <% end %>
+
+    <%# Insurance dropdown %>
+    <% ins_open = cp.start_with?('/admin/insurances') || cp.start_with?('/admin/insurance_companies') %>
+    <div class="sidebar-group <%= 'open' if ins_open %>">
+      <button class="sidebar-link sidebar-group-btn <%= 'parent-active' if ins_open %>" type="button">
+        <i class="fas fa-shield-alt"></i><span>ຈັດການປະກັນໄພ</span>
+        <i class="fas fa-chevron-down sidebar-arrow"></i>
+      </button>
+      <div class="sidebar-submenu">
+        <a href="/admin" class="submenu-link"><i class="fas fa-chart-line"></i>Dashboard Insurance</a>
+        <%= link_to admin_insurance_companies_path,
+            class: "submenu-link #{'active' if cp.start_with?('/admin/insurance_companies')}" do %>
+          <i class="fas fa-building"></i>ບໍລິສັດປະກັນໄພ
+        <% end %>
+        <a href="/admin/reports" class="submenu-link"><i class="fas fa-file-invoice-dollar"></i>ລາຍງານການຂາຍ</a>
+      </div>
+    </div>
+
+    <%# Inspection dropdown %>
+    <% ins2_open = cp.start_with?('/admin/inspections') %>
+    <div class="sidebar-group <%= 'open' if ins2_open %>">
+      <button class="sidebar-link sidebar-group-btn <%= 'parent-active' if ins2_open %>" type="button">
+        <i class="fas fa-tools"></i><span>ຈັດການສູນເຕັກນິກ</span>
+        <i class="fas fa-chevron-down sidebar-arrow"></i>
+      </button>
+      <div class="sidebar-submenu">
+        <a href="/admin" class="submenu-link"><i class="fas fa-chart-line"></i>Dashboard Inspection</a>
+        <a href="#" class="submenu-link"><i class="fas fa-warehouse"></i>ສູນກວດກາເຕັກນິກ</a>
+        <%= link_to admin_inspections_path,
+            class: "submenu-link #{'active' if cp.start_with?('/admin/inspections')}" do %>
+          <i class="fas fa-car"></i>ລົດທີ່ຈະເຂົ້າມາກວດ
+        <% end %>
+        <a href="/admin/reports" class="submenu-link"><i class="fas fa-clipboard-check"></i>ລາຍງານການກວດກາ</a>
+      </div>
+    </div>
+
+    <%# Road Tax dropdown %>
+    <% rt_open = cp.start_with?('/admin/road_taxes') %>
+    <div class="sidebar-group <%= 'open' if rt_open %>">
+      <button class="sidebar-link sidebar-group-btn <%= 'parent-active' if rt_open %>" type="button">
+        <i class="fas fa-road"></i><span>ຈັດການເສຍຄ່າທາງ</span>
+        <i class="fas fa-chevron-down sidebar-arrow"></i>
+      </button>
+      <div class="sidebar-submenu">
+        <a href="/admin" class="submenu-link"><i class="fas fa-chart-line"></i>Dashboard Road Tax</a>
+        <%= link_to admin_road_taxes_path,
+            class: "submenu-link #{'active' if cp.start_with?('/admin/road_taxes')}" do %>
+          <i class="fas fa-file-invoice-dollar"></i>ຈັດການຄ່າທາງ
+        <% end %>
+        <a href="/admin/reports" class="submenu-link"><i class="fas fa-chart-bar"></i>ລາຍງານເສຍຄ່າທາງ</a>
+      </div>
+    </div>
+
+    <%# Garage dropdown %>
+    <div class="sidebar-group">
+      <button class="sidebar-link sidebar-group-btn" type="button">
+        <i class="fas fa-store"></i><span>ຈັດການສູນສ້ອມແປງລົດ</span>
+        <i class="fas fa-chevron-down sidebar-arrow"></i>
+      </button>
+      <div class="sidebar-submenu">
+        <a href="#" class="submenu-link"><i class="fas fa-chart-pie"></i>ພາບລວມສູນສ້ອມແປງ</a>
+        <a href="#" class="submenu-link"><i class="fas fa-id-card"></i>ຈັດການໂປຣໄຟລ໌ພາດເນີ</a>
+        <a href="#" class="submenu-link"><i class="fas fa-file-signature"></i>ສັນຍາ & ຄ່າເຊົ່າ</a>
+        <a href="#" class="submenu-link"><i class="fas fa-file-invoice-dollar"></i>ລາຍງານລາຍຮັບຄ່າເຊົ່າ</a>
+      </div>
+    </div>
+
+    <%# Dealership dropdown %>
+    <div class="sidebar-group">
+      <button class="sidebar-link sidebar-group-btn" type="button">
+        <i class="fas fa-car-side"></i><span>ຈັດການສູນຂາຍລົດ</span>
+        <i class="fas fa-chevron-down sidebar-arrow"></i>
+      </button>
+      <div class="sidebar-submenu">
+        <a href="#" class="submenu-link"><i class="fas fa-chart-pie"></i>ພາບລວມສູນຂາຍລົດ</a>
+        <a href="#" class="submenu-link"><i class="fas fa-store-alt"></i>ໂປຣໄຟລ໌ໂຊຣູມພາດເນີ</a>
+        <a href="#" class="submenu-link"><i class="fas fa-file-signature"></i>ສັນຍາໂຄສະນາ/ຄ່າເຊົ່າ</a>
+        <a href="#" class="submenu-link"><i class="fas fa-file-invoice-dollar"></i>ລາຍງານລາຍຮັບຄ່າເຊົ່າ</a>
+      </div>
+    </div>
+
+    <%# Towing dropdown %>
+    <div class="sidebar-group">
+      <button class="sidebar-link sidebar-group-btn" type="button">
+        <i class="fas fa-truck-pickup"></i><span>ບໍລິການລາກລົດ 24ຊມ</span>
+        <i class="fas fa-chevron-down sidebar-arrow"></i>
+      </button>
+      <div class="sidebar-submenu">
+        <a href="#" class="submenu-link"><i class="fas fa-chart-pie"></i>ພາບລວມການບໍລິການ</a>
+        <a href="#" class="submenu-link"><i class="fas fa-address-book"></i>ຈັດການເບີຕິດຕໍ່/ໂປຣໄຟລ໌</a>
+        <a href="#" class="submenu-link"><i class="fas fa-file-signature"></i>ສັນຍາພາດເນີລາກລົດ</a>
+        <a href="#" class="submenu-link"><i class="fas fa-file-invoice-dollar"></i>ລາຍງານຄ່າເຊົ່າລະບົບ</a>
+      </div>
+    </div>
+
+    <%# ========== ລາຍງານ ========== %>
+    <p class="menu-header">ລາຍງານ</p>
+
+    <% rpt_open = cp.start_with?('/admin/reports') || cp.start_with?('/admin/transactions') %>
+    <div class="sidebar-group <%= 'open' if rpt_open %>">
+      <button class="sidebar-link sidebar-group-btn <%= 'parent-active' if rpt_open %>" type="button">
+        <i class="fas fa-file-contract"></i><span>ລາຍງານທັງໝົດ</span>
+        <i class="fas fa-chevron-down sidebar-arrow"></i>
+      </button>
+      <div class="sidebar-submenu">
+        <%= link_to admin_reports_path,
+            class: "submenu-link #{'active' if cp == '/admin/reports'}" do %>
+          <i class="fas fa-file-invoice"></i>ລາຍງານລວມ (New)
+        <% end %>
+        <a href="/admin/reports" class="submenu-link"><i class="fas fa-calculator"></i>ການເງິນ & ບັນຊີ</a>
+        <a href="/admin/reports" class="submenu-link"><i class="fas fa-globe-asia"></i>ຜູ້ໃຊ້ທົ່ວປະເທດ</a>
+        <a href="/admin/reports" class="submenu-link"><i class="fas fa-car"></i>ສະຖິຕິພາຫານະ</a>
+        <a href="/admin/reports" class="submenu-link"><i class="fas fa-university"></i>ຊຳລະຜ່ານທະນາຄານ</a>
+        <a href="/admin/reports" class="submenu-link"><i class="fas fa-chart-line"></i>ລາຍຮັບລວມທັງໝົດ</a>
+        <%= link_to admin_transactions_path,
+            class: "submenu-link #{'active' if cp.start_with?('/admin/transactions')}" do %>
+          <i class="fas fa-exchange-alt"></i>ລາຍງານຈຳນວນທຸລະກຳ
+        <% end %>
+      </div>
+    </div>
+
+    <%# ========== ອື່ນໆ ========== %>
+    <p class="menu-header">ອື່ນໆ</p>
+
+    <%# CRM dropdown %>
+    <div class="sidebar-group">
+      <button class="sidebar-link sidebar-group-btn" type="button">
+        <i class="fas fa-users"></i><span>ຈັດການລູກຄ້າ CRM</span>
+        <i class="fas fa-chevron-down sidebar-arrow"></i>
+      </button>
+      <div class="sidebar-submenu">
+        <a href="#" class="submenu-link"><i class="fas fa-chart-line"></i>Dashboard CRM</a>
+        <a href="#" class="submenu-link"><i class="fas fa-history"></i>ປະຫວັດການໃຊ້ບໍລິການ</a>
+        <a href="#" class="submenu-link"><i class="fas fa-star"></i>ຄວາມພໍໃຈລູກຄ້າ</a>
+      </div>
+    </div>
+
+    <%# Partner dropdown %>
+    <div class="sidebar-group">
+      <button class="sidebar-link sidebar-group-btn" type="button">
+        <i class="fas fa-handshake"></i><span>ຈັດການພາດເນີ</span>
+        <i class="fas fa-chevron-down sidebar-arrow"></i>
+      </button>
+      <div class="sidebar-submenu">
+        <a href="#" class="submenu-link"><i class="fas fa-chart-line"></i>Dashboard ພາດເນີ</a>
+        <a href="#" class="submenu-link"><i class="fas fa-star"></i>Rating ພາດເນີ</a>
+        <a href="#" class="submenu-link"><i class="fas fa-money-bill"></i>Commission</a>
+        <a href="#" class="submenu-link"><i class="fas fa-history"></i>ປະຫວັດການເຮັດວຽກ</a>
+      </div>
+    </div>
+
+    <a href="#" class="sidebar-link">
+      <i class="fas fa-history"></i><span>Activity Logs</span>
+    </a>
+
+    <a href="#" class="sidebar-link">
+      <i class="fas fa-cog"></i><span>ຕັ້ງຄ່າ</span>
+    </a>
+
+    <a href="#" class="sidebar-link">
+      <i class="fas fa-money-bill"></i><span>ຈັດການໂຄສະນາ</span>
+    </a>
+
+    <a href="#" class="sidebar-link">
+      <i class="fas fa-bullhorn"></i><span>ປະກາດ</span>
+    </a>
+
+    <%# ========== ຕັ້ງຄ່າແອັບ ========== %>
+    <p class="menu-header">ຕັ້ງຄ່າແອັບ</p>
+
+    <%= link_to admin_onboarding_slides_path,
+        class: "sidebar-link #{'active' if cp.start_with?('/admin/onboarding_slides')}" do %>
+      <i class="fas fa-mobile-alt"></i><span>Onboarding Slides</span>
+    <% end %>
+
+    <%# ========== ລະບົບ ========== %>
+    <p class="menu-header">ລະບົບ</p>
+
+    <%= link_to admin_admin_users_path,
+        class: "sidebar-link #{'active' if cp.start_with?('/admin/admin_users')}" do %>
+      <i class="fas fa-user-shield"></i><span>ຜູ້ດູແລລະບົບ</span>
+    <% end %>
+
+  </nav>
+
+  <%# ===== Footer ===== %>
+  <div class="sidebar-footer">
+    <div class="sidebar-user">
+      <div class="user-avatar"><%= current_admin_user.email[0].upcase %></div>
+      <div class="user-meta">
+        <div class="user-name"><%= current_admin_user.email.split("@").first %></div>
+        <div class="user-role">Administrator</div>
+      </div>
+    </div>
+    <%= button_to "ອອກຈາກລະບົບ", destroy_admin_user_session_path,
+        method: :delete, class: "logout-btn" %>
+  </div>
+
+</aside>
+
+<script>
+  document.querySelectorAll('.sidebar-group-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      this.closest('.sidebar-group').classList.toggle('open');
+    });
+  });
+</script>

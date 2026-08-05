@@ -1,0 +1,154 @@
+<%
+  # ====== REPORT DATA ======
+  period_start = params[:from].present? ? Date.parse(params[:from]) : 30.days.ago.to_date
+  period_end   = params[:to].present?   ? Date.parse(params[:to])   : Date.current
+
+  base = Transaction.where(created_at: period_start.beginning_of_day..period_end.end_of_day)
+  success_txn = base.where(status: "success")
+
+  total_revenue  = success_txn.sum(:amount).to_f
+  total_txn      = base.count
+  success_count  = success_txn.count
+  failed_count   = base.where(status: "failed").count
+
+  by_type = success_txn.group(:transaction_type).sum(:amount)
+  daily   = success_txn.group("DATE(created_at)").sum(:amount)
+
+  top_users = success_txn.joins(:user)
+                          .group("users.phone_number")
+                          .sum(:amount)
+                          .sort_by { |_, v| -v }
+                          .first(10)
+
+  # Insurance/Road Tax/Inspection stats
+  ins_active  = Insurance.where(status: "active").count
+  ins_expired = Insurance.where(status: "expired").count
+  rt_paid     = RoadTax.where(status: "paid").count
+  rt_pending  = RoadTax.where(status: "pending").count
+  ins_exp_val = Insurance.where(status: "active").where(end_date: Date.current..(Date.current + 30.days)).count
+  rt_exp_val  = RoadTax.where(status: "paid").where(expired_at: Date.current..(Date.current + 30.days)).count
+%>
+
+<%# ===== DATE FILTER ===== %>
+<div class="report-filter-bar">
+  <form method="GET" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+    <label style="font-size:.85rem;font-weight:600;color:#64748b;">ໄລຍະ:</label>
+    <input type="date" name="from" value="<%= period_start %>" class="report-date-input">
+    <span style="color:#94a3b8;">ຫາ</span>
+    <input type="date" name="to"   value="<%= period_end %>" class="report-date-input">
+    <button type="submit" class="report-filter-btn"><i class="fas fa-search"></i> ຄົ້ນຫາ</button>
+  </form>
+</div>
+
+<%# ===== SUMMARY CARDS ===== %>
+<div class="stat-grid" style="margin-top:16px;">
+  <% [
+    { icon: "fas fa-coins",          label: "ລາຍຮັບລວມ",       value: number_to_currency(total_revenue, unit: "₭", precision: 0, delimiter: ","), color: "green"  },
+    { icon: "fas fa-file-lines",     label: "ທຸລະກຳທັງໝົດ",   value: total_txn,     color: "blue"   },
+    { icon: "fas fa-circle-check",   label: "ສຳເລັດ",           value: success_count, color: "green"  },
+    { icon: "fas fa-circle-xmark",   label: "ລົ້ມເຫລວ",         value: failed_count,  color: "orange" },
+  ].each do |s| %>
+  <div class="stat-card card-<%= s[:color] %>">
+    <div class="stat-icon-wrap"><i class="<%= s[:icon] %>"></i></div>
+    <div class="stat-right">
+      <div class="stat-value"><%= s[:value] %></div>
+      <div class="stat-label"><%= s[:label] %></div>
+    </div>
+  </div>
+  <% end %>
+</div>
+
+<%# ===== REVENUE BY TYPE ===== %>
+<div class="dash-bottom-row" style="margin-top:20px;">
+
+  <div class="dash-panel">
+    <div class="dash-panel-header">
+      <span><i class="fas fa-chart-bar"></i> ລາຍຮັບຕາມປະເພດ</span>
+    </div>
+    <table class="index_table">
+      <thead>
+        <tr><th>ປະເພດ</th><th style="text-align:right;">ລາຍຮັບ (₭)</th><th style="text-align:right;">%</th></tr>
+      </thead>
+      <tbody>
+        <% Transaction::TYPES.each do |type| %>
+        <% amt = by_type[type].to_f %>
+        <tr>
+          <td><%= type %></td>
+          <td style="text-align:right;font-weight:700;color:#27bc9c;"><%= number_to_currency(amt, unit: "₭", precision: 0, delimiter: ",") %></td>
+          <td style="text-align:right;color:#64748b;">
+            <%= total_revenue > 0 ? "#{(amt / total_revenue * 100).round(1)}%" : "0%" %>
+          </td>
+        </tr>
+        <% end %>
+        <tr style="font-weight:800;background:#f0fdf9;">
+          <td>ລວມ</td>
+          <td style="text-align:right;color:#27bc9c;"><%= number_to_currency(total_revenue, unit: "₭", precision: 0, delimiter: ",") %></td>
+          <td style="text-align:right;">100%</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="dash-panel">
+    <div class="dash-panel-header">
+      <span><i class="fas fa-trophy"></i> Top 10 ຜູ້ໃຊ້</span>
+    </div>
+    <table class="index_table">
+      <thead>
+        <tr><th>#</th><th>ເບີໂທ</th><th style="text-align:right;">ລາຍຮັບ (₭)</th></tr>
+      </thead>
+      <tbody>
+        <% top_users.each_with_index do |(phone, amt), i| %>
+        <tr>
+          <td style="color:#94a3b8;font-size:.8rem;"><%= i + 1 %></td>
+          <td><%= phone %></td>
+          <td style="text-align:right;font-weight:700;color:#27bc9c;"><%= number_to_currency(amt, unit: "₭", precision: 0, delimiter: ",") %></td>
+        </tr>
+        <% end %>
+        <% if top_users.empty? %>
+        <tr><td colspan="3" style="text-align:center;color:#94a3b8;padding:20px;">ຍັງບໍ່ມີຂໍ້ມູນ</td></tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<%# ===== INSURANCE + ROAD TAX STATUS ===== %>
+<div class="dash-bottom-row" style="margin-top:20px;">
+
+  <div class="dash-panel">
+    <div class="dash-panel-header">
+      <span><i class="fas fa-shield-alt"></i> ສະຖານະປະກັນໄພ</span>
+      <a href="/admin/insurances" class="dash-chart-link">ຈັດການ →</a>
+    </div>
+    <% [
+      { label: "Active",   value: ins_active,  color: "#16a34a" },
+      { label: "Expired",  value: ins_expired, color: "#dc2626" },
+      { label: "ໃກ້ໝົດ (30ວ)", value: ins_exp_val, color: "#f59e0b" },
+    ].each do |r| %>
+    <div class="report-row">
+      <span class="report-row-label"><%= r[:label] %></span>
+      <span class="report-row-val" style="color:<%= r[:color] %>;"><%= r[:value] %></span>
+    </div>
+    <% end %>
+  </div>
+
+  <div class="dash-panel">
+    <div class="dash-panel-header">
+      <span><i class="fas fa-road"></i> ສະຖານະຄ່າທາງ</span>
+      <a href="/admin/road_taxes" class="dash-chart-link">ຈັດການ →</a>
+    </div>
+    <% [
+      { label: "Paid",     value: rt_paid,    color: "#16a34a" },
+      { label: "Pending",  value: rt_pending, color: "#f59e0b" },
+      { label: "ໃກ້ໝົດ (30ວ)", value: rt_exp_val, color: "#dc2626" },
+    ].each do |r| %>
+    <div class="report-row">
+      <span class="report-row-label"><%= r[:label] %></span>
+      <span class="report-row-val" style="color:<%= r[:color] %>;"><%= r[:value] %></span>
+    </div>
+    <% end %>
+  </div>
+
+</div>

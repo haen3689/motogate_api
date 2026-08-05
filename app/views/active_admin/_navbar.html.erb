@@ -1,0 +1,27 @@
+<%# MotoGate Admin Navbar — equivalent to includes/header.php in the PHP demo %>
+<nav class="admin-navbar" id="admin-navbar">
+
+  <%# ===== Left: Hamburger + Page Title ===== %>
+  <div class="navbar-left">
+    <button class="sidebar-toggle" onclick="document.getElementById('admin-sidebar').classList.toggle('sidebar-collapsed')" title="Toggle Sidebar">
+      <i class="fas fa-bars"></i>
+    </button>
+    <span class="navbar-brand-text">MotoGate</span>
+  </div>
+
+  <%# ===== Right: Notifications + User Info ===== %>
+  <div class="navbar-right">
+    <div class="navbar-icon" title="ແຈ້ງເຕືອນ">
+      <i class="fas fa-bell"></i>
+    </div>
+
+    <div class="navbar-user">
+      <div class="navbar-avatar"><%= current_admin_user.email[0].upcase %></div>
+      <div class="navbar-user-info">
+        <span class="navbar-username"><%= current_admin_user.email.split("@").first %></span>
+        <span class="navbar-role">Administrator</span>
+      </div>
+    </div>
+  </div>
+
+</nav>

@@ -1,0 +1,499 @@
+<%
+  plate_types = PlateType.ordered
+  notice_msg  = flash[:notice]
+  alert_msg   = flash[:alert] || flash[:error]
+%>
+
+<style>
+  /* ── ActiveAdmin overrides (ພື້ນຫຼັງ + panel) ── */
+  .index_content .scopes, #titlebar { display:none !important; }
+  body.active_admin, #wrapper, #active_admin_content, #main_content,
+  .index_content, #main, .flashes { background:#f4f6f9 !important; }
+  .index_content > .panel,
+  .index_as_table,
+  #main_content .panel:first-child { background:transparent !important; border:none !important; box-shadow:none !important; padding:0 !important; margin:0 !important; }
+  .index_content > .panel > .panel_contents,
+  .index_as_table > .panel_contents { padding:0 !important; background:transparent !important; }
+
+  /* ── Design tokens ── */
+  .pt-page { --brand:#27bc9c; --brand-d:#1e9e82; --ink:#1f2a37; --muted:#6b7684;
+             --line:#e9edf2; --soft:#f4f6f9; color:var(--ink);
+             font-family:"Noto Sans Lao","Phetsarath OT",system-ui,sans-serif; }
+
+  /* ── Page header ── */
+  .pt-head { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:22px; }
+  .pt-head-l { display:flex; align-items:center; gap:14px; }
+  .pt-head-ico { width:46px; height:46px; border-radius:14px; display:grid; place-items:center; color:#fff; font-size:20px;
+                 background:linear-gradient(135deg,#27bc9c,#1e9e82); box-shadow:0 8px 18px rgba(39,188,156,.35); }
+  .pt-head h2 { font-size:20px; font-weight:800; margin:0; letter-spacing:-.2px; }
+  .pt-head p  { font-size:12.5px; color:var(--muted); margin:3px 0 0; }
+  .pt-actions { display:flex; gap:10px; }
+
+  /* ── Buttons ── */
+  .pt-btn { border:none !important; border-radius:11px !important; padding:10px 20px; font-size:14px; font-weight:700; cursor:pointer;
+            display:inline-flex; align-items:center; gap:8px; transition:.15s; text-decoration:none; box-shadow:none; }
+  .pt-btn-primary { background:linear-gradient(135deg,#27bc9c,#1e9e82) !important; color:#fff !important; box-shadow:0 6px 14px rgba(39,188,156,.32) !important; }
+  .pt-btn-primary:hover { filter:brightness(1.05); transform:translateY(-1px); color:#fff !important; }
+  .pt-btn-ghost { background:#fff !important; color:#475569 !important; border:1px solid var(--line) !important; }
+  .pt-btn-ghost:hover { background:#f8fafc !important; color:#334155 !important; }
+
+  /* ── Card ── */
+  .pt-card { background:#fff !important; border:1px solid var(--line); border-radius:20px; box-shadow:0 8px 30px rgba(16,24,40,.05); overflow:hidden; }
+  .pt-card + .pt-card { margin-top:22px; }
+  .pt-card-head { display:flex; align-items:center; gap:12px; padding:18px 24px; border-bottom:1px solid var(--line); }
+  .pt-chip { width:36px; height:36px; border-radius:11px; display:grid; place-items:center; color:#fff; font-size:15px;
+             background:linear-gradient(135deg,#27bc9c,#1e9e82); }
+  .pt-card-head h3 { font-size:15.5px; font-weight:800; margin:0; }
+  .pt-card-head .count { margin-left:auto; font-size:12px; font-weight:700; color:var(--brand-d); background:#e7f7f2; padding:4px 12px; border-radius:20px; }
+  .pt-card-body { padding:24px; }
+
+  /* ── Form ── */
+  .pt-label { font-size:12.5px; font-weight:700; color:#334155; margin-bottom:7px; display:block; }
+  .pt-req { color:#ef4444; }
+  /* All field elements: fixed 44px height for perfect alignment */
+  .pt-input, .pt-select {
+    width:100%; background:#fff !important; border:1.5px solid var(--line) !important; border-radius:11px;
+    height:44px !important; padding:0 14px !important; font-size:14px; color:var(--ink) !important;
+    transition:.15s; box-shadow:none !important; box-sizing:border-box !important; }
+  .pt-input::placeholder { color:#aab2bd; }
+  .pt-input:focus, .pt-select:focus { outline:none; border-color:var(--brand) !important; background:#fff !important;
+             box-shadow:0 0 0 3px rgba(39,188,156,.15) !important; }
+  .pt-field { margin-bottom:18px; }
+
+  /* checkbox toggle — 44px height */
+  .pt-check { display:flex; align-items:center; gap:10px; height:44px !important; padding:0 14px;
+    border:1.5px solid var(--line); border-radius:11px; background:#fff; cursor:pointer; box-sizing:border-box; }
+  .pt-check input { width:18px; height:18px; flex-shrink:0; cursor:pointer; accent-color:var(--brand); }
+  .pt-check span { font-size:13.5px; color:#475569; }
+
+  /* ── strip ActiveAdmin button chrome (gradient/inset shadow/text-shadow) ── */
+  .pt-page .pt-btn, .pt-page .pt-seg button, .pt-page .pt-ico,
+  .pt-modal .pt-btn, .pt-modal .pt-seg button, .pt-modal button,
+  .pt-modal input, .pt-modal select, .pt-modal label {
+    text-shadow:none !important; }
+  .pt-page .pt-btn:not(.pt-btn-primary), .pt-modal .pt-btn:not(.pt-btn-primary) {
+    background-image:none !important; }
+  .pt-page .pt-seg button, .pt-page .pt-ico,
+  .pt-modal .pt-seg button { box-shadow:none !important; }
+  /* Ensure primary button always shows green bg + white text */
+  .pt-page .pt-btn-primary, .pt-modal .pt-btn-primary {
+    background:linear-gradient(135deg,#27bc9c,#1e9e82) !important;
+    color:#fff !important; }
+
+  /* segmented status — 44px height to match inputs */
+  .pt-seg { display:flex; border:1.5px solid var(--line); border-radius:11px; overflow:hidden; height:44px; }
+  .pt-seg button { flex:1; border:none !important; background:#fff !important; height:44px; padding:0 8px; font-size:13.5px; font-weight:700; color:#94a3b8 !important; cursor:pointer; transition:.15s; }
+  .pt-seg button[data-status].on-active   { background:#198754 !important; color:#fff !important; }
+  .pt-seg button[data-status].on-inactive { background:#dc3545 !important; color:#fff !important; }
+
+  /* ── Live preview ── */
+  .pt-preview-wrap { background:linear-gradient(160deg,#f8fafc,#eef2f7); border:1px dashed #cbd5e1; border-radius:16px;
+             padding:22px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; height:100%; min-height:190px; }
+  .pt-preview-wrap small { color:var(--muted); font-size:11.5px; font-weight:700; letter-spacing:.3px; text-transform:uppercase; }
+
+  /* ── Plate badge ── */
+  /* Fixed size so ALL 10 badge types look the same in the table */
+  .plate-badge { border:2px solid #333; border-radius:9px; display:inline-flex; flex-direction:column;
+             justify-content:center; align-items:center;
+             width:136px; height:62px; text-align:center;
+             box-shadow:0 3px 8px rgba(0,0,0,.12); flex-shrink:0; }
+  /* Preview badge: larger but same proportions */
+  .plate-badge.lg { width:150px; height:68px; transform:scale(1.3); transform-origin:center; }
+  .plate-province { font-size:9.5px; font-weight:700; display:block; line-height:1.1; text-transform:uppercase; }
+  .plate-number   { font-size:17px; font-weight:900; display:block; line-height:1.3; letter-spacing:1px; }
+  .plate-badge.plate-yellow        { background:linear-gradient(135deg,#ffcc00,#ffdb4d); border-color:#333; }
+  .plate-badge.plate-yellow        .plate-province, .plate-badge.plate-yellow        .plate-number { color:#000; }
+  .plate-badge.plate-yellow-blue   { background:linear-gradient(135deg,#ffcc00,#ffdb4d); border-color:#3b82f6; }
+  .plate-badge.plate-yellow-blue   .plate-province, .plate-badge.plate-yellow-blue   .plate-number { color:#3b82f6; }
+  .plate-badge.plate-blue          { background:linear-gradient(135deg,#1e3a8a,#1e3a8a); border-color:#1e3a8a; }
+  .plate-badge.plate-blue          .plate-province, .plate-badge.plate-blue          .plate-number { color:#fff; }
+  .plate-badge.plate-white         { background:linear-gradient(135deg,#fff,#f5f5f5); border-color:#333; }
+  .plate-badge.plate-white         .plate-province, .plate-badge.plate-white         .plate-number { color:#000; }
+  .plate-badge.plate-white-darkblue{ background:linear-gradient(135deg,#fff,#f5f5f5); border-color:#1e3a8a; }
+  .plate-badge.plate-white-darkblue .plate-province,.plate-badge.plate-white-darkblue .plate-number{ color:#1e3a8a; }
+  .plate-badge.plate-white-lightblue{ background:linear-gradient(135deg,#fff,#f5f5f5); border-color:#60a5fa; }
+  .plate-badge.plate-white-lightblue .plate-province,.plate-badge.plate-white-lightblue .plate-number{ color:#60a5fa; }
+  .plate-badge.plate-red-underline { background:linear-gradient(135deg,#dc2626,#b91c1c); border-color:#7f1d1d; }
+  .plate-badge.plate-red-underline .plate-province, .plate-badge.plate-red-underline .plate-number { color:#fff; }
+  .plate-badge.plate-red-underline .plate-number { text-decoration:underline; }
+  .plate-badge.plate-red           { background:linear-gradient(135deg,#dc2626,#b91c1c); border-color:#7f1d1d; }
+  .plate-badge.plate-red           .plate-province, .plate-badge.plate-red           .plate-number { color:#fff; }
+  .plate-badge.plate-white-1percent{ background:linear-gradient(135deg,#fff,#f5f5f5); border:3px solid #2563eb; }
+  .plate-badge.plate-white-1percent .plate-province,.plate-badge.plate-white-1percent .plate-number{ color:#2563eb; }
+  .plate-badge.plate-white-foreign { background:linear-gradient(135deg,#fff,#f5f5f5); border-color:#2563eb; }
+  .plate-badge.plate-white-foreign .plate-province,.plate-badge.plate-white-foreign .plate-number { color:#2563eb; }
+  .plate-badge.plate-diplomat      { background:linear-gradient(135deg,#fff,#f5f5f5); border:2px solid #2563eb; }
+  .plate-badge.plate-diplomat      .plate-province, .plate-badge.plate-diplomat      .plate-number { color:#2563eb; }
+
+  /* ── Table ── */
+  .pt-table { width:100%; border-collapse:separate; border-spacing:0; }
+  .pt-table thead th { font-size:11.5px; font-weight:800; text-transform:uppercase; letter-spacing:.4px; color:#94a3b8;
+             background:#f8fafc; padding:13px 18px; text-align:left; border-bottom:1px solid var(--line); }
+  .pt-table tbody td { padding:14px 18px; border-bottom:1px solid #f1f5f9; font-size:14px; vertical-align:middle; }
+  .pt-table tbody tr:last-child td { border-bottom:none; }
+  .pt-table tbody tr:hover { background:#fafcfe; }
+  .pt-idx { width:34px; height:34px; border-radius:10px; background:#f1f5f9; color:#64748b; font-weight:800; font-size:13px; display:grid; place-items:center; }
+  .pt-code { font-weight:800; font-size:15px; color:var(--ink); }
+  .pt-pill { display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:700; padding:5px 12px; border-radius:20px; }
+  .pt-pill.on  { background:#e7f7f2; color:#198754; }
+  .pt-pill.off { background:#f1f5f9; color:#94a3b8; }
+  .pt-pill.red { background:#fdecec; color:#dc3545; }
+
+  /* action buttons — same style as vehicles/users pages */
+  .pt-actions-row { display:flex; gap:6px; justify-content:center; }
+  .pt-btn-edit { border:1px solid #16a34a; background:#f0fdf4; color:#15803d !important; border-radius:8px;
+                 padding:6px 12px; font-size:12.5px; font-weight:700; cursor:pointer;
+                 display:inline-flex; align-items:center; gap:5px; transition:.15s;
+                 text-shadow:none !important; background-image:none !important; box-shadow:none !important; }
+  .pt-btn-edit:hover { background:#16a34a !important; color:#fff !important; }
+  .pt-btn-del  { border:1px solid #f87171; background:#fff1f2; color:#991b1b !important; border-radius:8px;
+                 padding:6px 12px; font-size:12.5px; font-weight:700; cursor:pointer;
+                 display:inline-flex; align-items:center; gap:5px; transition:.15s;
+                 text-shadow:none !important; background-image:none !important; box-shadow:none !important; }
+  .pt-btn-del:hover  { background:#dc2626 !important; color:#fff !important; border-color:#dc2626; }
+
+  .pt-empty { text-align:center; padding:56px 20px; color:#94a3b8; }
+  .pt-empty i { font-size:34px; opacity:.35; display:block; margin-bottom:10px; }
+
+  /* ── Modal ── */
+  .pt-modal .modal-content { border:none; border-radius:22px; overflow:hidden; box-shadow:0 24px 60px rgba(16,24,40,.22); }
+  .pt-modal-head { display:flex; align-items:center; gap:12px; padding:20px 24px; border-bottom:1px solid var(--line); }
+  .pt-modal-head .pt-chip.warn { background:linear-gradient(135deg,#f59e0b,#dc3545); }
+  .pt-modal-head h5 { font-size:16px; font-weight:800; margin:0; }
+  .pt-modal-body { padding:24px; }
+
+  .pt-alert { border-radius:13px; padding:13px 16px; font-size:13.5px; font-weight:600; display:flex; align-items:center; gap:9px; margin-bottom:20px; }
+  .pt-alert.ok  { background:#e7f7f2; color:#0f7a5f; }
+  .pt-alert.err { background:#fdecec; color:#c0303c; }
+
+  @media (max-width:768px){ .pt-card-body{ padding:18px; } .pt-head h2{ font-size:18px; } }
+</style>
+
+<div class="container-fluid pt-page">
+
+  <%# ── Flash ── %>
+  <% if notice_msg %>
+    <div class="pt-alert ok"><i class="fas fa-check-circle"></i><%= notice_msg %></div>
+  <% end %>
+  <% if alert_msg %>
+    <div class="pt-alert err"><i class="fas fa-exclamation-circle"></i><%= alert_msg %></div>
+  <% end %>
+
+  <%= form_with url: admin_plate_types_path, method: :post, local: true do %>
+
+    <%# ── Page header ── %>
+    <div class="pt-head">
+      <div class="pt-head-l">
+        <div class="pt-head-ico"><i class="fas fa-id-card"></i></div>
+        <div>
+          <h2>ຈັດການສີປ້າຍທະບຽນ</h2>
+          <p>ກຳໜົດສີ ແລະ ການສະແດງຊື່ແຂວງ ຂອງແຕ່ລະປະເພດປ້າຍ</p>
+        </div>
+      </div>
+      <div class="pt-actions">
+        <a href="<%= admin_plate_types_path %>" class="pt-btn pt-btn-ghost">ຍົກເລີກ</a>
+        <button type="submit" class="pt-btn pt-btn-primary"><i class="fas fa-plus"></i>ເພີ່ມປ້າຍ</button>
+      </div>
+    </div>
+
+    <%# ── Add card: form (left) + live preview (right) ── %>
+    <div class="pt-card">
+      <div class="pt-card-head">
+        <div class="pt-chip"><i class="fas fa-plus"></i></div>
+        <h3>ເພີ່ມປະເພດປ້າຍໃໝ່</h3>
+      </div>
+      <div class="pt-card-body">
+        <div style="display:grid;grid-template-columns:1fr 280px;gap:24px;align-items:start;">
+          <div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+              <div class="pt-field">
+                <label class="pt-label">ປະເພດປ້າຍ <span class="pt-req">*</span></label>
+                <input type="text" name="plate_type[plate_code]" id="add_plate_code" class="pt-input"
+                       placeholder="ຍົກຕົວຢ່າງ: ຈ2, ພກ, ປກສ..." oninput="updateAddPreview()">
+              </div>
+              <div class="pt-field">
+                <label class="pt-label">ຊື່ປ້າຍ <span class="pt-req">*</span></label>
+                <input type="text" name="plate_type[name]" class="pt-input"
+                       placeholder="ຍົກຕົວຢ່າງ: ເອກະຊົນ ສ່ວນຕົວ...">
+              </div>
+            </div>
+            <div class="pt-field" style="margin-bottom:16px;">
+              <label class="pt-label">ສີ / ປະເພດປ້າຍ</label>
+              <select name="plate_type[color_class]" id="add_color_class" class="pt-select" onchange="updateAddPreview()">
+                <option value="plate-yellow">1. ເອກະຊົນ ສ່ວນຕົວ (ເຫຼືອງ / ຕົວດຳ)</option>
+                <option value="plate-yellow-blue">2. ເອກະຊົນຕ່າງດ້າວ (ເຫຼືອງ / ຕົວຟ້າ)</option>
+                <option value="plate-blue">3. ລັດບໍລິຫານ (ຟ້າ / ຕົວຂາວ)</option>
+                <option value="plate-white">4. ບໍລິສັດ 100% (ຂາວ / ຕົວດຳ)</option>
+                <option value="plate-red-underline">5. ປກສ / ຕຳຫຼວດ (ແດງ / ຕົວຂາວ)</option>
+                <option value="plate-white-darkblue">6. ຕ່າງປະເທດ ອົງກອນ (ຂາວ / ຕົວຟ້າເຂັ້ມ)</option>
+                <option value="plate-red">7. ກອງທັບ (ແດງ / ຕົວຂາວ)</option>
+                <option value="plate-white-1percent">8. ບໍລິສັດ 1% (ຂາວ / ຕົວຟ້າ / ຂອບຟ້າ)</option>
+                <option value="plate-diplomat">9. ສະຖານທູດ (ຂາວ / ຕົວຟ້າ)</option>
+                <option value="plate-white-foreign">10. ອົງການ ສະຫະປະຊາຊາດ (ຂາວ / ຕົວຟ້າ)</option>
+              </select>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+              <div class="pt-field">
+                <label class="pt-label">ສະແດງຊື່ແຂວງ</label>
+                <label class="pt-check">
+                  <input type="checkbox" name="plate_type[show_province]" value="1" id="add_show_province" checked onchange="updateAddPreview()">
+                  <span>ສະແດງຊື່ແຂວງໃນປ້າຍ</span>
+                </label>
+              </div>
+              <div class="pt-field">
+                <label class="pt-label">ສະຖານະ</label>
+                <div class="pt-seg" role="group">
+                  <button type="button" data-status="active" class="on-active" onclick="setStatus(this,'add_status_val')">ເປີດໃຊ້ງານ</button>
+                  <button type="button" data-status="inactive" onclick="setStatus(this,'add_status_val')">ປິດໃຊ້ງານ</button>
+                  <input type="hidden" name="plate_type[status]" id="add_status_val" value="active">
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="pt-preview-wrap">
+            <small>ຕົວຢ່າງປ້າຍ</small>
+            <div id="add-preview" class="plate-badge lg plate-yellow">
+              <span class="plate-province" id="add-preview-province">ນະຄອນຫຼວງວຽງຈັນ</span>
+              <span class="plate-number"><span id="add-preview-code">ຈ2</span> <span>1234</span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  <% end %>
+
+  <%# ── Table card ── %>
+  <div class="pt-card">
+    <div class="pt-card-head">
+      <div class="pt-chip"><i class="fas fa-list"></i></div>
+      <h3>ລາຍການປະເພດປ້າຍທະບຽນ</h3>
+      <span class="count"><%= plate_types.size %> ປະເພດ</span>
+    </div>
+    <div class="table-responsive">
+      <table class="pt-table">
+        <thead>
+          <tr>
+            <th style="width:64px;">#</th>
+            <th style="width:120px;">ປະເພດ</th>
+            <th>ຊື່ປ້າຍ</th>
+            <th style="width:180px;text-align:center;">ຕົວຢ່າງ</th>
+            <th style="width:120px;">ສະແດງແຂວງ</th>
+            <th style="width:120px;">ສະຖານະ</th>
+            <th style="width:110px; text-align:center;">ຈັດການ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% plate_types.each_with_index do |pt, i| %>
+            <tr>
+              <td><span class="pt-idx"><%= i + 1 %></span></td>
+              <td><span class="pt-code"><%= pt.plate_code %></span></td>
+              <td><%= pt.name %></td>
+              <td style="text-align:center;">
+                <div class="plate-badge <%= pt.color_class %>">
+                  <% if pt.show_province %>
+                    <span class="plate-province">ນະຄອນຫຼວງ</span>
+                  <% end %>
+                  <span class="plate-number"><span><%= pt.plate_code %></span> <span>1234</span></span>
+                </div>
+              </td>
+              <td>
+                <% if pt.show_province %>
+                  <span class="pt-pill on"><i class="fas fa-check"></i>ສະແດງ</span>
+                <% else %>
+                  <span class="pt-pill off"><i class="fas fa-minus"></i>ບໍ່ສະແດງ</span>
+                <% end %>
+              </td>
+              <td>
+                <% if pt.status == 'active' %>
+                  <span class="pt-pill on">ເປີດໃຊ້ງານ</span>
+                <% else %>
+                  <span class="pt-pill red">ປິດໃຊ້ງານ</span>
+                <% end %>
+              </td>
+              <td>
+                <div class="pt-actions-row">
+                  <button type="button" class="pt-btn-edit"
+                          onclick="openEditModal(<%= pt.id %>,'<%= j pt.plate_code %>','<%= j pt.name %>','<%= pt.color_class %>','<%= pt.show_province %>','<%= pt.status %>')">
+                    <i class="fas fa-pen"></i>ແກ້ໄຂ
+                  </button>
+                  <button type="button" class="pt-btn-del"
+                          onclick="openDeleteModal(<%= pt.id %>,'<%= j pt.plate_code %>')">
+                    <i class="fas fa-trash"></i>ລົບ
+                  </button>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+          <% if plate_types.empty? %>
+            <tr><td colspan="7"><div class="pt-empty"><i class="fas fa-id-card"></i>ຍັງບໍ່ມີຂໍ້ມູນປະເພດປ້າຍ</div></td></tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<%# ── Delete Modal ── %>
+<div class="modal fade pt-modal" id="deleteModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="pt-modal-head">
+        <div class="pt-chip warn"><i class="fas fa-exclamation-triangle"></i></div>
+        <h5>ຢືນຢັນການລົບ</h5>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="pt-modal-body">
+        <p style="font-size:14px;color:#475569;margin-bottom:22px;">
+          ທ່ານແນ່ໃຈບໍວ່າຕ້ອງການລົບປ້າຍ <strong id="delete-code-label" style="color:#dc3545;"></strong> ? ການກະທຳນີ້ບໍ່ສາມາດກູ້ຄືນໄດ້.
+        </p>
+        <form id="delete-form" method="post" action="#">
+          <input type="hidden" name="_method" value="delete">
+          <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
+          <div style="display:flex;gap:10px;">
+            <button type="submit" class="pt-btn" style="flex:1;background:#dc3545;color:#fff;justify-content:center;">
+              <i class="fas fa-trash"></i>ລົບ
+            </button>
+            <button type="button" class="pt-btn pt-btn-ghost" data-bs-dismiss="modal" style="flex:1;justify-content:center;">ຍົກເລີກ</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%# ── Edit Modal ── %>
+<div class="modal fade pt-modal" id="editModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="pt-modal-head">
+        <div class="pt-chip"><i class="fas fa-pen"></i></div>
+        <h5>ແກ້ໄຂປະເພດປ້າຍທະບຽນ</h5>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="pt-modal-body">
+        <form id="edit-form" method="post" action="#">
+          <input type="hidden" name="_method" value="patch">
+          <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
+
+          <div style="display:grid;grid-template-columns:1fr 240px;gap:24px;align-items:start;">
+            <div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+                <div class="pt-field">
+                  <label class="pt-label">ປະເພດປ້າຍ <span class="pt-req">*</span></label>
+                  <input type="text" name="plate_type[plate_code]" id="edit_plate_code" class="pt-input" required oninput="updateEditPreview()">
+                </div>
+                <div class="pt-field">
+                  <label class="pt-label">ຊື່ປ້າຍ <span class="pt-req">*</span></label>
+                  <input type="text" name="plate_type[name]" id="edit_name" class="pt-input" required>
+                </div>
+              </div>
+              <div class="pt-field" style="margin-bottom:16px;">
+                <label class="pt-label">ສີ / ປະເພດປ້າຍ</label>
+                <select name="plate_type[color_class]" id="edit_color_class" class="pt-select" onchange="updateEditPreview()">
+                  <option value="plate-yellow">1. ເອກະຊົນ ສ່ວນຕົວ (ເຫຼືອງ / ຕົວດຳ)</option>
+                  <option value="plate-yellow-blue">2. ເອກະຊົນຕ່າງດ້າວ (ເຫຼືອງ / ຕົວຟ້າ)</option>
+                  <option value="plate-blue">3. ລັດບໍລິຫານ (ຟ້າ / ຕົວຂາວ)</option>
+                  <option value="plate-white">4. ບໍລິສັດ 100% (ຂາວ / ຕົວດຳ)</option>
+                  <option value="plate-red-underline">5. ປກສ / ຕຳຫຼວດ (ແດງ / ຕົວຂາວ)</option>
+                  <option value="plate-white-darkblue">6. ຕ່າງປະເທດ ອົງກອນ (ຂາວ / ຕົວຟ້າເຂັ້ມ)</option>
+                  <option value="plate-red">7. ກອງທັບ (ແດງ / ຕົວຂາວ)</option>
+                  <option value="plate-white-1percent">8. ບໍລິສັດ 1% (ຂາວ / ຕົວຟ້າ / ຂອບຟ້າ)</option>
+                  <option value="plate-diplomat">9. ສະຖານທູດ (ຂາວ / ຕົວຟ້າ)</option>
+                  <option value="plate-white-foreign">10. ອົງການ ສະຫະປະຊາຊາດ (ຂາວ / ຕົວຟ້າ)</option>
+                </select>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                <div class="pt-field">
+                  <label class="pt-label">ສະແດງຊື່ແຂວງ</label>
+                  <label class="pt-check">
+                    <input type="checkbox" name="plate_type[show_province]" value="1" id="edit_show_province" onchange="updateEditPreview()">
+                    <span>ສະແດງຊື່ແຂວງໃນປ້າຍ</span>
+                  </label>
+                </div>
+                <div class="pt-field">
+                  <label class="pt-label">ສະຖານະ</label>
+                  <div id="edit-status-group" class="pt-seg" role="group">
+                    <button type="button" data-status="active"   onclick="setStatus(this,'edit_status_val')">ເປີດໃຊ້ງານ</button>
+                    <button type="button" data-status="inactive" onclick="setStatus(this,'edit_status_val')">ປິດໃຊ້ງານ</button>
+                    <input type="hidden" name="plate_type[status]" id="edit_status_val" value="active">
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="pt-preview-wrap">
+              <small>ຕົວຢ່າງປ້າຍ</small>
+              <div id="edit-preview" class="plate-badge lg plate-yellow">
+                <span class="plate-province" id="edit-preview-province">ນະຄອນຫຼວງວຽງຈັນ</span>
+                <span class="plate-number"><span id="edit-preview-code">ຈ2</span> <span>1234</span></span>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:10px;margin-top:24px;">
+            <button type="submit" class="pt-btn pt-btn-primary" style="flex:1;justify-content:center;">
+              <i class="fas fa-save"></i>ບັນທຶກການແກ້ໄຂ
+            </button>
+            <button type="button" class="pt-btn pt-btn-ghost" data-bs-dismiss="modal" style="flex:1;justify-content:center;">ຍົກເລີກ</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  var PT_PROVINCE = 'ນະຄອນຫຼວງວຽງຈັນ';
+
+  // ── segmented status ──
+  function setStatusBtn(group, status) {
+    group.querySelectorAll('button[data-status]').forEach(function(b){ b.classList.remove('on-active','on-inactive'); });
+    var t = group.querySelector('button[data-status="' + status + '"]');
+    if (t) t.classList.add(status === 'active' ? 'on-active' : 'on-inactive');
+  }
+  function setStatus(btn, hiddenId) {
+    setStatusBtn(btn.closest('.pt-seg'), btn.dataset.status);
+    document.getElementById(hiddenId).value = btn.dataset.status;
+  }
+
+  // ── live preview ──
+  function renderPreview(prefix, code, colorClass, showProvince) {
+    var badge = document.getElementById(prefix + '-preview');
+    badge.className = 'plate-badge lg ' + colorClass;
+    document.getElementById(prefix + '-preview-province').style.display = showProvince ? '' : 'none';
+    document.getElementById(prefix + '-preview-code').textContent = (code && code.trim()) ? code : 'ຈ2';
+  }
+  function updateAddPreview() {
+    renderPreview('add',
+      document.getElementById('add_plate_code').value,
+      document.getElementById('add_color_class').value,
+      document.getElementById('add_show_province').checked);
+  }
+  function updateEditPreview() {
+    renderPreview('edit',
+      document.getElementById('edit_plate_code').value,
+      document.getElementById('edit_color_class').value,
+      document.getElementById('edit_show_province').checked);
+  }
+
+  // ── modals ──
+  function openEditModal(id, code, name, colorClass, showProvince, status) {
+    document.getElementById('edit_plate_code').value      = code;
+    document.getElementById('edit_name').value            = name;
+    document.getElementById('edit_color_class').value     = colorClass;
+    document.getElementById('edit_show_province').checked = (showProvince === 'true');
+    document.getElementById('edit_status_val').value      = status;
+    document.getElementById('edit-form').action           = '/admin/plate_types/' + id;
+    setStatusBtn(document.getElementById('edit-status-group'), status);
+    updateEditPreview();
+    new bootstrap.Modal(document.getElementById('editModal')).show();
+  }
+  function openDeleteModal(id, code) {
+    document.getElementById('delete-code-label').textContent = code;
+    document.getElementById('delete-form').action = '/admin/plate_types/' + id;
+    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+  }
+
+  document.addEventListener('DOMContentLoaded', updateAddPreview);
+</script>

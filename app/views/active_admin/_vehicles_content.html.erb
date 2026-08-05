@@ -1,0 +1,436 @@
+<%
+  today = Date.today
+  filter_search = params.dig(:q, :search)
+  filter_type   = params.dig(:q, :type)
+  filter_year   = params.dig(:q, :year)
+  filter_status = params.dig(:q, :status)
+
+  scope = Vehicle.includes(:user, :road_taxes, :inspections).order(created_at: :desc)
+  scope = scope.where("plate_number ILIKE :q OR brand ILIKE :q OR model ILIKE :q", q: "%#{filter_search.strip}%") if filter_search.present?
+  scope = scope.where(vehicle_type: filter_type) if filter_type.present?
+  scope = scope.where(year: filter_year)         if filter_year.present?
+
+  if filter_status.present?
+    vehicle_ids = scope.to_a.select do |v|
+      latest = v.road_taxes.max_by(&:expired_at)
+      days   = latest ? (latest.expired_at.to_date - today).to_i : nil
+      case filter_status
+      when 'active'  then days.nil? || days > 90
+      when 'warning' then days && days >= 0 && days <= 90
+      end
+    end.map(&:id)
+    scope = scope.where(id: vehicle_ids)
+  end
+
+  page     = (params[:page] || 1).to_i
+  per_page = 20
+  vehicles = scope.page(page).per(per_page)
+
+  total              = Vehicle.count
+  active_count       = Vehicle.joins(:road_taxes).where("road_taxes.expired_at > ?", today + 90).distinct.count
+  warning_count      = Vehicle.joins(:road_taxes).where("road_taxes.expired_at BETWEEN ? AND ?", today, today + 90).distinct.count
+  inspection_this_yr = Inspection.where("EXTRACT(YEAR FROM created_at) = ?", today.year).count
+  has_filter = filter_search.present? || filter_type.present? || filter_year.present? || filter_status.present?
+%>
+
+<style>
+  .index_content .scopes, #titlebar { display:none !important; }
+  body.active_admin, #wrapper, #active_admin_content, #main_content,
+  .index_content, #main, .flashes { background:#f4f6f9 !important; }
+  .index_content > .panel,
+  .index_as_table,
+  #main_content .panel:first-child { background:transparent !important; border:none !important; box-shadow:none !important; padding:0 !important; margin:0 !important; }
+  .index_content > .panel > .panel_contents,
+  .index_as_table > .panel_contents { padding:0 !important; background:transparent !important; }
+
+  .veh-page { --brand:#27bc9c; --brand-d:#1e9e82; --ink:#1f2a37; --muted:#6b7684; --line:#e9edf2;
+              color:var(--ink); font-family:"Noto Sans Lao","Phetsarath OT",system-ui,sans-serif; }
+
+  /* ── Header ── */
+  .veh-head { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:24px; }
+  .veh-head-l { display:flex; align-items:center; gap:14px; }
+  .veh-head-ico { width:48px; height:48px; border-radius:14px; display:grid; place-items:center;
+                  color:#fff; font-size:20px; background:linear-gradient(135deg,#27bc9c,#1e9e82);
+                  box-shadow:0 8px 18px rgba(39,188,156,.35); flex-shrink:0; }
+  .veh-head h2 { font-size:20px; font-weight:800; margin:0; letter-spacing:-.2px; }
+  .veh-head p  { font-size:12.5px; color:var(--muted); margin:3px 0 0; }
+  .veh-btn-dl { border:none; border-radius:11px; padding:10px 20px; font-size:13.5px; font-weight:700;
+                background:linear-gradient(135deg,#27bc9c,#1e9e82); color:#fff !important;
+                box-shadow:0 6px 14px rgba(39,188,156,.32); cursor:pointer; display:inline-flex;
+                align-items:center; gap:8px; text-decoration:none !important; transition:.15s; }
+  .veh-btn-dl:hover { filter:brightness(1.06); color:#fff !important; transform:translateY(-1px); }
+
+  /* ── Stats ── */
+  .veh-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:22px; }
+  .veh-stat { background:#fff; border-radius:16px; padding:18px 20px;
+              box-shadow:0 4px 16px rgba(16,24,40,.05); display:flex; align-items:center; gap:16px;
+              border-left:4px solid transparent; }
+  .veh-stat.teal  { border-left-color:#27bc9c; }
+  .veh-stat.green { border-left-color:#16a34a; }
+  .veh-stat.amber { border-left-color:#f59e0b; }
+  .veh-stat.blue  { border-left-color:#2563eb; }
+  .veh-stat-ico { width:44px; height:44px; border-radius:12px; display:grid; place-items:center; font-size:18px; flex-shrink:0; }
+  .veh-stat.teal  .veh-stat-ico { background:#e6f7f3; color:#27bc9c; }
+  .veh-stat.green .veh-stat-ico { background:#dcfce7; color:#16a34a; }
+  .veh-stat.amber .veh-stat-ico { background:#fef3c7; color:#f59e0b; }
+  .veh-stat.blue  .veh-stat-ico { background:#dbeafe; color:#2563eb; }
+  .veh-stat-label { font-size:12px; color:var(--muted); font-weight:600; margin:0 0 4px; }
+  .veh-stat-val   { font-size:24px; font-weight:800; margin:0; letter-spacing:-.5px; }
+
+  /* ── Filter ── */
+  .veh-filter { background:#fff; border-radius:16px; padding:18px 20px; margin-bottom:20px;
+                box-shadow:0 4px 16px rgba(16,24,40,.05); }
+  .veh-filter-label { display:block; font-size:12.5px; font-weight:700; color:#334155; margin-bottom:6px; }
+  .veh-filter-input { width:100%; border:1px solid var(--line); border-radius:10px; padding:10px 14px;
+                      font-size:13.5px; background:#fff; outline:none;
+                      font-family:inherit; color:var(--ink); }
+  .veh-filter-input:focus { border-color:#27bc9c; box-shadow:0 0 0 3px rgba(39,188,156,.12); }
+  .veh-filter-row { display:flex !important; flex-direction:row !important; gap:12px; align-items:flex-end; flex-wrap:nowrap; }
+  .veh-filter-search { flex:2.5; min-width:0; }
+  .veh-filter-sel    { flex:1.5; min-width:0; }
+  .veh-filter-btns   { flex-shrink:0; display:flex; flex-direction:column; gap:6px; }
+  .veh-btn-filter { border:none; border-radius:10px; padding:10px 18px; font-size:13.5px; font-weight:700;
+                    background:#1f2a37; color:#fff; cursor:pointer; display:inline-flex; align-items:center; gap:6px;
+                    white-space:nowrap; width:100%; justify-content:center; min-height:44px; box-sizing:border-box; }
+  .veh-btn-filter:hover { background:#374151; }
+  .veh-btn-clear { border:1px solid var(--line); border-radius:10px; padding:10px 18px; font-size:13.5px;
+                   font-weight:600; background:#fff; text-decoration:none !important;
+                   display:inline-flex; align-items:center; gap:6px; white-space:nowrap;
+                   width:100%; justify-content:center; color:var(--muted) !important;
+                   min-height:44px; box-sizing:border-box; }
+  .veh-btn-clear:hover { background:#f8fafc; color:var(--ink) !important; }
+
+  /* ── Table ── */
+  .veh-table-card { background:#fff; border-radius:20px; overflow:hidden; box-shadow:0 4px 20px rgba(16,24,40,.06); }
+  .veh-table { width:100%; border-collapse:collapse; }
+  .veh-table thead th { background:#f8fafc; padding:12px 14px; font-size:12px; font-weight:700;
+                        color:var(--muted); text-transform:uppercase; letter-spacing:.5px;
+                        border-bottom:1px solid var(--line); white-space:nowrap; }
+  .veh-table thead th:first-child { padding-left:20px; }
+  .veh-table thead th:last-child  { padding-right:20px; text-align:center; }
+  .veh-table tbody td { padding:12px 14px; font-size:13.5px; border-bottom:1px solid var(--line); vertical-align:middle; }
+  .veh-table tbody td:first-child { padding-left:20px; }
+  .veh-table tbody td:last-child  { padding-right:20px; text-align:center; }
+  .veh-table tbody tr:last-child td { border-bottom:none; }
+  .veh-table tbody tr:hover td { background:#fafcfb; }
+
+  /* Plate badge */
+  .plate-badge { border:2px solid #333; border-radius:8px; padding:8px 15px; display:inline-flex;
+                 flex-direction:column; justify-content:center; align-items:center;
+                 min-width:90px; min-height:45px; text-align:center; box-shadow:0 2px 4px rgba(0,0,0,.1); }
+  .plate-province { font-size:9px; font-weight:700; display:block; line-height:1; text-transform:uppercase; }
+  .plate-number   { font-size:15px; font-weight:900; display:block; line-height:1.2; letter-spacing:1px; }
+  .plate-badge.plate-yellow        { background:linear-gradient(135deg,#ffcc00,#ffdb4d); border-color:#333; }
+  .plate-badge.plate-yellow        .plate-province, .plate-badge.plate-yellow        .plate-number { color:#000; }
+  .plate-badge.plate-yellow-green  { background:linear-gradient(135deg,#ffcc00,#ffdb4d); border-color:#333; }
+  .plate-badge.plate-yellow-green  .plate-province { color:#000; }
+  .plate-badge.plate-yellow-green  .plate-number   { color:#16a34a; }
+  .plate-badge.plate-yellow-blue   { background:linear-gradient(135deg,#ffcc00,#ffdb4d); border-color:#3b82f6; }
+  .plate-badge.plate-yellow-blue   .plate-province, .plate-badge.plate-yellow-blue .plate-number { color:#3b82f6; }
+  .plate-badge.plate-blue          { background:linear-gradient(135deg,#1e3a8a,#1e3a8a); border-color:#1e3a8a; }
+  .plate-badge.plate-blue          .plate-province, .plate-badge.plate-blue          .plate-number { color:#fff; }
+  .plate-badge.plate-white         { background:linear-gradient(135deg,#fff,#f5f5f5); border-color:#333; }
+  .plate-badge.plate-white         .plate-province, .plate-badge.plate-white         .plate-number { color:#000; }
+  .plate-badge.plate-white-darkblue  { background:linear-gradient(135deg,#fff,#f5f5f5); border-color:#1e3a8a; }
+  .plate-badge.plate-white-darkblue  .plate-province, .plate-badge.plate-white-darkblue .plate-number { color:#1e3a8a; }
+  .plate-badge.plate-white-lightblue { background:linear-gradient(135deg,#fff,#f5f5f5); border-color:#60a5fa; }
+  .plate-badge.plate-white-lightblue .plate-province, .plate-badge.plate-white-lightblue .plate-number { color:#60a5fa; }
+  .plate-badge.plate-red           { background:linear-gradient(135deg,#dc2626,#b91c1c); border-color:#7f1d1d; }
+  .plate-badge.plate-red           .plate-province, .plate-badge.plate-red           .plate-number { color:#fff; }
+  .plate-badge.plate-red-underline { background:linear-gradient(135deg,#dc2626,#b91c1c); border-color:#7f1d1d; }
+  .plate-badge.plate-red-underline .plate-province, .plate-badge.plate-red-underline .plate-number { color:#fff; }
+  .plate-badge.plate-white-1percent { background:linear-gradient(135deg,#fff,#f5f5f5); border:3px solid #2563eb; }
+  .plate-badge.plate-white-1percent .plate-province, .plate-badge.plate-white-1percent .plate-number { color:#2563eb; }
+  .plate-badge.plate-white-foreign { background:linear-gradient(135deg,#fff,#f5f5f5); border-color:#2563eb; }
+  .plate-badge.plate-white-foreign .plate-province, .plate-badge.plate-white-foreign .plate-number { color:#2563eb; }
+  .plate-badge.plate-diplomat      { background:linear-gradient(135deg,#fff,#f5f5f5); border:2px solid #2563eb; }
+  .plate-badge.plate-diplomat      .plate-province, .plate-badge.plate-diplomat .plate-number { color:#2563eb; }
+
+  /* Status / expiry */
+  .veh-status { display:inline-block; padding:5px 12px; border-radius:20px; font-size:12px; font-weight:600; white-space:nowrap; }
+  .veh-status-ok   { background:#dcfce7; color:#16a34a; }
+  .veh-status-warn { background:#fef9c3; color:#ca8a04; }
+  .veh-status-exp  { background:#fee2e2; color:#dc2626; }
+  .expiry-warning  { color:#ca8a04; font-weight:600; }
+  .expiry-danger   { color:#dc2626; font-weight:600; }
+
+  /* Actions */
+  .veh-actions { display:flex; gap:5px; justify-content:center; }
+  .veh-btn-view { border:1px solid #0ea5e9; background:#f0f9ff; color:#0369a1 !important; border-radius:7px;
+                  padding:5px 10px; font-size:12px; font-weight:700; text-decoration:none !important;
+                  display:inline-flex; align-items:center; gap:4px; transition:.15s; }
+  .veh-btn-view:hover { background:#0ea5e9; color:#fff !important; }
+  .veh-btn-edit { border:1px solid #16a34a; background:#f0fdf4; color:#15803d !important; border-radius:7px;
+                  padding:5px 10px; font-size:12px; font-weight:700; text-decoration:none !important;
+                  display:inline-flex; align-items:center; gap:4px; transition:.15s; }
+  .veh-btn-edit:hover { background:#16a34a; color:#fff !important; }
+  .veh-btn-del { border:1px solid #f87171; background:#fff1f2; color:#991b1b; border-radius:7px;
+                 padding:5px 10px; font-size:12px; font-weight:700; cursor:pointer;
+                 display:inline-flex; align-items:center; gap:4px; transition:.15s; }
+  .veh-btn-del:hover { background:#dc2626; color:#fff; border-color:#dc2626; }
+  .veh-btn-del form { margin:0; }
+
+  /* Empty */
+  .veh-empty { text-align:center; padding:60px 20px; }
+  .veh-empty i { font-size:3rem; color:#cbd5e1; display:block; margin-bottom:12px; }
+  .veh-empty p { color:var(--muted); font-size:14px; margin:0; }
+
+  /* Pagination */
+  .veh-page-wrap .pagination .page.current a,
+  .veh-page-wrap .pagination .page.current span { background:#27bc9c; border-color:#27bc9c; color:#fff; border-radius:8px; }
+  .veh-page-wrap .pagination a, .veh-page-wrap .pagination span { border-radius:8px; }
+</style>
+
+<div class="veh-page">
+
+  <%# ── Header ── %>
+  <div class="veh-head">
+    <div class="veh-head-l">
+      <div class="veh-head-ico"><i class="fas fa-car"></i></div>
+      <div>
+        <h2>ຂໍ້ມູນພາຫະນະ</h2>
+        <p>ຈັດການຂໍ້ມູນລະອຽດຂອງພາຫະນະທັງໝົດ</p>
+      </div>
+    </div>
+    <a href="#" class="veh-btn-dl">
+      <i class="fas fa-download"></i>ດາວໂຫຼດຂໍ້ມູນ
+    </a>
+  </div>
+
+  <%# ── Stats ── %>
+  <div class="veh-stats">
+    <div class="veh-stat teal">
+      <div class="veh-stat-ico"><i class="fas fa-car"></i></div>
+      <div>
+        <p class="veh-stat-label">ພາຫະນະທັງໝົດ</p>
+        <p class="veh-stat-val"><%= number_with_delimiter(total) %></p>
+      </div>
+    </div>
+    <div class="veh-stat green">
+      <div class="veh-stat-ico"><i class="fas fa-check-circle"></i></div>
+      <div>
+        <p class="veh-stat-label">ສະຖານະປົກກະຕິ</p>
+        <p class="veh-stat-val"><%= number_with_delimiter(active_count) %></p>
+      </div>
+    </div>
+    <div class="veh-stat amber">
+      <div class="veh-stat-ico"><i class="fas fa-exclamation-triangle"></i></div>
+      <div>
+        <p class="veh-stat-label">ໃກ້ໝົດອາຍຸ</p>
+        <p class="veh-stat-val"><%= number_with_delimiter(warning_count) %></p>
+      </div>
+    </div>
+    <div class="veh-stat blue">
+      <div class="veh-stat-ico"><i class="fas fa-clipboard-check"></i></div>
+      <div>
+        <p class="veh-stat-label">ກວດສອບປີນີ້</p>
+        <p class="veh-stat-val"><%= number_with_delimiter(inspection_this_yr) %></p>
+      </div>
+    </div>
+  </div>
+
+  <%# ── Filter ── %>
+  <div class="veh-filter">
+    <form method="GET" action="<%= admin_vehicles_path %>">
+      <div class="veh-filter-row">
+        <div class="veh-filter-search">
+          <label class="veh-filter-label">ຄົ້ນຫາ</label>
+          <input type="text" name="q[search]" class="veh-filter-input"
+                 value="<%= filter_search %>" placeholder="ທະບຽນ, ຍີ່ຫໍ້, ລຸ້ນ...">
+        </div>
+        <div class="veh-filter-sel">
+          <label class="veh-filter-label">ປະເພດ</label>
+          <select name="q[type]" class="veh-filter-input">
+            <option value="">ທັງໝົດ</option>
+            <option value="motorcycle" <%= 'selected' if filter_type == 'motorcycle' %>>ລົດຈັກ</option>
+            <option value="car"        <%= 'selected' if filter_type == 'car'        %>>ລົດຍົນ</option>
+            <option value="truck"      <%= 'selected' if filter_type == 'truck'      %>>ລົດບັນທຸກ</option>
+          </select>
+        </div>
+        <div class="veh-filter-sel">
+          <label class="veh-filter-label">ສະຖານະ</label>
+          <select name="q[status]" class="veh-filter-input">
+            <option value="">ທັງໝົດ</option>
+            <option value="active"  <%= 'selected' if filter_status == 'active'  %>>ປົກກະຕິ</option>
+            <option value="warning" <%= 'selected' if filter_status == 'warning' %>>ໃກ້ໝົດອາຍຸ</option>
+          </select>
+        </div>
+        <div class="veh-filter-sel">
+          <label class="veh-filter-label">ປີລົດ</label>
+          <select name="q[year]" class="veh-filter-input">
+            <option value="">ທັງໝົດ</option>
+            <% (Date.today.year).downto(2015).each do |y| %>
+              <option value="<%= y %>" <%= 'selected' if filter_year == y.to_s %>><%= y %></option>
+            <% end %>
+          </select>
+        </div>
+        <div class="veh-filter-btns">
+          <button type="submit" class="veh-btn-filter">
+            <i class="fas fa-filter"></i>ກອງຂໍ້ມູນ
+          </button>
+          <% if has_filter %>
+            <a href="<%= admin_vehicles_path %>" class="veh-btn-clear">
+              <i class="fas fa-times"></i>ລ້າງ
+            </a>
+          <% end %>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <%# ── Table ── %>
+  <div class="veh-table-card">
+    <div style="overflow-x:auto;">
+      <table class="veh-table">
+        <thead>
+          <tr>
+            <th>ທະບຽນລົດ</th>
+            <th>ຂໍ້ມູນເຈົ້າຂອງ</th>
+            <th>ຂໍ້ມູນລົດ</th>
+            <th>ເລກຈັກ / ເລກຖັງ</th>
+            <th>ວັນທີ່ລົງທະບຽນ</th>
+            <th>ກວດສອບຕໍ່ໄປ</th>
+            <th>ສະຖານະ</th>
+            <th>ຈັດການ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% vehicles.each do |v| %>
+            <% owner = v.user %>
+            <%
+              raw_plate = v.plate_number.to_s.strip
+              if v.plate_type.present?
+                plate_type = v.plate_type
+                plate_no   = raw_plate
+              else
+                parts      = raw_plate.split(/\s+/, 2)
+                plate_type = parts.length > 1 ? parts[0] : raw_plate.gsub(/[0-9]+/, '').strip
+                plate_no   = parts.length > 1 ? parts[1] : raw_plate.gsub(/[^0-9]/, '').strip
+              end
+
+              pt = PlateType.for_code(plate_type)
+              if pt
+                plate_color   = pt.color_class
+                show_province = v.province.present? && pt.show_province
+              else
+                no_province_types = %w[ປກສ ກທ ຂຕ ສປຊ ສປ ສທ]
+                show_province = v.province.present? && !no_province_types.include?(plate_type)
+                plate_color = case plate_type
+                  when 'ຂ','ຂໍ','ຂ2','ຂ3','ຂ4','ກນ'                      then 'plate-yellow'
+                  when 'ກຄ','ກຍ','ກດ','ກບ','ກປ','ດຂ','ດຄ','ດຍ','ດດ','ດທ' then 'plate-yellow-green'
+                  when 'ກຊ'                                                then 'plate-blue'
+                  when 'ບຈ','ບສ'                                           then 'plate-white'
+                  when 'ກກ'                                                then 'plate-yellow-blue'
+                  when 'ຂຕ'                                                then 'plate-white-darkblue'
+                  when 'ກມ'                                                then 'plate-white-lightblue'
+                  when 'ປກສ'                                               then 'plate-red-underline'
+                  when 'ປກ','ປຕ','ກສ','ກທ'                                then 'plate-red'
+                  when 'ສ1','1ສ'                                           then 'plate-white-1percent'
+                  when 'ສທ','ສປຊ'                                          then 'plate-diplomat'
+                  else 'plate-yellow'
+                end
+              end
+
+              latest_tax  = v.road_taxes.max_by(&:expired_at)
+              tax_expiry  = latest_tax&.expired_at
+              tax_days    = tax_expiry ? (tax_expiry.to_date - Date.today).to_i : nil
+              tax_class   = tax_days.nil? ? '' : (tax_days > 90 ? '' : (tax_days > 30 ? 'expiry-warning' : 'expiry-danger'))
+
+              next_insp  = v.inspections.max_by(&:appointment_at)
+              insp_date  = next_insp&.appointment_at
+              insp_days  = insp_date ? (insp_date.to_date - Date.today).to_i : nil
+              insp_class = insp_days.nil? ? '' : (insp_days > 90 ? '' : (insp_days > 30 ? 'expiry-warning' : 'expiry-danger'))
+
+              status_class, status_label =
+                if tax_days.nil? || tax_days > 90
+                  ['veh-status-ok', 'ປົກກະຕິ']
+                elsif tax_days > 30
+                  ['veh-status-warn', 'ໃກ້ໝົດອາຍຸ']
+                else
+                  ['veh-status-exp', 'ໝົດອາຍຸ']
+                end
+            %>
+            <tr>
+              <td>
+                <div class="plate-badge <%= plate_color %>">
+                  <% if show_province %>
+                    <span class="plate-province"><%= v.province %></span>
+                  <% end %>
+                  <span class="plate-number">
+                    <span class="plate-type"><%= plate_type %></span> <span class="plate-no"><%= plate_no %></span>
+                  </span>
+                </div>
+              </td>
+              <td>
+                <div style="font-weight:700;font-size:13.5px;"><%= [owner&.first_name, owner&.last_name].compact.join(' ').presence || owner&.name.presence || '—' %></div>
+                <div style="font-size:12px;color:#94a3b8;"><i class="fas fa-phone" style="margin-right:4px;"></i><%= owner&.phone_number %></div>
+              </td>
+              <td>
+                <div style="font-weight:700;font-size:13.5px;"><%= [v.brand, v.model].compact.join(' ').presence || '—' %></div>
+                <div style="font-size:12px;color:#94a3b8;"><%= [v.year, v.color, v.vehicle_type].compact.join(' | ') %></div>
+              </td>
+              <td>
+                <% if v.engine_number.present? %>
+                  <div style="font-size:12px;"><i class="fas fa-cog" style="margin-right:4px;color:#94a3b8;"></i><%= v.engine_number %></div>
+                <% end %>
+                <% if v.chassis_number.present? %>
+                  <div style="font-size:12px;"><i class="fas fa-barcode" style="margin-right:4px;color:#94a3b8;"></i><%= v.chassis_number %></div>
+                <% end %>
+                <% if v.engine_number.blank? && v.chassis_number.blank? %>
+                  <span style="color:#cbd5e1;">—</span>
+                <% end %>
+              </td>
+              <td style="font-size:13px;color:var(--muted);"><%= v.created_at.strftime('%d/%m/%Y') %></td>
+              <td>
+                <% if insp_date %>
+                  <div style="font-size:12.5px;"><%= insp_date.strftime('%d/%m/%Y') %></div>
+                  <div style="font-size:12px;" class="<%= insp_class %>"><i class="fas fa-clock" style="margin-right:4px;"></i>ອີກ <%= insp_days %> ວັນ</div>
+                <% else %>
+                  <span style="color:#cbd5e1;">—</span>
+                <% end %>
+              </td>
+              <td>
+                <span class="veh-status <%= status_class %>"><%= status_label %></span>
+              </td>
+              <td>
+                <div class="veh-actions">
+                  <%= link_to admin_vehicle_path(v), class: 'veh-btn-view' do %>
+                    <i class="fas fa-eye"></i>
+                  <% end %>
+                  <%= link_to edit_admin_vehicle_path(v), class: 'veh-btn-edit' do %>
+                    <i class="fas fa-edit"></i>
+                  <% end %>
+                  <%= button_to admin_vehicle_path(v), method: :delete,
+                        class: 'veh-btn-del',
+                        form: { style: 'margin:0;' },
+                        data: { confirm: "ຢືນຢັນການລົບລົດ #{v.plate_number}?" } do %>
+                    <i class="fas fa-trash"></i>
+                  <% end %>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+
+          <% if vehicles.empty? %>
+            <tr>
+              <td colspan="9">
+                <div class="veh-empty">
+                  <i class="fas fa-car"></i>
+                  <p>ຍັງບໍ່ມີຂໍ້ມູນພາຫານະ</p>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <%# ── Pagination ── %>
+  <% if vehicles.respond_to?(:total_pages) && vehicles.total_pages > 1 %>
+    <div class="veh-page-wrap" style="display:flex;justify-content:center;margin-top:20px;">
+      <%= paginate vehicles %>
+    </div>
+  <% end %>
+
+</div>

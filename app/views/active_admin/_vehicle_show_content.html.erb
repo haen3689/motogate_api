@@ -1,0 +1,439 @@
+<style>
+  #titlebar { display:none !important; }
+  body.active_admin, #wrapper, #active_admin_content, #main_content,
+  .index_content, #main, .flashes { background:#f1f5f9 !important; }
+  #main_content > .panel { background:transparent !important; border:none !important; box-shadow:none !important; padding:0 !important; margin:0 !important; }
+  #main_content > .panel > .panel_contents { padding:0 !important; }
+
+  .vsw-page { --brand:#27bc9c; --brand-d:#1e9e82; --ink:#1e293b; --muted:#94a3b8; --line:#f1f5f9;
+              color:var(--ink); font-family:"Noto Sans Lao","Phetsarath OT",system-ui,sans-serif;
+              max-width:1200px; }
+
+  /* ── Action bar ── */
+  .vsw-bar { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:24px; }
+  .vsw-breadcrumb { font-size:13px; color:var(--muted); margin-bottom:4px; }
+  .vsw-breadcrumb a { color:var(--brand); text-decoration:none; }
+  .vsw-breadcrumb a:hover { text-decoration:underline; }
+  .vsw-title { font-size:20px; font-weight:800; margin:0; }
+  .vsw-bar-btns { display:flex; gap:8px; flex-shrink:0; }
+  .vsw-btn { display:inline-flex; align-items:center; gap:6px; padding:8px 16px; border-radius:9px;
+             font-size:13px; font-weight:700; text-decoration:none !important; cursor:pointer;
+             border:1px solid transparent; transition:.15s; white-space:nowrap;
+             text-shadow:none !important; box-shadow:none !important; }
+  .vsw-btn-print { background:#fff; border-color:#27bc9c; color:#1e293b !important; }
+  .vsw-page .vsw-btn-print:hover,
+  .vsw-btn-print:hover { background:#e6f7f3 !important; color:#1e293b !important; border-color:#27bc9c !important; }
+  .vsw-btn-edit  { background:#27bc9c; color:#fff !important; border-color:#27bc9c; }
+  .vsw-btn-edit:hover { background:#1e9e82; border-color:#1e9e82; }
+  .vsw-btn-back  { background:#fff; border-color:#e2e8f0; color:var(--muted) !important; }
+  .vsw-btn-back:hover { background:#f8fafc; color:var(--ink) !important; }
+
+  /* ── 2-column grid ── */
+  .vsw-grid { display:grid; grid-template-columns:1fr 340px; gap:20px; align-items:start; }
+  @media (max-width:900px) { .vsw-grid { grid-template-columns:1fr; } }
+
+  /* ── Card ── */
+  .vsw-card { background:#fff; border-radius:20px; box-shadow:0 4px 20px rgba(0,0,0,.05); padding:24px; margin-bottom:20px; }
+  .vsw-card:last-child { margin-bottom:0; }
+  .vsw-section-hd { font-size:15px; font-weight:800; color:var(--ink); padding-bottom:14px;
+                    border-bottom:2px solid var(--line); margin-bottom:20px;
+                    display:flex; align-items:center; gap:10px; }
+  .vsw-section-hd i { color:var(--brand); }
+
+  /* ── Label/value ── */
+  .vsw-2col { display:grid; grid-template-columns:1fr 1fr; gap:0 24px; }
+  .vsw-field { margin-bottom:20px; }
+  .vsw-label { color:var(--muted); font-size:11px; text-transform:uppercase; font-weight:700;
+               margin-bottom:4px; letter-spacing:.05em; }
+  .vsw-val   { color:var(--ink); font-weight:600; font-size:15px; }
+  .vsw-val-danger  { color:#dc2626; font-weight:700; }
+  .vsw-val-warning { color:#ca8a04; font-weight:700; }
+  .vsw-val-ok      { color:#16a34a; font-weight:700; }
+
+  /* ── Plate badge ── */
+  .vsw-plate-wrap { text-align:center; margin-bottom:16px; }
+  .plate-badge-lg { display:inline-flex; flex-direction:column; align-items:center; justify-content:center;
+                    padding:10px 24px; border-radius:10px; border:3px solid #333;
+                    background:#FFD600; min-width:110px; }
+  .plate-badge-lg .plate-province { font-size:10px; font-weight:700; color:#000; display:block; }
+  .plate-badge-lg .plate-number   { font-size:22px; font-weight:900; color:#000; letter-spacing:2px; }
+
+  /* Plate colors */
+  .plate-badge-lg.plate-yellow        { background:linear-gradient(135deg,#ffcc00,#ffdb4d); border-color:#333; }
+  .plate-badge-lg.plate-yellow        .plate-province,.plate-badge-lg.plate-yellow .plate-number { color:#000; }
+  .plate-badge-lg.plate-yellow-green  { background:linear-gradient(135deg,#ffcc00,#ffdb4d); border-color:#333; }
+  .plate-badge-lg.plate-yellow-green  .plate-province { color:#000; }
+  .plate-badge-lg.plate-yellow-green  .plate-number   { color:#16a34a; }
+  .plate-badge-lg.plate-yellow-blue   { background:linear-gradient(135deg,#ffcc00,#ffdb4d); border-color:#3b82f6; }
+  .plate-badge-lg.plate-yellow-blue   .plate-province,.plate-badge-lg.plate-yellow-blue .plate-number { color:#3b82f6; }
+  .plate-badge-lg.plate-blue          { background:linear-gradient(135deg,#1e3a8a,#1e3a8a); border-color:#1e3a8a; }
+  .plate-badge-lg.plate-blue          .plate-province,.plate-badge-lg.plate-blue .plate-number { color:#fff; }
+  .plate-badge-lg.plate-white         { background:linear-gradient(135deg,#fff,#f5f5f5); border-color:#333; }
+  .plate-badge-lg.plate-white         .plate-province,.plate-badge-lg.plate-white .plate-number { color:#000; }
+  .plate-badge-lg.plate-white-darkblue { background:linear-gradient(135deg,#fff,#f5f5f5); border-color:#1e3a8a; }
+  .plate-badge-lg.plate-white-darkblue .plate-province,.plate-badge-lg.plate-white-darkblue .plate-number { color:#1e3a8a; }
+  .plate-badge-lg.plate-white-lightblue { background:linear-gradient(135deg,#fff,#f5f5f5); border-color:#60a5fa; }
+  .plate-badge-lg.plate-white-lightblue .plate-province,.plate-badge-lg.plate-white-lightblue .plate-number { color:#60a5fa; }
+  .plate-badge-lg.plate-red           { background:linear-gradient(135deg,#dc2626,#b91c1c); border-color:#7f1d1d; }
+  .plate-badge-lg.plate-red           .plate-province,.plate-badge-lg.plate-red .plate-number { color:#fff; }
+  .plate-badge-lg.plate-red-underline { background:linear-gradient(135deg,#dc2626,#b91c1c); border-color:#7f1d1d; }
+  .plate-badge-lg.plate-red-underline .plate-province,.plate-badge-lg.plate-red-underline .plate-number { color:#fff; }
+  .plate-badge-lg.plate-white-1percent { background:linear-gradient(135deg,#fff,#f5f5f5); border:3px solid #2563eb; }
+  .plate-badge-lg.plate-white-1percent .plate-province,.plate-badge-lg.plate-white-1percent .plate-number { color:#2563eb; }
+  .plate-badge-lg.plate-white-foreign { background:linear-gradient(135deg,#fff,#f5f5f5); border-color:#2563eb; }
+  .plate-badge-lg.plate-white-foreign .plate-province,.plate-badge-lg.plate-white-foreign .plate-number { color:#2563eb; }
+  .plate-badge-lg.plate-diplomat      { background:linear-gradient(135deg,#fff,#f5f5f5); border:2px solid #2563eb; }
+  .plate-badge-lg.plate-diplomat      .plate-province,.plate-badge-lg.plate-diplomat .plate-number { color:#2563eb; }
+
+  /* Vehicle type badge */
+  .vsw-type-badge { display:inline-block; padding:4px 14px; border-radius:20px; font-size:13px; font-weight:700; }
+  .vsw-type-moto  { background:#dbeafe; color:#2563eb; }
+  .vsw-type-car   { background:#f0fdf4; color:#16a34a; }
+  .vsw-type-truck { background:#fef9c3; color:#ca8a04; }
+
+  /* Owner link button */
+  .vsw-owner-btn { display:flex; align-items:center; justify-content:center; gap:8px;
+                   width:100%; padding:9px; border-radius:10px; border:1px solid #0ea5e9;
+                   background:#f0f9ff; color:#0369a1 !important; font-size:13px; font-weight:700;
+                   text-decoration:none !important; transition:.15s; margin-top:16px; }
+  .vsw-owner-btn:hover { background:#0ea5e9; color:#fff !important; }
+
+  /* Mini table */
+  .vsw-mini-table { width:100%; border-collapse:collapse; }
+  .vsw-mini-table th { background:#f8fafc; padding:10px 12px; font-size:11px; font-weight:700;
+                       color:var(--muted); text-transform:uppercase; letter-spacing:.5px;
+                       border-bottom:1px solid var(--line); }
+  .vsw-mini-table td { padding:10px 12px; font-size:13px; border-bottom:1px solid var(--line); vertical-align:middle; }
+  .vsw-mini-table tr:last-child td { border-bottom:none; }
+  .vsw-badge-ok { background:#dcfce7; color:#16a34a; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700; }
+  .vsw-badge-no { background:#fee2e2; color:#dc2626; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700; }
+
+  /* Image placeholder */
+  .vsw-img-placeholder { height:140px; background:#f8fafc; border:2px dashed #e2e8f0; border-radius:12px;
+                          display:flex; align-items:center; justify-content:center; color:var(--muted);
+                          font-size:13px; gap:8px; }
+
+  @media print {
+    #titlebar, .vsw-bar-btns, .admin-sidebar { display:none !important; }
+    .vsw-card { box-shadow:none !important; border:1px solid #eee !important; page-break-inside:avoid; }
+  }
+</style>
+
+<%
+  today = Date.today
+
+  raw_plate = vehicle.plate_number.to_s.strip
+  if vehicle.plate_type.present?
+    plate_code = vehicle.plate_type
+    plate_no   = raw_plate
+  else
+    parts      = raw_plate.split(/\s+/, 2)
+    plate_code = parts.length > 1 ? parts[0] : raw_plate.gsub(/[0-9]+/, '').strip
+    plate_no   = parts.length > 1 ? parts[1] : raw_plate.gsub(/[^0-9]/, '').strip
+  end
+
+  pt = PlateType.for_code(plate_code)
+  if pt
+    plate_color   = pt.color_class
+    show_province = vehicle.province.present? && pt.show_province
+  else
+    no_prov = %w[ປກສ ກທ ຂຕ ສປຊ ສປ ສທ]
+    show_province = vehicle.province.present? && !no_prov.include?(plate_code)
+    plate_color = case plate_code
+      when 'ຂ','ຂໍ','ຂ2','ຂ3','ຂ4','ກນ'                      then 'plate-yellow'
+      when 'ກຄ','ກຍ','ກດ','ກບ','ກປ','ດຂ','ດຄ','ດຍ','ດດ','ດທ' then 'plate-yellow-green'
+      when 'ກຊ'                                                then 'plate-blue'
+      when 'ບຈ','ບສ'                                           then 'plate-white'
+      when 'ກກ'                                                then 'plate-yellow-blue'
+      when 'ຂຕ'                                                then 'plate-white-darkblue'
+      when 'ກມ'                                                then 'plate-white-lightblue'
+      when 'ປກສ'                                               then 'plate-red-underline'
+      when 'ປກ','ປຕ','ກສ','ກທ'                                then 'plate-red'
+      when 'ສ1','1ສ'                                           then 'plate-white-1percent'
+      when 'ສທ','ສປຊ'                                          then 'plate-diplomat'
+      else 'plate-yellow'
+    end
+  end
+
+  latest_tax = vehicle.road_taxes.max_by(&:expired_at)
+  tax_expiry = latest_tax&.expired_at
+  tax_val_class = tax_expiry && tax_expiry.to_date < today ? 'vsw-val-danger' : 'vsw-val-ok'
+
+  latest_ins = vehicle.insurances.where(status: 'active').max_by(&:end_date) rescue nil
+  ins_expiry = latest_ins&.end_date
+  ins_val_class = ins_expiry && ins_expiry.to_date < today ? 'vsw-val-danger' : 'vsw-val-ok'
+
+  last_insp = vehicle.inspections.order(created_at: :desc).first
+  next_insp = vehicle.inspections.max_by(&:appointment_at)
+  next_insp_class = next_insp&.appointment_at && next_insp.appointment_at.to_date < today ? 'vsw-val-danger' : 'vsw-val-warning'
+
+  owner = vehicle.user
+%>
+
+<div class="vsw-page">
+
+  <%# ── Action bar ── %>
+  <div class="vsw-bar">
+    <div>
+      <div class="vsw-breadcrumb">
+        <%= link_to 'ຈັດການລົດ', admin_vehicles_path %>
+        <span> / </span>ລາຍລະອຽດລົດ
+      </div>
+      <h2 class="vsw-title">ຂໍ້ມູນລົດ: <%= [vehicle.brand, vehicle.model].compact.join(' ').presence || vehicle.plate_number %></h2>
+    </div>
+    <div class="vsw-bar-btns">
+      <button class="vsw-btn vsw-btn-print" onclick="window.print()">
+        <i class="fas fa-print"></i>ພິມຂໍ້ມູນ
+      </button>
+      <%= link_to edit_admin_vehicle_path(vehicle), class: 'vsw-btn vsw-btn-edit' do %>
+        <i class="fas fa-edit"></i>ແກ້ໄຂຂໍ້ມູນ
+      <% end %>
+      <%= link_to admin_vehicles_path, class: 'vsw-btn vsw-btn-back' do %>
+        <i class="fas fa-arrow-left"></i>ກັບຄືນ
+      <% end %>
+    </div>
+  </div>
+
+  <%# ── 2-column layout ── %>
+  <div class="vsw-grid">
+
+    <%# ── LEFT ── %>
+    <div>
+
+      <%# General info %>
+      <div class="vsw-card">
+        <div class="vsw-section-hd"><i class="fas fa-info-circle"></i>ຂໍ້ມູນທົ່ວໄປຂອງລົດ</div>
+        <div class="vsw-2col">
+          <div>
+            <div class="vsw-field">
+              <div class="vsw-label">ຍີ່ຫໍ້</div>
+              <div class="vsw-val"><%= vehicle.brand.presence || '—' %></div>
+            </div>
+            <div class="vsw-field">
+              <div class="vsw-label">ລຸ້ນ</div>
+              <div class="vsw-val"><%= vehicle.model.presence || '—' %></div>
+            </div>
+            <div class="vsw-field">
+              <div class="vsw-label">ປີ</div>
+              <div class="vsw-val"><%= vehicle.year.presence || '—' %></div>
+            </div>
+            <div class="vsw-field">
+              <div class="vsw-label">ສີ</div>
+              <div class="vsw-val"><%= vehicle.color.presence || '—' %></div>
+            </div>
+          </div>
+          <div>
+            <div class="vsw-field">
+              <div class="vsw-label">ເລກຈັກ (Engine No.)</div>
+              <div class="vsw-val"><%= vehicle.engine_number.presence || '—' %></div>
+            </div>
+            <div class="vsw-field">
+              <div class="vsw-label">ເລກຖັງ (Chassis No.)</div>
+              <div class="vsw-val"><%= vehicle.chassis_number.presence || '—' %></div>
+            </div>
+            <div class="vsw-field">
+              <div class="vsw-label">ຂະໜາດເຄື່ອງ (CC)</div>
+              <div class="vsw-val"><%= vehicle.cc.present? ? "#{vehicle.cc} cc" : '—' %></div>
+            </div>
+            <div class="vsw-field">
+              <div class="vsw-label">ປະເພດການໃຊ້ງານ</div>
+              <div class="vsw-val"><%= vehicle.usage_type.presence || '—' %></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <%# Extra details %>
+      <div class="vsw-card">
+        <div class="vsw-section-hd"><i class="fas fa-list-alt"></i>ລາຍລະອຽດເພີ່ມເຕີມ</div>
+        <div class="vsw-2col">
+          <div>
+            <div class="vsw-field">
+              <div class="vsw-label">ຊື່ເຈົ້າຂອງລົດ (ຕາມທະບຽນ)</div>
+              <div class="vsw-val"><%= vehicle.owner_name.presence || '—' %></div>
+            </div>
+            <div class="vsw-field">
+              <div class="vsw-label">ປະເພດເຄື່ອງຈັກ</div>
+              <div class="vsw-val"><%= vehicle.fuel_type.presence || '—' %></div>
+            </div>
+            <div class="vsw-field">
+              <div class="vsw-label">ຈຳນວນບ່ອນນັ່ງ</div>
+              <div class="vsw-val"><%= vehicle.seat_count.presence || '—' %></div>
+            </div>
+          </div>
+          <div>
+            <div class="vsw-field">
+              <div class="vsw-label">ຈຳນວນເພົາ</div>
+              <div class="vsw-val"><%= vehicle.axle_count.presence || '—' %></div>
+            </div>
+            <div class="vsw-field">
+              <div class="vsw-label">ຈຳນວນສູບ</div>
+              <div class="vsw-val"><%= vehicle.cylinder_count.presence || '—' %></div>
+            </div>
+            <div class="vsw-field">
+              <div class="vsw-label">ວັນໝົດອາຍຸທະບຽນ</div>
+              <div class="vsw-val"><%= vehicle.registration_expiry_date&.strftime('%d/%m/%Y') || '—' %></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <%# Expiry & Inspection %>
+      <div class="vsw-card">
+        <div class="vsw-section-hd"><i class="fas fa-calendar-check"></i>ວັນໝົດອາຍຸ ແລະ ການກວດກາ</div>
+        <div class="vsw-2col">
+          <div>
+            <div class="vsw-field">
+              <div class="vsw-label">ຄ່າທາງ (Road Tax Expiry)</div>
+              <div class="vsw-val <%= tax_val_class %>"><%= tax_expiry ? tax_expiry.strftime('%d/%m/%Y') : '—' %></div>
+            </div>
+            <div class="vsw-field">
+              <div class="vsw-label">ປະກັນໄພ (Insurance Expiry)</div>
+              <div class="vsw-val <%= ins_val_class %>"><%= ins_expiry ? ins_expiry.strftime('%d/%m/%Y') : '—' %></div>
+            </div>
+          </div>
+          <div>
+            <div class="vsw-field">
+              <div class="vsw-label">ກວດເຕັກນິກລ່າສຸດ</div>
+              <div class="vsw-val"><%= last_insp ? last_insp.created_at.strftime('%d/%m/%Y') : '—' %></div>
+            </div>
+            <div class="vsw-field">
+              <div class="vsw-label">ກວດເຕັກນິກຄັ້ງຕໍ່ໄປ</div>
+              <div class="vsw-val <%= next_insp_class %>"><%= next_insp&.appointment_at ? next_insp.appointment_at.strftime('%d/%m/%Y') : '—' %></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <%# Registration images %>
+      <div class="vsw-card">
+        <div class="vsw-section-hd"><i class="fas fa-file-image"></i>ໃບທະບຽນລົດ</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div>
+            <div class="vsw-label" style="margin-bottom:8px;">ດ້ານໜ້າ</div>
+            <% if vehicle.registration_front.attached? %>
+              <%= image_tag url_for(vehicle.registration_front), style:'width:100%;border-radius:12px;border:1px solid #e2e8f0;max-height:200px;object-fit:cover;' %>
+            <% else %>
+              <div class="vsw-img-placeholder"><i class="fas fa-image"></i>ຍັງບໍ່ມີຮູບ</div>
+            <% end %>
+          </div>
+          <div>
+            <div class="vsw-label" style="margin-bottom:8px;">ດ້ານຫຼັງ</div>
+            <% if vehicle.registration_back.attached? %>
+              <%= image_tag url_for(vehicle.registration_back), style:'width:100%;border-radius:12px;border:1px solid #e2e8f0;max-height:200px;object-fit:cover;' %>
+            <% else %>
+              <div class="vsw-img-placeholder"><i class="fas fa-image"></i>ຍັງບໍ່ມີຮູບ</div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+
+      <%# Road taxes %>
+      <% if vehicle.road_taxes.any? %>
+        <div class="vsw-card">
+          <div class="vsw-section-hd"><i class="fas fa-road"></i>ຂໍ້ມູນຄ່າທາງ</div>
+          <table class="vsw-mini-table">
+            <thead><tr><th>ປີ</th><th>ຈຳນວນ</th><th>ສະຖານະ</th><th>ໝົດອາຍຸ</th></tr></thead>
+            <tbody>
+              <% vehicle.road_taxes.order(expired_at: :desc).each do |rt| %>
+                <tr>
+                  <td><%= rt.tax_year %></td>
+                  <td><%= rt.amount %></td>
+                  <td><span class="<%= rt.status == 'active' ? 'vsw-badge-ok' : 'vsw-badge-no' %>"><%= rt.status %></span></td>
+                  <td><%= rt.expired_at&.strftime('%d/%m/%Y') %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% end %>
+
+      <%# Inspections %>
+      <% if vehicle.inspections.any? %>
+        <div class="vsw-card">
+          <div class="vsw-section-hd"><i class="fas fa-clipboard-check"></i>ປະຫວັດການກວດເຕັກນິກ</div>
+          <table class="vsw-mini-table">
+            <thead><tr><th>ວັນທີ</th><th>ສະຖານະ</th></tr></thead>
+            <tbody>
+              <% vehicle.inspections.order(created_at: :desc).each do |ins| %>
+                <tr>
+                  <td><%= ins.created_at.strftime('%d/%m/%Y') %></td>
+                  <td><span class="<%= ins.status == 'passed' ? 'vsw-badge-ok' : 'vsw-badge-no' %>"><%= ins.status %></span></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% end %>
+
+    </div>
+
+    <%# ── RIGHT ── %>
+    <div>
+
+      <%# Plate card %>
+      <div class="vsw-card" style="text-align:center;">
+        <div class="vsw-section-hd" style="justify-content:center;"><i class="fas fa-id-card"></i>ປ້າຍທະບຽນ</div>
+        <div class="vsw-plate-wrap">
+          <div class="plate-badge-lg <%= plate_color %>">
+            <% if show_province %>
+              <span class="plate-province"><%= vehicle.province %></span>
+            <% end %>
+            <span class="plate-number"><%= plate_code %> <%= plate_no %></span>
+          </div>
+        </div>
+        <div style="margin-top:8px;">
+          <% case vehicle.vehicle_type
+             when 'motorcycle' %>
+            <span class="vsw-type-badge vsw-type-moto"><i class="fas fa-motorcycle" style="margin-right:6px;"></i>ລົດຈັກ</span>
+          <% when 'car' %>
+            <span class="vsw-type-badge vsw-type-car"><i class="fas fa-car" style="margin-right:6px;"></i>ລົດຍົນ</span>
+          <% when 'truck' %>
+            <span class="vsw-type-badge vsw-type-truck"><i class="fas fa-truck" style="margin-right:6px;"></i>ລົດບັນທຸກ</span>
+          <% end %>
+        </div>
+      </div>
+
+      <%# Owner card %>
+      <div class="vsw-card">
+        <div class="vsw-section-hd"><i class="fas fa-user"></i>ຂໍ້ມູນເຈົ້າຂອງລົດ</div>
+        <div class="vsw-field">
+          <div class="vsw-label">ຊື່ເຈົ້າຂອງລົດ</div>
+          <div class="vsw-val"><%= [owner.first_name, owner.last_name].compact.join(' ').presence || owner.name.presence || '—' %></div>
+        </div>
+        <div class="vsw-field">
+          <div class="vsw-label">ເບີໂທລະສັບ</div>
+          <div class="vsw-val" style="color:#27bc9c;"><%= owner.phone_number %></div>
+        </div>
+        <% if owner.province.present? %>
+          <div class="vsw-field">
+            <div class="vsw-label">ແຂວງ</div>
+            <div class="vsw-val"><%= owner.province %></div>
+          </div>
+        <% end %>
+        <%= link_to admin_user_path(owner), class: 'vsw-owner-btn' do %>
+          <i class="fas fa-search"></i>ເບິ່ງຂໍ້ມູນເຈົ້າຂອງ
+        <% end %>
+      </div>
+
+      <%# System info %>
+      <div class="vsw-card">
+        <div class="vsw-section-hd"><i class="fas fa-clock"></i>ຂໍ້ມູນລະບົບ</div>
+        <div class="vsw-field">
+          <div class="vsw-label">ວັນທີລົງທະບຽນ</div>
+          <div class="vsw-val"><%= vehicle.created_at.strftime('%d/%m/%Y %H:%M') %></div>
+        </div>
+        <div class="vsw-field">
+          <div class="vsw-label">ອັບເດດລ່າສຸດ</div>
+          <div class="vsw-val"><%= vehicle.updated_at.strftime('%d/%m/%Y %H:%M') %></div>
+        </div>
+        <div class="vsw-field">
+          <div class="vsw-label">ID</div>
+          <div class="vsw-val" style="color:var(--muted);">#<%= vehicle.id %></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>

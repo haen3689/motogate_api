@@ -1,0 +1,356 @@
+<%
+  u         = f.object
+  is_new    = u.new_record?
+  full_name = [u.first_name, u.last_name].compact_blank.join(" ")
+  initial   = full_name.present? ? full_name[0].upcase : "?"
+%>
+
+<style>
+  #titlebar       { display: none !important; }
+  fieldset.inputs { display: none !important; }
+  ol.form-inputs  { display: none !important; }
+  .actions        { display: none !important; }
+
+  .uf-hero {
+    background: linear-gradient(135deg, #27bc9c 0%, #1a8a72 100%);
+    border-radius: 16px;
+    padding: 28px 32px;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+  }
+  .uf-hero::before {
+    content: "";
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 180px; height: 180px;
+    background: rgba(255,255,255,.07);
+    border-radius: 50%;
+  }
+  .uf-hero::after {
+    content: "";
+    position: absolute;
+    bottom: -50px; left: 40px;
+    width: 140px; height: 140px;
+    background: rgba(255,255,255,.05);
+    border-radius: 50%;
+  }
+  .uf-avatar {
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.2);
+    border: 3px solid rgba(255,255,255,.5);
+    font-size: 2rem; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; flex-shrink: 0;
+  }
+
+  .uf-card-header {
+    background: linear-gradient(135deg, #27bc9c 0%, #1e9e82 100%);
+    border-radius: 12px 12px 0 0;
+    padding: 12px 18px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .uf-card-header i  { color: rgba(255,255,255,.85); font-size: .9rem; }
+  .uf-card-header h6 { margin: 0; font-weight: 700; color: #fff; font-size: .95rem; }
+
+  .uf-label {
+    font-size: .72rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .05em;
+    color: #94a3b8; margin-bottom: 4px;
+  }
+  .uf-upload-area {
+    background: #f8fafc;
+    border: 2px dashed #e2e8f0;
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+  }
+  .uf-upload-area:hover { border-color: #27bc9c; background: #f0fdf9; }
+</style>
+
+<%# ── Page Header ── %>
+<div class="mb-4">
+  <h4 class="fw-bold mb-1" style="color:#27bc9c;">
+    <i class="fas fa-<%= is_new ? 'user-plus' : 'pen' %> me-2"></i>
+    <%= is_new ? "ເພີ່ມລູກຄ້າໃໝ່" : "ແກ້ໄຂຂໍ້ມູນລູກຄ້າ" %>
+  </h4>
+  <p class="text-muted small mb-0">
+    <%= is_new ? "ກະລຸນາປ້ອນຂໍ້ມູນລູກຄ້າໃໝ່" : "ແກ້ໄຂຂໍ້ມູນລູກຄ້າໃນລະບົບ" %>
+  </p>
+</div>
+
+<%# ── Hero Card (full width) ── %>
+<div class="uf-hero">
+  <div class="d-flex align-items-center gap-4 flex-wrap">
+
+    <%# Avatar + profile upload %>
+    <div style="position:relative;flex-shrink:0;">
+      <div class="uf-avatar" id="ufAvatarWrap" style="padding:0;overflow:hidden;cursor:pointer;"
+           onclick="document.getElementById('ufProfileInput').click()"
+           title="ກົດເພື່ອປ່ຽນຮູບໂປຣໄຟລ໌">
+        <% if u.respond_to?(:profile_image) && u.profile_image.attached? %>
+          <img id="ufAvatarImg" src="<%= url_for(u.profile_image) %>"
+               style="width:100%;height:100%;object-fit:cover;">
+        <% else %>
+          <span id="ufAvatarInitial"><%= initial.presence || "?" %></span>
+          <img id="ufAvatarImg" src="" style="width:100%;height:100%;object-fit:cover;display:none;">
+        <% end %>
+      </div>
+      <%# Camera badge %>
+      <div onclick="document.getElementById('ufProfileInput').click()"
+           style="position:absolute;bottom:0;right:0;width:26px;height:26px;
+                  background:#fff;border-radius:50%;display:flex;align-items:center;
+                  justify-content:center;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.3);">
+        <i class="fas fa-camera" style="font-size:.7rem;color:#27bc9c;"></i>
+      </div>
+      <input type="file" id="ufProfileInput" name="user[profile_image]"
+             accept="image/*" style="display:none;"
+             onchange="ufPreviewProfile(this)">
+    </div>
+
+    <%# Name + Status %>
+    <div class="flex-grow-1">
+      <% if full_name.present? %>
+        <h5 class="fw-bold text-white mb-1"><%= full_name %></h5>
+      <% else %>
+        <h5 class="fw-bold text-white mb-1 opacity-50"><%= is_new ? "ລູກຄ້າໃໝ່" : "—" %></h5>
+      <% end %>
+      <div class="d-flex align-items-center gap-2 flex-wrap mt-1">
+        <span class="text-white opacity-75 small">
+          <i class="fas fa-phone me-1"></i><%= u.phone_number.presence || "—" %>
+        </span>
+        <% unless is_new %>
+          <span class="text-white opacity-75 small">
+            <i class="fas fa-hashtag me-1"></i>ID: <%= u.id %>
+          </span>
+        <% end %>
+      </div>
+      <div class="mt-2">
+        <span class="text-white opacity-60" style="font-size:.72rem;">
+          <i class="fas fa-camera me-1"></i>ກົດຮູບເພື່ອປ່ຽນໂປຣໄຟລ໌
+        </span>
+      </div>
+    </div>
+
+    <%# Status toggle — right side %>
+    <div style="min-width:220px;">
+      <div class="uf-label mb-2">ສະຖານະບັນຊີ</div>
+      <div class="btn-group w-100" role="group">
+        <input type="radio" class="btn-check" name="user[verified]" id="verified_true"
+               value="1" <%= u.verified? ? "checked" : "" %>>
+        <label class="btn btn-outline-light" for="verified_true">
+          <i class="fas fa-check-circle me-1"></i>ເປີດໃຊ້ງານ
+        </label>
+        <input type="radio" class="btn-check" name="user[verified]" id="verified_false"
+               value="0" <%= !u.verified? ? "checked" : "" %>>
+        <label class="btn btn-outline-light" for="verified_false">
+          <i class="fas fa-times-circle me-1"></i>ປິດໃຊ້ງານ
+        </label>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<%# ── Row 1: Personal Info + Contact ── %>
+<div class="row g-4 mb-4">
+
+  <%# Personal Info %>
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm overflow-hidden h-100">
+      <div class="uf-card-header">
+        <i class="fas fa-user-circle"></i>
+        <h6>ຂໍ້ມູນສ່ວນຕົວ</h6>
+      </div>
+      <div class="card-body p-4">
+        <div class="row g-3">
+          <div class="col-6">
+            <div class="uf-label">ຊື່</div>
+            <input type="text" class="form-control" name="user[first_name]" id="user_first_name"
+                   value="<%= u.first_name %>" placeholder="ຊື່">
+          </div>
+          <div class="col-6">
+            <div class="uf-label">ນາມສະກຸນ</div>
+            <input type="text" class="form-control" name="user[last_name]" id="user_last_name"
+                   value="<%= u.last_name %>" placeholder="ນາມສະກຸນ">
+          </div>
+          <div class="col-6">
+            <div class="uf-label">ເພດ</div>
+            <select class="form-select" name="user[gender]" id="user_gender">
+              <option value="">-- ເລືອກ --</option>
+              <option value="ຊາຍ"  <%= 'selected' if u.gender == 'ຊາຍ'  %>>ຊາຍ</option>
+              <option value="ຍິງ"  <%= 'selected' if u.gender == 'ຍິງ'  %>>ຍິງ</option>
+              <option value="ອື່ນໆ" <%= 'selected' if u.gender == 'ອື່ນໆ' %>>ອື່ນໆ</option>
+            </select>
+          </div>
+          <div class="col-6">
+            <div class="uf-label">ວັນເດືອນປີເກີດ</div>
+            <input type="date" class="form-control" name="user[date_of_birth]" id="user_date_of_birth"
+                   value="<%= u.date_of_birth %>">
+          </div>
+          <div class="col-12">
+            <div class="uf-label">ເບີໂທລະສັບ</div>
+            <div class="input-group">
+              <span class="input-group-text"><i class="fas fa-phone text-muted"></i></span>
+              <input type="text" class="form-control" name="user[phone_number]" id="user_phone_number"
+                     value="<%= u.phone_number %>" placeholder="020xxxxxxxx">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%# Contact / Address %>
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm overflow-hidden h-100">
+      <div class="uf-card-header">
+        <i class="fas fa-map-marker-alt"></i>
+        <h6>ທີ່ຢູ່</h6>
+      </div>
+      <div class="card-body p-4">
+        <div class="row g-3">
+          <div class="col-12">
+            <div class="uf-label">ບ້ານ</div>
+            <input type="text" class="form-control" name="user[village]" id="user_village"
+                   value="<%= u.village %>" placeholder="ບ້ານ">
+          </div>
+          <div class="col-6">
+            <div class="uf-label">ເມືອງ</div>
+            <input type="text" class="form-control" name="user[district]" id="user_district"
+                   value="<%= u.district %>" placeholder="ເມືອງ">
+          </div>
+          <div class="col-6">
+            <div class="uf-label">ແຂວງ</div>
+            <input type="text" class="form-control" name="user[province]" id="user_province"
+                   value="<%= u.province %>" placeholder="ແຂວງ">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<%# ── Row 2: ID Card + License ── %>
+<div class="row g-4 mb-4">
+
+  <%# ID Card %>
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm overflow-hidden h-100">
+      <div class="uf-card-header">
+        <i class="fas fa-id-card"></i>
+        <h6>ບັດປະຈຳຕົວ / Passport</h6>
+      </div>
+      <div class="card-body p-4">
+        <div class="row g-3">
+          <div class="col-6">
+            <div class="uf-label">ປະເພດ</div>
+            <select class="form-select" name="user[id_type]" id="user_id_type">
+              <option value="">-- ເລືອກ --</option>
+              <option value="national_id" <%= 'selected' if u.id_type == 'national_id' %>>ບັດປະຈຳຕົວ</option>
+              <option value="passport"    <%= 'selected' if u.id_type == 'passport'    %>>Passport</option>
+            </select>
+          </div>
+          <div class="col-6">
+            <div class="uf-label">ວັນໝົດອາຍຸ</div>
+            <input type="date" class="form-control" name="user[id_expiry_date]" id="user_id_expiry_date"
+                   value="<%= u.id_expiry_date %>">
+          </div>
+          <div class="col-12">
+            <div class="uf-label">ເລກບັດ</div>
+            <input type="text" class="form-control font-monospace" name="user[id_number]" id="user_id_number"
+                   value="<%= u.id_number %>" placeholder="xxxxxxxxxxxxxxxxx">
+          </div>
+          <div class="col-12">
+            <div class="uf-upload-area">
+              <i class="fas fa-id-card mb-2 d-block" style="font-size:1.5rem;color:#cbd5e1;"></i>
+              <div class="uf-label mb-2">ອັບໂຫຼດຮູບບັດ</div>
+              <input type="file" class="form-control form-control-sm" name="user[id_card_image]" accept="image/*">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%# Driver License %>
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm overflow-hidden h-100">
+      <div class="uf-card-header">
+        <i class="fas fa-car"></i>
+        <h6>ໃບຂັບຂີ່</h6>
+      </div>
+      <div class="card-body p-4">
+        <div class="row g-3">
+          <div class="col-6">
+            <div class="uf-label">ປະເພດ</div>
+            <select class="form-select" name="user[license_type]" id="user_license_type">
+              <option value="">-- ເລືອກ --</option>
+              <% %w[A B C D E AB ABC ABCD ABCDE].each do |t| %>
+                <option value="<%= t %>" <%= 'selected' if u.license_type == t %>><%= t %></option>
+              <% end %>
+            </select>
+          </div>
+          <div class="col-6">
+            <div class="uf-label">ວັນໝົດອາຍຸ</div>
+            <input type="date" class="form-control" name="user[license_expiry_date]" id="user_license_expiry_date"
+                   value="<%= u.license_expiry_date %>">
+          </div>
+          <div class="col-12">
+            <div class="uf-label">ເລກໃບຂັບຂີ່</div>
+            <input type="text" class="form-control font-monospace" name="user[license_number]" id="user_license_number"
+                   value="<%= u.license_number %>" placeholder="xxxxxxxxx">
+          </div>
+          <div class="col-12">
+            <div class="uf-upload-area">
+              <i class="fas fa-car mb-2 d-block" style="font-size:1.5rem;color:#cbd5e1;"></i>
+              <div class="uf-label mb-2">ອັບໂຫຼດຮູບໃບຂັບຂີ່</div>
+              <input type="file" class="form-control form-control-sm" name="user[license_image]" accept="image/*">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function ufPreviewProfile(input) {
+    if (!input.files || !input.files[0]) return;
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var img = document.getElementById('ufAvatarImg');
+      var initial = document.getElementById('ufAvatarInitial');
+      img.src = e.target.result;
+      img.style.display = 'block';
+      if (initial) initial.style.display = 'none';
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+</script>
+
+<%# ── Bottom Action Bar ── %>
+<div class="card border-0 shadow" style="border-top:3px solid #27bc9c !important;">
+  <div class="card-body py-3 px-4">
+    <div class="d-flex justify-content-between align-items-center">
+      <p class="text-muted small mb-0">
+        <i class="fas fa-info-circle me-1" style="color:#27bc9c;"></i>
+        <%= is_new ? "ກະລຸນາກວດສອບຂໍ້ມູນກ່ອນບັນທຶກ" : "ການປ່ຽນແປງຈະຖືກບັນທຶກທັນທີ" %>
+      </p>
+      <div class="d-flex gap-2">
+        <%= link_to is_new ? admin_users_path : admin_user_path(u),
+              class: "btn btn-outline-secondary px-4" do %>
+          <i class="fas fa-times me-2"></i>ຍົກເລີກ
+        <% end %>
+        <button type="submit" class="btn text-white px-5 fw-semibold"
+                style="background:linear-gradient(135deg,#27bc9c 0%,#1e9e82 100%);border:none;border-radius:8px;min-width:140px;">
+          <i class="fas fa-save me-2"></i>ບັນທຶກຂໍ້ມູນ
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,326 @@
+<% vehicle = resource %>
+
+<style>
+  #titlebar { display:none !important; }
+  body.active_admin, #wrapper, #active_admin_content, #main_content,
+  #main, .flashes { background:#f4f6f9 !important; }
+  #main_content > .panel { background:transparent !important; border:none !important; box-shadow:none !important; padding:0 !important; margin:0 !important; }
+  #main_content > .panel > .panel_contents { padding:0 !important; }
+
+  .vef-page {
+    --brand:#27bc9c; --brand-d:#1e9e82; --ink:#1f2a37; --muted:#6b7684; --line:#e9edf2; --soft:#f4f6f9;
+    color:var(--ink); font-family:"Noto Sans Lao","Phetsarath OT",system-ui,sans-serif;
+    max-width:1080px;
+  }
+
+  /* ── Top Bar ── */
+  .vef-bar { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:28px; }
+  .vef-bar-l { display:flex; align-items:center; gap:14px; }
+  .vef-bar-ico { width:50px; height:50px; border-radius:14px; display:grid; place-items:center;
+                 background:linear-gradient(135deg,#27bc9c,#1e9e82); color:#fff; font-size:20px;
+                 box-shadow:0 8px 20px rgba(39,188,156,.35); flex-shrink:0; }
+  .vef-bar h2 { font-size:21px; font-weight:800; margin:0; }
+  .vef-bar p  { font-size:12.5px; color:var(--muted); margin:3px 0 0; }
+  .vef-bar-btns { display:flex; gap:10px; }
+  .vef-btn { display:inline-flex; align-items:center; gap:7px; padding:10px 22px; border-radius:11px;
+             font-size:13.5px; font-weight:700; cursor:pointer; text-decoration:none !important;
+             text-shadow:none !important; border:none; transition:.15s; white-space:nowrap;
+             font-family:inherit; }
+  .vef-btn-save { background:linear-gradient(135deg,#27bc9c,#1e9e82); color:#fff !important;
+                  box-shadow:0 6px 16px rgba(39,188,156,.35); }
+  .vef-btn-save:hover { filter:brightness(1.07); color:#fff !important; transform:translateY(-1px); }
+  .vef-btn-back { background:#fff; border:1.5px solid var(--line); color:var(--muted) !important;
+                  box-shadow:0 2px 8px rgba(0,0,0,.06); }
+  .vef-btn-back:hover { border-color:#27bc9c; color:#27bc9c !important; }
+
+  /* ── Card ── */
+  .vef-card { background:#fff; border-radius:20px; box-shadow:0 4px 20px rgba(16,24,40,.06);
+              padding:28px 32px; margin-bottom:20px; }
+  .vef-card-hd { display:flex; align-items:center; gap:10px; font-size:15px; font-weight:800;
+                 color:var(--ink); margin-bottom:24px; padding-bottom:14px;
+                 border-bottom:2px solid var(--soft); }
+  .vef-card-hd i { width:32px; height:32px; border-radius:9px; display:grid; place-items:center;
+                   background:#e6f7f3; color:#27bc9c; font-size:14px; flex-shrink:0; }
+
+  /* ── Grid ── */
+  .vef-g3 { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
+  .vef-g2 { display:grid; grid-template-columns:repeat(2,1fr); gap:20px; }
+  .vef-g-1-2 { display:grid; grid-template-columns:1fr 2fr; gap:20px; }
+
+  /* ── Field ── */
+  .vef-field { display:flex; flex-direction:column; gap:6px; }
+  .vef-label { font-size:12px; font-weight:700; color:#475569; letter-spacing:.02em; text-transform:uppercase; }
+  .vef-label span { color:#ef4444; }
+  .vef-input {
+    border:1.5px solid var(--line) !important; border-radius:10px !important;
+    padding:11px 14px !important; font-size:13.5px !important; background:#fff !important;
+    outline:none !important; font-family:inherit !important; color:var(--ink) !important;
+    transition:.2s; width:100% !important; box-sizing:border-box !important;
+    min-height:44px !important; line-height:1.4 !important; margin:0 !important;
+    box-shadow:none !important; appearance:none; -webkit-appearance:none;
+  }
+  .vef-input:focus { border-color:#27bc9c !important; box-shadow:0 0 0 3px rgba(39,188,156,.13) !important; }
+  .vef-input::placeholder { color:#b0bac5; }
+  .vef-input[type="file"] {
+    padding:9px 12px !important; background:#fafbfc !important;
+    cursor:pointer; color:var(--muted) !important; min-height:44px !important;
+  }
+  .vef-input[type="file"]::-webkit-file-upload-button {
+    background:#27bc9c; color:#fff; border:none; border-radius:7px; padding:5px 12px;
+    font-size:12px; font-weight:700; cursor:pointer; margin-right:10px; font-family:inherit;
+  }
+  .vef-input[type="date"] { color:var(--ink) !important; }
+  select.vef-input { padding-right:36px !important; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7684' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") !important; background-repeat:no-repeat !important; background-position:right 14px center !important; }
+  .vef-attached { font-size:11.5px; color:#27bc9c; margin-top:2px; }
+
+  /* ── Status radio ── */
+  .vef-status-wrap { display:flex; gap:8px; flex-wrap:wrap; }
+  .vef-sr { display:none; }
+  .vef-sl { padding:8px 18px; border-radius:9px; border:1.5px solid var(--line);
+            background:#fafafa; color:#94a3b8; font-size:13px; font-weight:700;
+            cursor:pointer; transition:.15s; user-select:none; }
+  .vef-sl:hover { border-color:#27bc9c; color:#27bc9c; }
+  #vs_waiting:checked  + .vef-sl { color:#64748b;  background:#f1f5f9;  border-color:#94a3b8; }
+  #vs_check:checked    + .vef-sl { color:#b45309;  background:#fef3c7;  border-color:#f59e0b; }
+  #vs_confirm:checked  + .vef-sl { color:#fff;     background:#16a34a;  border-color:#16a34a; }
+  #vs_error:checked    + .vef-sl { color:#dc2626;  background:#fff1f2;  border-color:#f87171; }
+  #vs_expired:checked  + .vef-sl { color:#0891b2;  background:#ecfeff;  border-color:#22d3ee; }
+
+  /* ── Errors ── */
+  .vef-errors { background:#fff1f2; border:1.5px solid #fca5a5; border-radius:14px;
+                padding:16px 22px; margin-bottom:20px; }
+  .vef-errors strong { color:#dc2626; display:block; margin-bottom:8px; }
+  .vef-errors li { color:#dc2626; font-size:13px; margin-bottom:2px; }
+
+  /* ── Divider ── */
+  .vef-divider { height:1px; background:var(--soft); margin:20px 0; }
+</style>
+
+<div class="vef-page">
+  <%= form_with model: [:admin, vehicle], local: true, multipart: true, html: { style:"margin:0;" } do |f| %>
+
+    <%# ── Top bar ── %>
+    <div class="vef-bar">
+      <div class="vef-bar-l">
+        <div class="vef-bar-ico"><i class="fas fa-car"></i></div>
+        <div>
+          <h2 class="vef-bar">ແກ້ໄຂຂໍ້ມູນພາຫະນະ</h2>
+          <p>ອັບເດດລາຍລະອຽດຂໍ້ມູນຂອງພາຫະນະ</p>
+        </div>
+      </div>
+      <div class="vef-bar-btns">
+        <%= f.submit 'ບັນທຶກການແກ້ໄຂ', class: 'vef-btn vef-btn-save' %>
+        <%= link_to admin_vehicles_path, class: 'vef-btn vef-btn-back' do %>
+          <i class="fas fa-arrow-left"></i>ກັບຄືນ
+        <% end %>
+      </div>
+    </div>
+
+    <%# ── Errors ── %>
+    <% if vehicle.errors.any? %>
+      <div class="vef-errors">
+        <strong><i class="fas fa-exclamation-circle" style="margin-right:6px;"></i>ກະລຸນາກວດສອບຂໍ້ມູນ</strong>
+        <ul style="margin:0;padding-left:18px;">
+          <% vehicle.errors.full_messages.each do |msg| %>
+            <li><%= msg %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <%# ── Card 1: ຂໍ້ມູນພາຫະນະ ── %>
+    <div class="vef-card">
+      <div class="vef-card-hd">
+        <i class="fas fa-car"></i>ຂໍ້ມູນພາຫະນະ
+      </div>
+
+      <%# Row 1 — ຮູບ + ຍີ່ຫໍ້ %>
+      <div class="vef-g-1-2" style="margin-bottom:20px;">
+        <div class="vef-field">
+          <label class="vef-label">ຮູບພາຫະນະ</label>
+          <input type="file" name="vehicle_img" class="vef-input" accept="image/*">
+        </div>
+        <div class="vef-field">
+          <label class="vef-label">ຍີ່ຫໍ້ພາຫະນະ <span>*</span></label>
+          <%= f.text_field :brand, class: 'vef-input', placeholder: 'ເຊັ່ນ: HONDA, TOYOTA' %>
+        </div>
+      </div>
+
+      <%# Row 2 — ລຸ້ນ + ສີ + ຊີຊີ %>
+      <div class="vef-g3" style="margin-bottom:20px;">
+        <div class="vef-field">
+          <label class="vef-label">ລຸ້ນ <span>*</span></label>
+          <%= f.text_field :model, class: 'vef-input', placeholder: 'ເຊັ່ນ: Click, Camry' %>
+        </div>
+        <div class="vef-field">
+          <label class="vef-label">ສີ <span>*</span></label>
+          <%= f.text_field :color, class: 'vef-input', placeholder: 'ເຊັ່ນ: ຂາວ, ດຳ' %>
+        </div>
+        <div class="vef-field">
+          <label class="vef-label">ຂະໜາດເຄື່ອງ (CC)</label>
+          <%= f.text_field :cc, class: 'vef-input', placeholder: 'ເຊັ່ນ: 125' %>
+        </div>
+      </div>
+
+      <%# Row 3 — ປະເພດປ້າຍ + ທະບຽນ + ປະເພດ %>
+      <div class="vef-g3" style="margin-bottom:20px;">
+        <div class="vef-field">
+          <label class="vef-label">ປະເພດປ້າຍທະບຽນ</label>
+          <%= f.select :plate_type,
+                PlateType.ordered.map { |pt| [pt.name, pt.plate_code] },
+                { include_blank: '— ເລືອກ —' }, class: 'vef-input' %>
+        </div>
+        <div class="vef-field">
+          <label class="vef-label">ເລກທະບຽນລົດ <span>*</span></label>
+          <%= f.text_field :plate_number, class: 'vef-input', placeholder: 'ເຊັ່ນ: 1234' %>
+        </div>
+        <div class="vef-field">
+          <label class="vef-label">ປະເພດລົດ <span>*</span></label>
+          <%= f.select :vehicle_type,
+                [['ລົດຈັກ','motorcycle'],['ລົດຍົນ','car'],['ລົດບັນທຸກ','truck']],
+                { include_blank: '— ເລືອກ —' }, class: 'vef-input' %>
+        </div>
+      </div>
+
+      <%# Row 4 — ຈັກ + ຖັງ + ປີ + ແຂວງ %>
+      <div class="vef-g3" style="margin-bottom:20px;">
+        <div class="vef-field">
+          <label class="vef-label">ເລກຈັກ (Engine No.) <span>*</span></label>
+          <%= f.text_field :engine_number, class: 'vef-input', placeholder: 'JF59E-...' %>
+        </div>
+        <div class="vef-field">
+          <label class="vef-label">ເລກຖັງ (Chassis No.) <span>*</span></label>
+          <%= f.text_field :chassis_number, class: 'vef-input', placeholder: 'MLHJC...' %>
+        </div>
+        <div class="vef-field">
+          <label class="vef-label">ປີຜະລິດ <span>*</span></label>
+          <%= f.text_field :year, class: 'vef-input', placeholder: '2023' %>
+        </div>
+      </div>
+
+      <%# Row 4b — ແຂວງ %>
+      <div class="vef-field" style="margin-bottom:20px;max-width:33%;">
+        <label class="vef-label">ແຂວງ</label>
+        <%= f.text_field :province, class: 'vef-input', placeholder: 'ເຊັ່ນ: ນະຄອນຫຼວງ' %>
+      </div>
+
+      <%# Row 5 — ການນຳໃຊ້ + ຜູ້ໃຊ້ຫຼັກ + ຜູ້ໃຊ້ຮອງ %>
+      <div class="vef-g3">
+        <div class="vef-field">
+          <label class="vef-label">ປະເພດການນຳໃຊ້</label>
+          <%= f.text_field :usage_type, class: 'vef-input', placeholder: 'ນຳໃຊ້ສ່ວນຕົວ...' %>
+        </div>
+        <div class="vef-field">
+          <label class="vef-label">ຜູ້ໃຊ້ຫຼັກ <span>*</span></label>
+          <%= f.select :user_id,
+                User.order(:first_name).map { |u|
+                  name = [u.first_name, u.last_name].compact_blank.join(' ').presence || u.name.to_s
+                  ["#{name} (#{u.phone_number})", u.id]
+                },
+                { include_blank: '— ເລືອກ —' }, class: 'vef-input' %>
+        </div>
+        <div class="vef-field">
+          <label class="vef-label">ຜູ້ໃຊ້ຮອງ</label>
+          <input type="text" name="sub_owner" class="vef-input" placeholder="ຊື່ຜູ້ໃຊ້ຮອງ...">
+        </div>
+      </div>
+
+      <%# Row 6 — ຊື່ເຈົ້າຂອງລົດ + ປະເພດເຄື່ອງຈັກ + ຈຳນວນບ່ອນນັ່ງ %>
+      <div class="vef-g3" style="margin-top:20px;">
+        <div class="vef-field">
+          <label class="vef-label">ຊື່ເຈົ້າຂອງລົດ (ຕາມທະບຽນ)</label>
+          <%= f.text_field :owner_name, class: 'vef-input', placeholder: 'ຊື່ຕາມປື້ມທະບຽນ' %>
+        </div>
+        <div class="vef-field">
+          <label class="vef-label">ປະເພດເຄື່ອງຈັກ</label>
+          <%= f.select :fuel_type, ['ແອັດຊັງ', 'ກາຊ່ວນ', 'ໄຟຟ້າ'],
+                { include_blank: '— ເລືອກ —' }, class: 'vef-input' %>
+        </div>
+        <div class="vef-field">
+          <label class="vef-label">ຈຳນວນບ່ອນນັ່ງ</label>
+          <%= f.text_field :seat_count, class: 'vef-input', placeholder: 'ເຊັ່ນ: 4' %>
+        </div>
+      </div>
+
+      <%# Row 7 — ຈຳນວນເພົາ + ຈຳນວນສູບ %>
+      <div class="vef-g2" style="margin-top:20px;">
+        <div class="vef-field">
+          <label class="vef-label">ຈຳນວນເພົາ</label>
+          <%= f.select :axle_count, ['2 ລໍ້', '4 ລໍ້', '6 ລໍ້', '8 ລໍ້', '10 ລໍ້', '12 ລໍ້'],
+                { include_blank: '— ເລືອກ —' }, class: 'vef-input' %>
+        </div>
+        <div class="vef-field">
+          <label class="vef-label">ຈຳນວນສູບ</label>
+          <%= f.select :cylinder_count, ['1 ສູບ', '2 ສູບ', '3 ສູບ', '4 ສູບ', '6 ສູບ', '8 ສູບ', '12 ສູບ'],
+                { include_blank: '— ເລືອກ —' }, class: 'vef-input' %>
+        </div>
+      </div>
+
+      <%# Row 8 — ວັນໝົດອາຍຸທະບຽນ %>
+      <div class="vef-field" style="margin-top:20px;max-width:33%;">
+        <label class="vef-label">ວັນໝົດອາຍຸທະບຽນ</label>
+        <%= f.date_field :registration_expiry_date, class: 'vef-input' %>
+      </div>
+    </div>
+
+    <%# ── Card 2: ເອກະສານ ── %>
+    <div class="vef-card">
+      <div class="vef-card-hd">
+        <i class="fas fa-file-image"></i>ເອກະສານ & ຮູບຖ່າຍ
+      </div>
+      <div class="vef-g3">
+        <div class="vef-field">
+          <label class="vef-label">ຮູບທະບຽນລົດ</label>
+          <input type="file" name="vehicle_reg_img" class="vef-input" accept="image/*">
+        </div>
+        <div class="vef-field">
+          <label class="vef-label">ປຶ້ມຕິດຕາມ — ດ້ານໜ້າ</label>
+          <%= f.file_field :registration_front, class: 'vef-input', accept: 'image/*' %>
+          <% if vehicle.registration_front.attached? %>
+            <span class="vef-attached"><i class="fas fa-check-circle"></i> ມີຮູບຢູ່ແລ້ວ</span>
+          <% end %>
+        </div>
+        <div class="vef-field">
+          <label class="vef-label">ປຶ້ມຕິດຕາມ — ດ້ານຫຼັງ</label>
+          <%= f.file_field :registration_back, class: 'vef-input', accept: 'image/*' %>
+          <% if vehicle.registration_back.attached? %>
+            <span class="vef-attached"><i class="fas fa-check-circle"></i> ມີຮູບຢູ່ແລ້ວ</span>
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <%# ── Card 3: ສະຖານະ ── %>
+    <div class="vef-card">
+      <div class="vef-card-hd">
+        <i class="fas fa-toggle-on"></i>ວັນໝົດອາຍຸ & ສະຖານະ
+      </div>
+      <div class="vef-g-1-2">
+        <div class="vef-field">
+          <label class="vef-label">ໝົດອາຍຸວັນທີ</label>
+          <input type="date" name="exp_date" class="vef-input">
+        </div>
+        <div class="vef-field">
+          <label class="vef-label">ສະຖານະ <span>*</span></label>
+          <div class="vef-status-wrap">
+            <input type="radio" class="vef-sr" name="vehicle_status" id="vs_waiting" value="waiting">
+            <label class="vef-sl" for="vs_waiting">ລໍຖ້າ</label>
+
+            <input type="radio" class="vef-sr" name="vehicle_status" id="vs_check" value="check">
+            <label class="vef-sl" for="vs_check">ກວດສອບ</label>
+
+            <input type="radio" class="vef-sr" name="vehicle_status" id="vs_confirm" value="confirm" checked>
+            <label class="vef-sl" for="vs_confirm">ຢືນຢັນ</label>
+
+            <input type="radio" class="vef-sr" name="vehicle_status" id="vs_error" value="error">
+            <label class="vef-sl" for="vs_error">ຜິດພາດ</label>
+
+            <input type="radio" class="vef-sr" name="vehicle_status" id="vs_expired" value="expired">
+            <label class="vef-sl" for="vs_expired">ໝົດອາຍຸ</label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  <% end %>
+</div>

@@ -1,0 +1,303 @@
+<% company = resource %>
+
+<style>
+  #titlebar { display:none !important; }
+  body.active_admin, #wrapper, #active_admin_content, #main_content,
+  #main, .flashes { background:#f4f6f9 !important; }
+  #main_content > .panel { background:transparent !important; border:none !important; box-shadow:none !important; padding:0 !important; margin:0 !important; }
+  #main_content > .panel > .panel_contents { padding:0 !important; }
+
+  .vef-page {
+    --brand:#27bc9c; --brand-d:#1e9e82; --ink:#1f2a37; --muted:#6b7684; --line:#e9edf2; --soft:#f4f6f9;
+    color:var(--ink); font-family:"Noto Sans Lao","Phetsarath OT",system-ui,sans-serif;
+    max-width:1280px;
+  }
+
+  .vef-bar { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:28px; }
+  .vef-bar-l { display:flex; align-items:center; gap:14px; }
+  .vef-bar-ico { width:50px; height:50px; border-radius:14px; display:grid; place-items:center;
+                 background:linear-gradient(135deg,#27bc9c,#1e9e82); color:#fff; font-size:20px;
+                 box-shadow:0 8px 20px rgba(39,188,156,.35); flex-shrink:0; }
+  .vef-bar h2 { font-size:21px; font-weight:800; margin:0; }
+  .vef-bar p  { font-size:12.5px; color:var(--muted); margin:3px 0 0; }
+  .vef-bar-btns { display:flex; gap:10px; }
+  .vef-btn { display:inline-flex; align-items:center; gap:7px; padding:10px 22px; border-radius:11px;
+             font-size:13.5px; font-weight:700; cursor:pointer; text-decoration:none !important;
+             text-shadow:none !important; border:none; transition:.15s; white-space:nowrap;
+             font-family:inherit; }
+  .vef-btn-save { background:linear-gradient(135deg,#27bc9c,#1e9e82); color:#fff !important;
+                  box-shadow:0 6px 16px rgba(39,188,156,.35); }
+  .vef-btn-save:hover { filter:brightness(1.07); color:#fff !important; transform:translateY(-1px); }
+  .vef-btn-back { background:#fff; border:1.5px solid var(--line); color:var(--muted) !important;
+                  box-shadow:0 2px 8px rgba(0,0,0,.06); }
+  .vef-btn-back:hover { border-color:#27bc9c; color:#27bc9c !important; }
+
+  .vef-card { background:#fff; border-radius:20px; box-shadow:0 4px 20px rgba(16,24,40,.06);
+              padding:28px 32px; margin-bottom:20px; }
+  .vef-card-hd { display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:15px; font-weight:800;
+                 color:var(--ink); margin-bottom:24px; padding-bottom:14px;
+                 border-bottom:2px solid var(--soft); }
+  .vef-card-hd-l { display:flex; align-items:center; gap:10px; }
+  .vef-card-hd i { width:32px; height:32px; border-radius:9px; display:grid; place-items:center;
+                   background:#e6f7f3; color:#27bc9c; font-size:14px; flex-shrink:0; }
+
+  .vef-g2 { display:grid; grid-template-columns:repeat(2,1fr); gap:20px; }
+
+  .vef-field { display:flex; flex-direction:column; gap:6px; }
+  .vef-label { font-size:12px; font-weight:700; color:#475569; letter-spacing:.02em; text-transform:uppercase; }
+  .vef-label span { color:#ef4444; }
+  .vef-input {
+    border:1.5px solid var(--line) !important; border-radius:10px !important;
+    padding:11px 14px !important; font-size:13.5px !important; background:#fff !important;
+    outline:none !important; font-family:inherit !important; color:var(--ink) !important;
+    transition:.2s; width:100% !important; box-sizing:border-box !important;
+    min-height:44px !important; line-height:1.4 !important; margin:0 !important;
+    box-shadow:none !important; appearance:none; -webkit-appearance:none;
+  }
+  .vef-input:focus { border-color:#27bc9c !important; box-shadow:0 0 0 3px rgba(39,188,156,.13) !important; }
+  .vef-input::placeholder { color:#b0bac5; }
+  textarea.vef-input { min-height:64px !important; resize:vertical; }
+
+  .vef-status-wrap { display:flex; gap:8px; flex-wrap:wrap; }
+  .vef-sr { display:none; }
+  .vef-sl { padding:8px 18px; border-radius:9px; border:1.5px solid var(--line);
+            background:#fafafa; color:#94a3b8; font-size:13px; font-weight:700;
+            cursor:pointer; transition:.15s; user-select:none; }
+  .vef-sl:hover { border-color:#27bc9c; color:#27bc9c; }
+  #ics_active:checked   + .vef-sl { color:#fff;    background:#16a34a; border-color:#16a34a; }
+  #ics_inactive:checked + .vef-sl { color:#dc2626; background:#fff1f2; border-color:#f87171; }
+
+  .vef-errors { background:#fff1f2; border:1.5px solid #fca5a5; border-radius:14px;
+                padding:16px 22px; margin-bottom:20px; }
+  .vef-errors strong { color:#dc2626; display:block; margin-bottom:8px; }
+  .vef-errors li { color:#dc2626; font-size:13px; margin-bottom:2px; }
+
+  /* ── Two-column layout: left = company info, right = packages (matches insurance_company_add.php) ── */
+  .icf-layout { display:grid; grid-template-columns:5fr 7fr; gap:20px; align-items:start; }
+  @media (max-width:900px) { .icf-layout { grid-template-columns:1fr; } }
+
+  /* ── Logo upload ── */
+  .icf-logo-wrap { text-align:center; margin-bottom:20px; }
+  .icf-logo-preview { width:120px; height:120px; margin:10px auto 14px; border-radius:20px;
+                       background:#f8f9fa; border:2px dashed #d8dee6; display:flex;
+                       align-items:center; justify-content:center; overflow:hidden; }
+  .icf-logo-preview img { width:100%; height:100%; object-fit:contain; }
+  .icf-logo-preview i { font-size:32px; color:#c2cad4; }
+  .icf-logo-wrap input[type="file"] { max-width:280px; margin:0 auto; }
+
+  /* ── Packages table ── */
+  .icf-btn-add-pkg { border:1.5px solid #27bc9c; border-radius:9px; padding:7px 16px; font-size:12.5px;
+                      font-weight:700; background:#f0fdfa; color:#0f766e; cursor:pointer;
+                      display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
+  .icf-btn-add-pkg:hover { background:#e6f7f3; }
+  .icf-pkg-table-wrap { overflow-x:auto; }
+  .icf-pkg-table { width:100%; border-collapse:collapse; min-width:760px; }
+  .icf-pkg-table thead th { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase;
+                             letter-spacing:.4px; text-align:left; padding:0 8px 10px; white-space:nowrap; }
+  .icf-pkg-table tbody.icf-pkg-group { border-bottom:1px solid var(--soft); }
+  .icf-pkg-table tbody.icf-pkg-group:last-child { border-bottom:none; }
+  .icf-pkg-table td { padding:6px 8px; vertical-align:top; }
+  .icf-tbl-input {
+    border:1.5px solid var(--line); border-radius:8px; padding:9px 11px; font-size:13px;
+    background:#fafbfc; outline:none; font-family:inherit; color:var(--ink);
+    width:100%; box-sizing:border-box; min-height:40px;
+  }
+  .icf-tbl-input:focus { border-color:#27bc9c; background:#fff; box-shadow:0 0 0 3px rgba(39,188,156,.12); }
+  .icf-tbl-textarea { min-height:44px; resize:vertical; }
+  .icf-col-sm { width:80px; }
+  .icf-col-md { width:110px; }
+  .icf-col-status { width:104px; }
+  .icf-col-del { width:36px; }
+
+  .icf-status-toggle { display:flex; border:1.5px solid var(--line); border-radius:8px; overflow:hidden; }
+  .icf-status-btn { flex:1; border:none; background:#fafafa; color:#94a3b8; font-size:11px; font-weight:700;
+                     padding:9px 4px; cursor:pointer; }
+  .icf-status-btn.is-on  { background:#16a34a; color:#fff; }
+  .icf-status-btn.is-off { background:#dc2626; color:#fff; }
+
+  .icf-remove-pkg { border:1px solid #f87171; background:#fff1f2; color:#991b1b; border-radius:8px;
+                     width:36px; height:40px; cursor:pointer; display:inline-flex; align-items:center;
+                     justify-content:center; }
+  .icf-remove-pkg:hover { background:#dc2626; color:#fff; }
+
+  .icf-detail-row td { padding:0 8px 14px; }
+  .icf-coverage-label { font-size:11px; font-weight:700; color:var(--muted); margin:2px 0 6px 2px;
+                         display:flex; align-items:center; gap:5px; }
+</style>
+
+<div class="vef-page">
+  <%= form_with model: [:admin, company], local: true, multipart: true, html: { style:"margin:0;" } do |f| %>
+
+    <div class="vef-bar">
+      <div class="vef-bar-l">
+        <div class="vef-bar-ico"><i class="fas fa-building"></i></div>
+        <div>
+          <h2><%= company.persisted? ? 'ແກ້ໄຂຂໍ້ມູນບໍລິສັດປະກັນໄພ' : 'ເພີ່ມບໍລິສັດປະກັນໄພໃໝ່' %></h2>
+          <p>ກະລຸນາລະບຸຂໍ້ມູນບໍລິສັດ ແລະ ແພັກເກັດປະກັນໄພໃຫ້ຄົບຖ້ວນ</p>
+        </div>
+      </div>
+      <div class="vef-bar-btns">
+        <%= f.submit(company.persisted? ? 'ບັນທຶກການແກ້ໄຂ' : 'ບັນທຶກທັງໝົດ', class: 'vef-btn vef-btn-save') %>
+        <%= link_to admin_insurance_companies_path, class: 'vef-btn vef-btn-back' do %>
+          <i class="fas fa-arrow-left"></i>ກັບຄືນ
+        <% end %>
+      </div>
+    </div>
+
+    <% if company.errors.any? %>
+      <div class="vef-errors">
+        <strong><i class="fas fa-exclamation-circle" style="margin-right:6px;"></i>ກະລຸນາກວດສອບຂໍ້ມູນ</strong>
+        <ul style="margin:0;padding-left:18px;">
+          <% company.errors.full_messages.each do |msg| %>
+            <li><%= msg %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <div class="icf-layout">
+      <%# ── Left: company info + description ── %>
+      <div>
+        <div class="vef-card">
+          <div class="vef-card-hd">
+            <div class="vef-card-hd-l"><i class="fas fa-building"></i>ຂໍ້ມູນບໍລິສັດ</div>
+          </div>
+
+          <div class="icf-logo-wrap">
+            <label class="vef-label" style="display:block;">ຮູບໂລໂກ້ບໍລິສັດ</label>
+            <div class="icf-logo-preview" id="logoPreview">
+              <% if company.logo.present? %>
+                <img src="<%= company.logo %>" alt="logo">
+              <% else %>
+                <i class="fas fa-building"></i>
+              <% end %>
+            </div>
+            <%= f.file_field :logo_file, class: 'vef-input', accept: 'image/*', id: 'logoFileInput' %>
+          </div>
+
+          <div class="vef-field" style="margin-bottom:20px;">
+            <label class="vef-label">ຊື່ບໍລິສັດ <span>*</span></label>
+            <%= f.text_field :name, class: 'vef-input', placeholder: 'ລະບຸຊື່ບໍລິສັດ...' %>
+          </div>
+
+          <div class="vef-field" style="margin-bottom:20px;">
+            <label class="vef-label">ສະຖານະບໍລິສັດ</label>
+            <div class="vef-status-wrap">
+              <%= f.radio_button :status, 'active', id: 'ics_active', class: 'vef-sr', checked: company.status != 'inactive' %>
+              <label class="vef-sl" for="ics_active">ເປີດໃຊ້ງານ</label>
+
+              <%= f.radio_button :status, 'inactive', id: 'ics_inactive', class: 'vef-sr' %>
+              <label class="vef-sl" for="ics_inactive">ປິດໃຊ້ງານ</label>
+            </div>
+          </div>
+
+          <div class="vef-g2">
+            <div class="vef-field">
+              <label class="vef-label">ເບີໂທຕິດຕໍ່</label>
+              <%= f.text_field :phone, class: 'vef-input', placeholder: '021 900111' %>
+            </div>
+            <div class="vef-field">
+              <label class="vef-label">ອີເມວ</label>
+              <%= f.text_field :email, class: 'vef-input', placeholder: 'contact@company.com' %>
+            </div>
+          </div>
+        </div>
+
+        <div class="vef-card">
+          <div class="vef-card-hd">
+            <div class="vef-card-hd-l"><i class="fas fa-file-alt"></i>ລາຍລະອຽດບໍລິສັດ</div>
+          </div>
+          <div class="vef-field">
+            <%= f.text_area :description, class: 'vef-input', rows: 6,
+                  placeholder: 'ລະບຸຂໍ້ມູນລາຍລະອຽດບໍລິສັດ...' %>
+          </div>
+        </div>
+      </div>
+
+      <%# ── Right: packages table ── %>
+      <div class="vef-card">
+        <div class="vef-card-hd">
+          <div class="vef-card-hd-l"><i class="fas fa-box-open"></i>ແພັກເກັດ ປະກັນໄພ</div>
+          <button type="button" id="add-package-btn" class="icf-btn-add-pkg">
+            <i class="fas fa-plus"></i>ເພີ່ມແພັກເກັດ
+          </button>
+        </div>
+
+        <div class="icf-pkg-table-wrap">
+          <table class="icf-pkg-table" id="packages-table">
+            <thead>
+              <tr>
+                <th>ຊື່ແພັກເກັດ</th>
+                <th>CC ຕ່ຳ</th>
+                <th>CC ສູງ</th>
+                <th>ປະເພດ</th>
+                <th>ລາຄາ</th>
+                <th>ໄລຍະ</th>
+                <th>ສະຖານະ</th>
+                <th></th>
+              </tr>
+            </thead>
+            <%= f.fields_for :insurance_packages do |pf| %>
+              <%= render 'active_admin/insurance_package_fields', f: pf %>
+            <% end %>
+          </table>
+        </div>
+
+        <template id="package-template">
+          <%= f.fields_for :insurance_packages, InsurancePackage.new, child_index: 'NEW_RECORD' do |pf| %>
+            <%= render 'active_admin/insurance_package_fields', f: pf %>
+          <% end %>
+        </template>
+      </div>
+    </div>
+
+  <% end %>
+</div>
+
+<script>
+  var logoFileInput = document.getElementById('logoFileInput');
+  if (logoFileInput) {
+    logoFileInput.addEventListener('change', function () {
+      var file = this.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        document.getElementById('logoPreview').innerHTML = '<img src="' + e.target.result + '" alt="logo">';
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  document.getElementById('add-package-btn').addEventListener('click', function () {
+    var template = document.getElementById('package-template').innerHTML;
+    var newIndex = new Date().getTime();
+    var html = template.replace(/NEW_RECORD/g, newIndex);
+    document.getElementById('packages-table').insertAdjacentHTML('beforeend', html);
+  });
+
+  document.getElementById('packages-table').addEventListener('click', function (e) {
+    var statusBtn = e.target.closest('.icf-status-btn');
+    if (statusBtn) {
+      var toggle = statusBtn.closest('.icf-status-toggle');
+      var input = toggle.querySelector('.icf-status-input');
+      var status = statusBtn.dataset.status;
+      input.value = status;
+      toggle.querySelectorAll('.icf-status-btn').forEach(function (b) { b.classList.remove('is-on', 'is-off'); });
+      statusBtn.classList.add(status === 'active' ? 'is-on' : 'is-off');
+      return;
+    }
+
+    var removeBtn = e.target.closest('.icf-remove-pkg');
+    if (removeBtn) {
+      e.preventDefault();
+      var group = removeBtn.closest('.icf-pkg-group');
+      var destroyInput = group.querySelector('.icf-destroy-input');
+      if (destroyInput) {
+        destroyInput.value = '1';
+        group.style.display = 'none';
+      } else {
+        group.remove();
+      }
+    }
+  });
+</script>

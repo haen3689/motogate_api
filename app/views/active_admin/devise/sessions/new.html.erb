@@ -1,0 +1,13 @@
+<% content_for :page_title, "Admin Login" %>
+
+<%= form_for(resource, as: resource_name, url: session_path(resource_name)) do |f| %>
+  <div class="input-group">
+    <%= f.email_field :email, placeholder: "Email", autofocus: true, autocomplete: "off" %>
+  </div>
+
+  <div class="input-group">
+    <%= f.password_field :password, placeholder: "Password", autocomplete: "off" %>
+  </div>
+
+  <%= f.submit "LOGIN", class: "login-btn" %>
+<% end %>

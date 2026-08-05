@@ -1,0 +1,132 @@
+<%# MotoGate Admin Header — gradient matching demo navbar %>
+<%
+  notif_expiry = Insurance.where(status: "active").where(end_date: Date.today..(Date.today + 30)).count +
+                 RoadTax.where(status: "paid").where(expired_at: Date.today..(Date.today + 30)).count
+  notif_pending = Inspection.where(status: "pending").count
+  notif_total   = notif_expiry + notif_pending
+%>
+
+<header class="admin-header" id="admin-header">
+
+  <%# ===== Left: Hamburger + Brand ===== %>
+  <div class="header-left">
+    <button class="header-toggle" id="sidebar-toggle"
+            onclick="toggleSidebar()"
+            title="Toggle Sidebar">
+      <i class="fas fa-bars"></i>
+    </button>
+    <a href="/admin" class="header-brand">
+      <img src="/admin_logo.png" alt="MotoGate" class="header-logo"
+           onerror="this.style.display='none'">
+      <span class="header-title">MotoGate</span>
+    </a>
+  </div>
+
+  <%# ===== Right: Notifications + User ===== %>
+  <div class="header-right">
+
+    <%# --- Notification Bell --- %>
+    <div class="hdr-notif-wrap" id="notif-wrap">
+      <button class="header-icon-btn" id="notif-btn" onclick="hdrToggle('notif-drop','user-drop')" title="ແຈ້ງເຕືອນ">
+        <i class="fas fa-bell"></i>
+        <% if notif_total > 0 %>
+        <span class="hdr-badge"><%= notif_total > 9 ? '9+' : notif_total %></span>
+        <% end %>
+      </button>
+      <div class="hdr-dropdown" id="notif-drop">
+        <div class="hdr-dd-head">
+          <span><i class="fas fa-bell"></i>&nbsp; ແຈ້ງເຕືອນ</span>
+          <span class="hdr-dd-cnt"><%= notif_total %> ໃໝ່</span>
+        </div>
+        <% ins_exp  = Insurance.where(status: "active").where(end_date: Date.today..(Date.today + 30)).count
+           rt_exp   = RoadTax.where(status: "paid").where(expired_at: Date.today..(Date.today + 30)).count
+           ins_dead = Insurance.where(status: "active").where(end_date: ...Date.today).count %>
+        <% [
+          { href: "/admin/insurances", icon: "fas fa-fire",              cls: "danger",  title: "ປະກັນໄພໝົດແລ້ວ",     count: ins_dead,   unit: "ລາຍການ" },
+          { href: "/admin/insurances", icon: "fas fa-triangle-exclamation", cls: "warn", title: "ປະກັນໄພໃກ້ໝົດ (30ວ)", count: ins_exp,    unit: "ລາຍການ" },
+          { href: "/admin/road_taxes", icon: "fas fa-road",              cls: "info",    title: "ຄ່າທາງໃກ້ໝົດ (30ວ)",  count: rt_exp,     unit: "ລາຍການ" },
+          { href: "/admin/inspections",icon: "fas fa-microscope",        cls: "primary", title: "ກວດສະພາບ Pending",     count: notif_pending, unit: "ລາຍການ" },
+        ].each do |n| next if n[:count] == 0 %>
+        <a href="<%= n[:href] %>" class="hdr-dd-item">
+          <div class="hdr-dd-ico <%= n[:cls] %>"><i class="<%= n[:icon] %>"></i></div>
+          <div style="flex:1;">
+            <div class="hdr-dd-title"><%= n[:title] %></div>
+            <div class="hdr-dd-sub"><%= n[:count] %> <%= n[:unit] %></div>
+          </div>
+          <i class="fas fa-chevron-right" style="font-size:.6rem;opacity:.4;"></i>
+        </a>
+        <% end %>
+        <% if notif_total == 0 %>
+        <div style="text-align:center;padding:24px 0;color:#94a3b8;font-size:.82rem;">
+          <i class="fas fa-bell-slash" style="font-size:1.5rem;display:block;margin-bottom:8px;"></i>
+          ບໍ່ມີການແຈ້ງເຕືອນໃໝ່
+        </div>
+        <% end %>
+        <div class="hdr-dd-foot">
+          <a href="/admin/insurances"><i class="fas fa-clock-rotate-left"></i> ເບິ່ງທັງໝົດ</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="header-divider"></div>
+
+    <%# --- User Dropdown --- %>
+    <div class="hdr-user-wrap" id="user-wrap">
+      <button class="header-user" id="user-btn" onclick="hdrToggle('user-drop','notif-drop')">
+        <div class="header-avatar"><%= current_admin_user.email[0].upcase %></div>
+        <div class="header-user-info">
+          <span class="header-username"><%= current_admin_user.email.split("@").first %></span>
+          <span class="header-role">Administrator</span>
+        </div>
+        <i class="fas fa-chevron-down header-chevron"></i>
+      </button>
+      <div class="hdr-dropdown user-drop" id="user-drop">
+        <div class="hdr-dd-user-hero">
+          <div class="hdr-dd-avatar"><%= current_admin_user.email[0].upcase %></div>
+          <div>
+            <div style="font-weight:700;font-size:.88rem;color:#1e293b;"><%= current_admin_user.email.split("@").first %></div>
+            <div style="font-size:.72rem;color:#64748b;"><%= current_admin_user.email %></div>
+          </div>
+        </div>
+        <div style="height:1px;background:#f1f5f9;margin:0;"></div>
+        <a href="/admin/admin_users/<%= current_admin_user.id %>/edit" class="hdr-dd-item">
+          <div class="hdr-dd-ico primary"><i class="fas fa-gear"></i></div>
+          <div class="hdr-dd-title">ຕັ້ງຄ່າບັນຊີ</div>
+        </a>
+        <div class="hdr-dd-divider"></div>
+        <%= form_tag destroy_admin_user_session_path, method: :delete, class: "hdr-logout-form" do %>
+          <button type="submit" class="hdr-dd-item hdr-dd-logout">
+            <div class="hdr-dd-ico danger"><i class="fas fa-right-from-bracket"></i></div>
+            <div class="hdr-dd-title">ອອກຈາກລະບົບ</div>
+          </button>
+        <% end %>
+      </div>
+    </div>
+
+  </div>
+
+</header>
+
+<script>
+function toggleSidebar() {
+  var sidebar = document.getElementById('admin-sidebar');
+  var wrapper = document.getElementById('wrapper');
+  sidebar.classList.toggle('sidebar-collapsed');
+  wrapper.classList.toggle('sidebar-expanded');
+}
+
+function hdrToggle(openId, closeId) {
+  var open  = document.getElementById(openId);
+  var close = document.getElementById(closeId);
+  if (close) close.classList.remove('open');
+  if (open)  open.classList.toggle('open');
+  event.stopPropagation();
+}
+
+document.addEventListener('click', function() {
+  ['notif-drop','user-drop'].forEach(function(id){
+    var el = document.getElementById(id);
+    if (el) el.classList.remove('open');
+  });
+});
+</script>

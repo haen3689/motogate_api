@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="lo">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/png" href="/admin_logo.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>MotoGate Admin</title>
+  <%= csrf_meta_tags %>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wdth,wght@100,100..900&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; font-family: 'Noto Sans Lao', sans-serif; margin: 0; padding: 0; }
+
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background-color: #6edec2;
+    }
+
+    .container {
+      display: flex;
+      width: 900px;
+      height: 500px;
+      background: white;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 15px 30px rgba(0,0,0,0.2);
+    }
+
+    /* ฝั่งซ้าย */
+    .illustration-side {
+      flex: 1.2;
+      background: #27bc9c;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+    }
+
+    .version-tag {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      color: rgba(255,255,255,0.6);
+      font-size: 11px;
+    }
+
+    /* ฝั่งขวา */
+    .login-side {
+      flex: 1;
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .avatar {
+      width: 80px;
+      height: 80px;
+      background: #eee;
+      border-radius: 50%;
+      margin-bottom: 10px;
+      overflow: hidden;
+    }
+
+    .avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .welcome-title {
+      color: #333;
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      margin-bottom: 30px;
+    }
+
+    .login-side form {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .flash-error {
+      width: 100%;
+      color: #cc1010;
+      font-size: 13px;
+      margin-bottom: 12px;
+      text-align: center;
+      background: #fff0f0;
+      border-radius: 8px;
+      padding: 8px 12px;
+    }
+
+    .input-group {
+      width: 100%;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #ddd;
+      transition: border-color 0.2s;
+    }
+
+    .input-group:focus-within {
+      border-bottom-color: #27bc9c;
+    }
+
+    .input-group input {
+      width: 100%;
+      border: none;
+      padding: 10px 4px;
+      outline: none;
+      font-size: 15px;
+      font-family: 'Noto Sans Lao', sans-serif;
+      color: #333;
+      background: transparent;
+    }
+
+    .input-group input::placeholder {
+      color: #aaa;
+    }
+
+    .login-btn {
+      width: 100%;
+      padding: 13px;
+      border: none;
+      border-radius: 25px;
+      background-color: #27bc9c;
+      color: white;
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      cursor: pointer;
+      transition: background-color 0.3s, transform 0.1s;
+      font-family: 'Noto Sans Lao', sans-serif;
+      margin-top: 10px;
+    }
+
+    .login-btn:hover { background-color: #1fa588; }
+    .login-btn:active { transform: scale(0.98); }
+
+    @media (max-width: 700px) {
+      .container { flex-direction: column; width: 95%; height: auto; }
+      .illustration-side { padding: 32px; height: 200px; }
+      .illustration-side .logo-big { width: 100px; height: 100px; margin-bottom: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- ฝั่งซ้าย — illustration -->
+  <div class="illustration-side">
+    <span class="version-tag">Version 1.0.0</span>
+  </div>
+
+  <!-- ฝั่งขวา — ฟอร์ม -->
+  <div class="login-side">
+    <div class="avatar">
+      <img src="/admin_logo.png" onerror="this.style.display='none'" alt="">
+    </div>
+    <h2 class="welcome-title">WELCOME</h2>
+
+    <% if flash[:alert] %>
+      <div class="flash-error"><%= flash[:alert] %></div>
+    <% end %>
+
+    <%= yield %>
+  </div>
+</div>
+
+</body>
+</html>

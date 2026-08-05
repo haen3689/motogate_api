@@ -1,0 +1,177 @@
+<% content_for :title, 'ລາຍການພາຫານະ - MotoGate' %>
+
+<%# ── Page Header ── %>
+<div class="pg-hdr">
+  <div class="pg-title">
+    <h1><i class="fas fa-database"></i>ຂໍ້ມູນພາຫານະ</h1>
+    <p>ຈັດການຂໍ້ມູນລະອຽດຂອງພາຫານະທັງໝົດ</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="#" class="btn btn-primary btn-sm px-3">
+      <i class="fas fa-download me-1"></i>ດາວໂຫລດຂໍ້ມູນ
+    </a>
+  </div>
+</div>
+
+<%# ── Stat Cards ── %>
+<div class="stats-grid">
+  <div class="stat-card">
+    <div>
+      <div class="stat-label">ພາຫານະທັງໝົດ</div>
+      <div class="stat-value"><%= @total %></div>
+    </div>
+    <div class="stat-icon" style="background:#e6f7f3;">
+      <i class="fas fa-car" style="color:#27bc9c;"></i>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div>
+      <div class="stat-label">ລົດຈັກ</div>
+      <div class="stat-value" style="color:#2563eb;"><%= @moto %></div>
+    </div>
+    <div class="stat-icon" style="background:#dbeafe;">
+      <i class="fas fa-motorcycle" style="color:#2563eb;"></i>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div>
+      <div class="stat-label">ລົດຍົນ</div>
+      <div class="stat-value" style="color:#16a34a;"><%= @car %></div>
+    </div>
+    <div class="stat-icon" style="background:#f0fdf4;">
+      <i class="fas fa-car-side" style="color:#16a34a;"></i>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div>
+      <div class="stat-label">ລົດບັນທຸກ</div>
+      <div class="stat-value" style="color:#ca8a04;"><%= @truck %></div>
+    </div>
+    <div class="stat-icon" style="background:#fef9c3;">
+      <i class="fas fa-truck" style="color:#ca8a04;"></i>
+    </div>
+  </div>
+</div>
+
+<%# ── Filter Bar ── %>
+<div class="filter-bar">
+  <%= form_with url: dashboard_vehicles_path, method: :get, local: true do |f| %>
+    <div class="row g-2 align-items-end">
+      <div class="col-md-4">
+        <label class="small text-muted mb-1">ຄົ້ນຫາ</label>
+        <div class="input-group">
+          <span class="input-group-text bg-light border-0"><i class="fas fa-search text-muted"></i></span>
+          <%= f.text_field :search, value: params[:search], class: 'form-control bg-light border-0',
+              placeholder: 'ທະບຽນ, ຍີ່ຫໍ້, ລຸ້ນ...' %>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <label class="small text-muted mb-1">ປະເພດ</label>
+        <%= f.select :type, [['ທັງໝົດ', ''], ['ລົດຈັກ', 'motorcycle'], ['ລົດຍົນ', 'car'], ['ລົດບັນທຸກ', 'truck']],
+            { selected: params[:type] }, class: 'form-select bg-light border-0' %>
+      </div>
+      <div class="col-md-3">
+        <label class="small text-muted mb-1">ປີລົດ</label>
+        <%= f.select :year,
+            [['ທັງໝົດ', '']] + (Date.today.year).downto(2015).map { |y| [y.to_s, y.to_s] },
+            { selected: params[:year] }, class: 'form-select bg-light border-0' %>
+      </div>
+      <div class="col-md-2">
+        <div class="d-flex gap-2">
+          <%= f.submit 'ກອງຂໍ້ມູນ', class: 'btn btn-dark w-100', style: 'border-radius:8px;' %>
+          <% if params[:search].present? || params[:type].present? || params[:year].present? %>
+            <%= link_to dashboard_vehicles_path, class: 'btn btn-light border', style: 'border-radius:8px;white-space:nowrap;' do %>
+              <i class="fas fa-times"></i>
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  <% end %>
+</div>
+
+<%# ── Data Table ── %>
+<div class="data-card">
+  <div class="data-card-hdr">
+    <h5><i class="fas fa-list me-2" style="color:#27bc9c;"></i>ລາຍການພາຫານະທັງໝົດ</h5>
+    <span class="text-muted small"><%= @vehicles.length %> ລາຍການ</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>ທະບຽນລົດ</th>
+          <th>ຂໍ້ມູນເຈົ້າຂອງ</th>
+          <th>ຂໍ້ມູນລົດ</th>
+          <th>ເລກຈັກ / ເລກຖັງ</th>
+          <th>ວັນທີລົງທະບຽນ</th>
+          <th>ປະເພດ</th>
+          <th class="text-center">ຈັດການ</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if @vehicles.empty? %>
+          <tr>
+            <td colspan="7" class="text-center py-5 text-muted">
+              <i class="fas fa-car fa-2x mb-3 d-block" style="color:#cbd5e1;"></i>
+              ບໍ່ພົບຂໍ້ມູນພາຫານະ
+            </td>
+          </tr>
+        <% else %>
+          <% @vehicles.each do |v| %>
+            <tr>
+              <td>
+                <span class="plate-badge"><%= v.plate_number %></span>
+              </td>
+              <td>
+                <% owner = v.user %>
+                <strong><%= [owner.first_name, owner.last_name].compact.join(' ').presence || owner.name.presence || '-' %></strong><br>
+                <small class="text-muted"><i class="fas fa-phone me-1"></i><%= owner.phone_number %></small>
+              </td>
+              <td>
+                <strong><%= [v.brand, v.model].compact.join(' ').presence || '-' %></strong><br>
+                <small class="text-muted"><%= [v.year, v.color].compact.join(' | ') %></small>
+              </td>
+              <td>
+                <% if v.engine_number.present? %>
+                  <small><i class="fas fa-cog me-1 text-muted"></i><%= v.engine_number %></small><br>
+                <% end %>
+                <% if v.chassis_number.present? %>
+                  <small><i class="fas fa-barcode me-1 text-muted"></i><%= v.chassis_number %></small>
+                <% end %>
+                <% if v.engine_number.blank? && v.chassis_number.blank? %>
+                  <small class="text-muted">-</small>
+                <% end %>
+              </td>
+              <td><small><%= v.created_at.strftime('%d/%m/%Y') %></small></td>
+              <td>
+                <% case v.vehicle_type
+                   when 'motorcycle' %>
+                  <span class="badge-moto"><i class="fas fa-motorcycle me-1"></i>ລົດຈັກ</span>
+                <% when 'car' %>
+                  <span class="badge-car"><i class="fas fa-car me-1"></i>ລົດຍົນ</span>
+                <% when 'truck' %>
+                  <span class="badge-truck"><i class="fas fa-truck me-1"></i>ລົດບັນທຸກ</span>
+                <% else %>
+                  <span class="text-muted small"><%= v.vehicle_type.presence || '-' %></span>
+                <% end %>
+              </td>
+              <td class="text-center">
+                <div class="btn-group">
+                  <%= link_to dashboard_vehicle_path(v), class: 'btn btn-sm btn-outline-primary', title: 'ເບິ່ງ' do %>
+                    <i class="fas fa-eye"></i>
+                  <% end %>
+                  <%= button_to dashboard_vehicle_path(v), method: :delete,
+                      class: 'btn btn-sm btn-outline-danger', title: 'ລົບ',
+                      form: { data: { turbo_confirm: "ຢືນຢັນການລົບລົດ #{v.plate_number}?" } } do %>
+                    <i class="fas fa-trash"></i>
+                  <% end %>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>

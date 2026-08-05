@@ -1,0 +1,37 @@
+<tbody class="icf-pkg-group">
+  <tr>
+    <td>
+      <% if f.object.persisted? %>
+        <%= f.hidden_field :id %>
+      <% end %>
+      <%= f.hidden_field :_destroy, class: 'icf-destroy-input' %>
+      <%= f.text_field :name, class: 'icf-tbl-input', placeholder: 'ຊື່ແພັກເກັດ' %>
+    </td>
+    <td class="icf-col-sm"><%= f.text_field :min_cc, class: 'icf-tbl-input', placeholder: '0' %></td>
+    <td class="icf-col-sm"><%= f.text_field :max_cc, class: 'icf-tbl-input', placeholder: '1000' %></td>
+    <td>
+      <%= f.select :vehicle_type,
+            [['ລົດຈັກ','motorcycle'],['ລົດຍົນ','car'],['ລົດບັນທຸກ','truck']],
+            { include_blank: '—' }, class: 'icf-tbl-input' %>
+    </td>
+    <td class="icf-col-md"><%= f.text_field :price, class: 'icf-tbl-input', placeholder: 'ລາຄາ' %></td>
+    <td class="icf-col-sm"><%= f.text_field :duration_months, class: 'icf-tbl-input', placeholder: '12' %></td>
+    <td class="icf-col-status">
+      <div class="icf-status-toggle">
+        <%= f.hidden_field :status, value: f.object.status.presence || 'active', class: 'icf-status-input' %>
+        <button type="button" class="icf-status-btn <%= 'is-on' if f.object.status != 'inactive' %>" data-status="active">ເປີດ</button>
+        <button type="button" class="icf-status-btn <%= 'is-off' if f.object.status == 'inactive' %>" data-status="inactive">ປິດ</button>
+      </div>
+    </td>
+    <td class="icf-col-del">
+      <button type="button" class="icf-remove-pkg" title="ລົບແພັກເກັດນີ້"><i class="fas fa-trash-alt"></i></button>
+    </td>
+  </tr>
+  <tr class="icf-detail-row">
+    <td colspan="8">
+      <div class="icf-coverage-label"><i class="fas fa-info-circle"></i>ລາຍລະອຽດຄວາມຄຸ້ມຄອງ (ສະແດງໃນ App)</div>
+      <%= f.text_area :coverage, class: 'icf-tbl-input icf-tbl-textarea', rows: 2,
+            placeholder: 'ລະບຸລາຍລະອຽດຄວາມຄຸ້ມຄອງ, ວົງເງິນປະກັນ, ແລະ ເງື່ອນໄຂຕ່າງໆ...' %>
+    </td>
+  </tr>
+</tbody>

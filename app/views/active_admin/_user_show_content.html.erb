@@ -1,0 +1,376 @@
+<%
+  u         = user
+  full_name = [u.first_name, u.last_name].compact_blank.join(" ").presence || u.name.to_s
+  initial   = full_name.present? ? full_name[0].upcase : "?"
+%>
+
+<style>
+  #titlebar, .index_content .scopes { display:none !important; }
+  .show_content > .panel          { display:none !important; }
+  .show_content .attributes_table { display:none !important; }
+  body.active_admin, #wrapper, #active_admin_content, #main_content,
+  #main, .flashes { background:#f4f6f9 !important; }
+  #main_content > .panel { background:transparent !important; border:none !important; box-shadow:none !important; padding:0 !important; margin:0 !important; }
+  #main_content > .panel > .panel_contents { padding:0 !important; }
+
+  .usw-page { --brand:#27bc9c; --brand-d:#1e9e82; --ink:#1e293b; --muted:#94a3b8; --line:#e9edf2; --soft:#f4f6f9;
+              color:var(--ink); font-family:"Noto Sans Lao","Phetsarath OT",system-ui,sans-serif;
+              max-width:1100px; }
+
+  /* ── Bar ── */
+  .usw-bar { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:24px; }
+  .usw-bar h2 { font-size:20px; font-weight:800; margin:0; }
+  .usw-bar p  { font-size:12.5px; color:var(--muted); margin:3px 0 0; }
+  .usw-bar-btns { display:flex; gap:8px; }
+  .usw-btn { display:inline-flex; align-items:center; gap:6px; padding:9px 18px; border-radius:10px;
+             font-size:13px; font-weight:700; text-decoration:none !important; cursor:pointer;
+             border:none; text-shadow:none !important; transition:.15s; white-space:nowrap; }
+  .usw-btn-back { background:#fff; border:1.5px solid var(--line); color:var(--muted) !important; }
+  .usw-btn-back:hover { border-color:#27bc9c; color:#27bc9c !important; }
+  .usw-btn-edit { background:linear-gradient(135deg,#27bc9c,#1e9e82); color:#fff !important;
+                  box-shadow:0 6px 14px rgba(39,188,156,.32); }
+  .usw-btn-edit:hover { filter:brightness(1.07); color:#fff !important; }
+
+  /* ── Hero ── */
+  .usw-hero { background:linear-gradient(135deg,#27bc9c,#1a8a72); border-radius:20px;
+              padding:28px 32px; color:#fff; position:relative; overflow:hidden; margin-bottom:20px; }
+  .usw-hero::before { content:""; position:absolute; top:-50px; right:-50px; width:220px; height:220px;
+                      background:rgba(255,255,255,.07); border-radius:50%; }
+  .usw-hero::after  { content:""; position:absolute; bottom:-60px; left:60px; width:180px; height:180px;
+                      background:rgba(255,255,255,.05); border-radius:50%; }
+  .usw-hero-inner { display:flex; align-items:center; gap:24px; flex-wrap:wrap; position:relative; z-index:1; }
+  .usw-avatar { width:88px; height:88px; border-radius:50%; background:rgba(255,255,255,.2);
+                border:3px solid rgba(255,255,255,.5); font-size:2.2rem; font-weight:800;
+                display:flex; align-items:center; justify-content:center; color:#fff;
+                flex-shrink:0; overflow:hidden; }
+  .usw-avatar img { width:100%; height:100%; object-fit:cover; cursor:zoom-in; }
+  .usw-hero-info { flex:1; min-width:0; }
+  .usw-hero-info h3 { font-size:22px; font-weight:800; margin:0 0 8px; }
+  .usw-hero-meta { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  .usw-hero-badge { padding:4px 14px; border-radius:20px; font-size:12px; font-weight:700;
+                    background:rgba(255,255,255,.2); display:inline-flex; align-items:center; gap:6px; }
+  .usw-hero-badge.off { background:rgba(220,38,38,.35); }
+  .usw-hero-txt { font-size:13px; opacity:.8; display:inline-flex; align-items:center; gap:5px; }
+  .usw-hero-stats { display:flex; gap:12px; flex-shrink:0; }
+  .usw-stat-box { background:rgba(255,255,255,.15); border-radius:12px; padding:12px 18px; text-align:center; min-width:80px; }
+  .usw-stat-box .val { font-size:18px; font-weight:800; }
+  .usw-stat-box .lbl { font-size:11px; opacity:.8; margin-top:2px; }
+
+  /* ── Grid layouts ── */
+  .usw-grid2 { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px; }
+  @media (max-width:800px) { .usw-grid2 { grid-template-columns:1fr; } }
+
+  /* ── Card ── */
+  .usw-card { background:#fff; border-radius:20px; box-shadow:0 4px 20px rgba(16,24,40,.06); overflow:hidden; }
+  .usw-card-hd { background:linear-gradient(135deg,#27bc9c,#1e9e82); padding:14px 20px;
+                 display:flex; align-items:center; gap:8px; }
+  .usw-card-hd h6 { margin:0; font-weight:700; color:#fff; font-size:14px; }
+  .usw-card-hd i  { color:rgba(255,255,255,.85); font-size:14px; }
+  .usw-card-body  { padding:20px 24px; }
+
+  /* ── Fields ── */
+  .usw-fields2 { display:grid; grid-template-columns:1fr 1fr; gap:4px 16px; }
+  .usw-field { margin-bottom:14px; }
+  .usw-field:last-child { margin-bottom:0; }
+  .usw-lbl { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:#94a3b8; margin-bottom:3px; }
+  .usw-val { font-weight:600; color:#1e293b; font-size:14px; }
+  .usw-val-lg { font-size:18px; font-weight:800; color:#1e9e82; letter-spacing:.06em; font-family:monospace; }
+  .usw-badge-m { background:#dbeafe; color:#1e40af; padding:3px 10px; border-radius:20px; font-size:12px; font-weight:700; }
+  .usw-badge-f { background:#fce7f3; color:#be185d; padding:3px 10px; border-radius:20px; font-size:12px; font-weight:700; }
+
+  /* ── Image ── */
+  .usw-img-box { border-radius:10px; overflow:hidden; border:1px solid var(--line); }
+  .usw-img-box img { width:100%; max-height:200px; object-fit:cover; cursor:zoom-in; transition:opacity .15s; }
+  .usw-img-box img:hover { opacity:.85; }
+  .usw-img-placeholder { background:#f8fafc; border:2px dashed #e2e8f0; border-radius:10px;
+                          padding:28px; text-align:center; color:var(--muted); }
+  .usw-img-placeholder i { font-size:2.5rem; color:#cbd5e1; display:block; margin-bottom:8px; }
+
+  /* ── Vehicles table ── */
+  .usw-veh-card { background:#fff; border-radius:20px; box-shadow:0 4px 20px rgba(16,24,40,.06); overflow:hidden; margin-top:20px; }
+  .usw-veh-table { width:100%; border-collapse:collapse; }
+  .usw-veh-table thead th { background:#f8fafc; padding:12px 16px; font-size:12px; font-weight:700;
+                             color:var(--muted); text-transform:uppercase; letter-spacing:.5px;
+                             border-bottom:1px solid var(--line); white-space:nowrap; }
+  .usw-veh-table thead th:first-child { padding-left:24px; }
+  .usw-veh-table thead th:last-child  { padding-right:24px; }
+  .usw-veh-table tbody td { padding:14px 16px; font-size:13.5px; border-bottom:1px solid var(--line); vertical-align:middle; }
+  .usw-veh-table tbody td:first-child { padding-left:24px; }
+  .usw-veh-table tbody td:last-child  { padding-right:24px; }
+  .usw-veh-table tbody tr:last-child td { border-bottom:none; }
+  .usw-veh-table tbody tr:hover td { background:#fafcfb; }
+
+  .usw-veh-ico { width:42px; height:42px; border-radius:11px; display:flex; align-items:center;
+                 justify-content:center; background:linear-gradient(135deg,#27bc9c,#1e9e82);
+                 color:#fff; font-size:15px; flex-shrink:0; }
+  .usw-plate { background:#ffcc00; border:2px solid #333; border-radius:6px;
+               padding:3px 12px; display:inline-block; text-align:center; min-width:85px; }
+  .usw-plate span { font-size:13px; font-weight:900; color:#000; display:block; }
+  .usw-veh-on  { background:#dcfce7; color:#16a34a; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:700; white-space:nowrap; }
+  .usw-veh-off { background:#fee2e2; color:#dc2626; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:700; white-space:nowrap; }
+  .usw-pay-ok  { background:#dbeafe; color:#1e40af; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:700; white-space:nowrap; }
+  .usw-pay-no  { background:#fef3c7; color:#92400e; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:700; white-space:nowrap; }
+  .usw-type-badge { background:#f1f5f9; color:#475569; padding:4px 10px; border-radius:20px; font-size:12px; font-weight:600; }
+
+  /* Lightbox */
+  .usw-lightbox { display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,.75);
+                  align-items:center; justify-content:center; }
+  .usw-lightbox.open { display:flex; }
+  .usw-lightbox img { max-width:90vw; max-height:88vh; border-radius:12px; box-shadow:0 8px 40px rgba(0,0,0,.5); }
+  .usw-lb-close { position:absolute; top:20px; right:24px; width:36px; height:36px; border-radius:50%;
+                  background:#fff; border:none; cursor:pointer; font-size:18px; display:grid;
+                  place-items:center; box-shadow:0 2px 8px rgba(0,0,0,.3); color:#333; }
+</style>
+
+<%# Lightbox %>
+<div class="usw-lightbox" id="uswLb" onclick="this.classList.remove('open')">
+  <button class="usw-lb-close" onclick="event.stopPropagation();document.getElementById('uswLb').classList.remove('open')">✕</button>
+  <img id="uswLbImg" src="" alt="">
+</div>
+<script>
+  function uswOpenImg(src) {
+    document.getElementById('uswLbImg').src = src;
+    document.getElementById('uswLb').classList.add('open');
+  }
+</script>
+
+<div class="usw-page">
+
+  <%# ── Bar ── %>
+  <div class="usw-bar">
+    <div>
+      <h2>ຂໍ້ມູນລູກຄ້າ</h2>
+      <p>ລາຍລະອຽດຂໍ້ມູນລູກຄ້າໃນລະບົບ</p>
+    </div>
+    <div class="usw-bar-btns">
+      <%= link_to admin_users_path, class: 'usw-btn usw-btn-back' do %>
+        <i class="fas fa-arrow-left"></i>ກັບຄືນ
+      <% end %>
+      <%= link_to edit_admin_user_path(u), class: 'usw-btn usw-btn-edit' do %>
+        <i class="fas fa-edit"></i>ແກ້ໄຂ
+      <% end %>
+    </div>
+  </div>
+
+  <%# ── Hero ── %>
+  <div class="usw-hero">
+    <div class="usw-hero-inner">
+      <div class="usw-avatar">
+        <% if u.profile_image.attached? %>
+          <img src="<%= url_for(u.profile_image) %>" onclick="uswOpenImg(this.src)">
+        <% else %>
+          <%= initial %>
+        <% end %>
+      </div>
+      <div class="usw-hero-info">
+        <h3><%= full_name.presence || "—" %></h3>
+        <div class="usw-hero-meta">
+          <% if u.verified %>
+            <span class="usw-hero-badge"><i class="fas fa-check-circle"></i>ເປີດໃຊ້ງານ</span>
+          <% else %>
+            <span class="usw-hero-badge off"><i class="fas fa-times-circle"></i>ປິດໃຊ້ງານ</span>
+          <% end %>
+          <span class="usw-hero-txt"><i class="fas fa-phone"></i><%= u.phone_number.presence || "—" %></span>
+          <span class="usw-hero-txt"><i class="fas fa-calendar"></i>ລົງທະບຽນ <%= l(u.created_at, format: :short) %></span>
+        </div>
+      </div>
+      <div class="usw-hero-stats">
+        <div class="usw-stat-box">
+          <div class="val">#<%= u.id %></div>
+          <div class="lbl">ລະຫັດ</div>
+        </div>
+        <div class="usw-stat-box">
+          <div class="val"><%= u.respond_to?(:vehicles) ? u.vehicles.count : 0 %></div>
+          <div class="lbl">ພາຫະນະ</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%# ── Row 1: Personal + Contact ── %>
+  <div class="usw-grid2">
+    <div class="usw-card">
+      <div class="usw-card-hd"><i class="fas fa-user-circle"></i><h6>ຂໍ້ມູນສ່ວນຕົວ</h6></div>
+      <div class="usw-card-body">
+        <div class="usw-fields2">
+          <div class="usw-field">
+            <div class="usw-lbl">ຊື່</div>
+            <div class="usw-val"><%= u.first_name.presence || "—" %></div>
+          </div>
+          <div class="usw-field">
+            <div class="usw-lbl">ນາມສະກຸນ</div>
+            <div class="usw-val"><%= u.last_name.presence || "—" %></div>
+          </div>
+          <div class="usw-field">
+            <div class="usw-lbl">ເພດ</div>
+            <div class="usw-val">
+              <% if u.gender =~ /ຍິງ|female|f/i %>
+                <span class="usw-badge-f"><i class="fas fa-venus" style="margin-right:4px;"></i>ຍິງ</span>
+              <% elsif u.gender.present? %>
+                <span class="usw-badge-m"><i class="fas fa-mars" style="margin-right:4px;"></i>ຊາຍ</span>
+              <% else %>—<% end %>
+            </div>
+          </div>
+          <div class="usw-field">
+            <div class="usw-lbl">ວັນເດືອນປີເກີດ</div>
+            <div class="usw-val"><%= u.date_of_birth.present? ? u.date_of_birth.strftime("%d/%m/%Y") : "—" %></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="usw-card">
+      <div class="usw-card-hd"><i class="fas fa-address-book"></i><h6>ຂໍ້ມູນຕິດຕໍ່</h6></div>
+      <div class="usw-card-body">
+        <div class="usw-field">
+          <div class="usw-lbl">ເບີໂທລະສັບ</div>
+          <div class="usw-val"><i class="fas fa-phone" style="color:#27bc9c;margin-right:6px;"></i><%= u.phone_number.presence || "—" %></div>
+        </div>
+        <div class="usw-field">
+          <div class="usw-lbl">ບ້ານ</div>
+          <div class="usw-val"><%= u.village.presence || "—" %></div>
+        </div>
+        <div class="usw-fields2">
+          <div class="usw-field">
+            <div class="usw-lbl">ເມືອງ</div>
+            <div class="usw-val"><%= u.district.presence || "—" %></div>
+          </div>
+          <div class="usw-field">
+            <div class="usw-lbl">ແຂວງ</div>
+            <div class="usw-val"><%= u.province.presence || "—" %></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%# ── Row 2: ID Card + License ── %>
+  <div class="usw-grid2">
+    <div class="usw-card">
+      <div class="usw-card-hd"><i class="fas fa-id-card"></i><h6>ບັດປະຈຳຕົວ / Passport</h6></div>
+      <div class="usw-card-body">
+        <div class="usw-fields2" style="margin-bottom:16px;">
+          <div class="usw-field">
+            <div class="usw-lbl">ປະເພດ</div>
+            <div class="usw-val"><%= u.id_type == 'national_id' ? 'ບັດປະຈຳຕົວ' : (u.id_type == 'passport' ? 'Passport' : (u.id_type.presence || '—')) %></div>
+          </div>
+          <div class="usw-field">
+            <div class="usw-lbl">ວັນໝົດອາຍຸ</div>
+            <div class="usw-val"><%= u.id_expiry_date.present? ? u.id_expiry_date.strftime("%d/%m/%Y") : "—" %></div>
+          </div>
+        </div>
+        <div class="usw-field" style="margin-bottom:16px;">
+          <div class="usw-lbl">ເລກບັດ</div>
+          <div class="usw-val-lg"><%= u.id_number.presence || "—" %></div>
+        </div>
+        <% if u.id_card_image.attached? %>
+          <div class="usw-img-box">
+            <img src="<%= url_for(u.id_card_image) %>" onclick="uswOpenImg(this.src)" alt="ID Card">
+          </div>
+        <% else %>
+          <div class="usw-img-placeholder">
+            <i class="fas fa-id-card"></i>
+            <span style="font-size:13px;">ບໍ່ມີຮູບບັດ</span>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <div class="usw-card">
+      <div class="usw-card-hd"><i class="fas fa-car"></i><h6>ໃບຂັບຂີ່</h6></div>
+      <div class="usw-card-body">
+        <div class="usw-fields2" style="margin-bottom:16px;">
+          <div class="usw-field">
+            <div class="usw-lbl">ປະເພດ</div>
+            <div class="usw-val"><%= u.license_type.presence || "—" %></div>
+          </div>
+          <div class="usw-field">
+            <div class="usw-lbl">ວັນໝົດອາຍຸ</div>
+            <div class="usw-val"><%= u.license_expiry_date.present? ? u.license_expiry_date.strftime("%d/%m/%Y") : "—" %></div>
+          </div>
+        </div>
+        <div class="usw-field" style="margin-bottom:16px;">
+          <div class="usw-lbl">ເລກໃບຂັບຂີ່</div>
+          <div class="usw-val-lg"><%= u.license_number.presence || "—" %></div>
+        </div>
+        <% if u.license_image.attached? %>
+          <div class="usw-img-box">
+            <img src="<%= url_for(u.license_image) %>" onclick="uswOpenImg(this.src)" alt="License">
+          </div>
+        <% else %>
+          <div class="usw-img-placeholder">
+            <i class="fas fa-car"></i>
+            <span style="font-size:13px;">ບໍ່ມີຮູບໃບຂັບຂີ່</span>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <%# ── Vehicles ── %>
+  <div class="usw-veh-card">
+    <div class="usw-card-hd">
+      <i class="fas fa-motorcycle"></i>
+      <h6>ພາຫະນະ</h6>
+      <% if u.respond_to?(:vehicles) %>
+        <span style="background:rgba(255,255,255,.25);padding:2px 10px;border-radius:20px;font-size:12px;font-weight:700;color:#fff;margin-left:4px;">
+          <%= u.vehicles.count %>
+        </span>
+      <% end %>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="usw-veh-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>ຮູບ</th>
+            <th>ຍີ່ຫໍ້ / ລຸ້ນ</th>
+            <th>ປະເພດ</th>
+            <th>ເລກທະບຽນ</th>
+            <th>ສະຖານະ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if u.respond_to?(:vehicles) && u.vehicles.any? %>
+            <% u.vehicles.each_with_index do |v, i| %>
+              <tr>
+                <td style="font-weight:700;color:#94a3b8;"><%= i + 1 %></td>
+                <td>
+                  <div class="usw-veh-ico">
+                    <i class="fas fa-<%= v.try(:vehicle_type) == 'motorcycle' ? 'motorcycle' : 'car' %>"></i>
+                  </div>
+                </td>
+                <td>
+                  <div style="font-weight:700;"><%= v.try(:brand).presence || "—" %></div>
+                  <div style="font-size:12px;color:#94a3b8;"><%= v.try(:model).presence || "" %></div>
+                </td>
+                <td><span class="usw-type-badge"><%= v.try(:vehicle_type).presence || "—" %></span></td>
+                <td>
+                  <div class="usw-plate">
+                    <span><%= v.try(:plate_number).presence || "—" %></span>
+                  </div>
+                </td>
+                <td>
+                  <% if v.try(:status) == 'active' %>
+                    <span class="usw-veh-on"><i class="fas fa-check-circle" style="margin-right:4px;"></i>ໃຊ້ງານ</span>
+                  <% else %>
+                    <span class="usw-veh-off"><i class="fas fa-times-circle" style="margin-right:4px;"></i>ຢຸດໃຊ້</span>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          <% else %>
+            <tr>
+              <td colspan="6" style="text-align:center;padding:48px 20px;">
+                <i class="fas fa-motorcycle" style="font-size:2.5rem;color:#e2e8f0;display:block;margin-bottom:12px;"></i>
+                <div style="font-weight:700;color:#94a3b8;">ບໍ່ມີຂໍ້ມູນພາຫະນະ</div>
+                <div style="font-size:13px;color:#94a3b8;margin-top:4px;">ລູກຄ້ານີ້ຍັງບໍ່ໄດ້ລົງທະບຽນພາຫະນະ</div>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>

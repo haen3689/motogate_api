@@ -1,0 +1,730 @@
+﻿<%
+  # ====== DATA ======
+  total_users        = User.count
+  total_vehicles     = Vehicle.count
+  total_transactions = Transaction.count
+  new_users          = User.where(created_at: 30.days.ago..).count
+
+  success_txn        = Transaction.where(status: "success")
+  grand_total        = success_txn.sum(:amount).to_f
+
+  pending_inspections   = Inspection.where(status: "pending").count
+  active_insurances     = Insurance.where(status: "active").count
+  paid_road_taxes       = RoadTax.where(status: "paid").count
+  expiring_insurances   = Insurance.where(status: "active").where(end_date: Date.current..(Date.current + 30.days)).count
+  expiring_road_taxes   = RoadTax.where(status: "paid").where(expired_at: Date.current..(Date.current + 30.days)).count
+  expired_insurances    = Insurance.where(status: "active").where(end_date: ...Date.current).count
+
+  # Revenue by transaction type
+  revenue_by_type = success_txn.group(:transaction_type).sum(:amount)
+  rev_insurance   = revenue_by_type["insurance"].to_f
+  rev_road_tax    = revenue_by_type["road_tax"].to_f
+  rev_inspection  = revenue_by_type["inspection"].to_f
+  rev_other       = grand_total - rev_insurance - rev_road_tax - rev_inspection
+
+  # Monthly data (last 6 months)
+  six_months     = 6.times.map { |i| i.months.ago.beginning_of_month }.reverse
+  month_labels   = six_months.map { |d| d.strftime("%b %y") }
+  month_ins      = six_months.map { |m| success_txn.where(transaction_type: "insurance",  created_at: m..(m.end_of_month)).sum(:amount).to_f }
+  month_tax      = six_months.map { |m| success_txn.where(transaction_type: "road_tax",   created_at: m..(m.end_of_month)).sum(:amount).to_f }
+  month_insp     = six_months.map { |m| success_txn.where(transaction_type: "inspection", created_at: m..(m.end_of_month)).sum(:amount).to_f }
+  month_total    = six_months.map.with_index { |m, i| month_ins[i] + month_tax[i] + month_insp[i] }
+
+  # Month-over-month for KPI trends
+  this_m_start   = Time.current.beginning_of_month
+  last_m_start   = 1.month.ago.beginning_of_month
+  last_m_end     = 1.month.ago.end_of_month
+
+  this_m_rev     = success_txn.where(created_at: this_m_start..Time.current.end_of_day).sum(:amount).to_f
+  last_m_rev     = success_txn.where(created_at: last_m_start..last_m_end).sum(:amount).to_f
+  rev_trend_pct  = last_m_rev > 0 ? ((this_m_rev - last_m_rev) / last_m_rev * 100).round(1) : 0
+
+  this_m_txn     = Transaction.where(created_at: this_m_start..Time.current.end_of_day).count
+  last_m_txn     = Transaction.where(created_at: last_m_start..last_m_end).count
+  txn_trend_pct  = last_m_txn > 0 ? ((this_m_txn - last_m_txn).to_f / last_m_txn * 100).round(1) : 0
+
+  last_m_new_u   = User.where(created_at: last_m_start..last_m_end).count
+  user_trend_pct = last_m_new_u > 0 ? ((new_users - last_m_new_u).to_f / last_m_new_u * 100).round(1) : 0
+
+  success_count  = Transaction.where(status: "success").count
+  success_rate   = total_transactions > 0 ? (success_count.to_f / total_transactions * 100).round(1) : 0
+
+  # Recent transactions
+  recent_transactions = Transaction.order(created_at: :desc).limit(5).includes(:user)
+
+  # Sector totals for table
+  sector_total_count = active_insurances + paid_road_taxes + pending_inspections
+  # Transaction status counts (for status donut)
+  txn_pending = Transaction.where(status: "pending").count
+  txn_failed  = Transaction.where(status: "failed").count
+
+  # Monthly new users (for customer growth bar)
+  month_new_users = six_months.map { |m| User.where(created_at: m..(m.end_of_month)).count }
+%>
+
+<style>
+:root {
+  --brand:#27bc9c; --brand-dk:#1e9e82; --brand-dkk:#176f5a;
+  --brand-lt:rgba(39,188,156,.11); --brand-ltt:rgba(39,188,156,.06);
+  --c1:#27bc9c; --c2:#3b9bcc; --c3:#f0a500; --c4:#d97c3a;
+  --bg:#f1f5f9; --surface:#fff; --border:#e2e8f0;
+  --txt:#1e293b; --muted:#64748b;
+  --r-xl:16px; --r-lg:12px;
+  --sh-sm:0 2px 8px rgba(0,0,0,.05);
+  --sh-md:0 8px 24px rgba(0,0,0,.08);
+  --sh-lg:0 16px 40px rgba(39,188,156,.15);
+  --ease:all .28s cubic-bezier(.4,0,.2,1);
+}
+.dash-wrap { padding: 0; }
+
+/* Hero */
+.dash-hero-card {
+  background: linear-gradient(135deg, var(--brand-dkk) 0%, var(--brand) 60%, #2aa8c4 100%);
+  border-radius: var(--r-xl); padding: 28px 32px; color: #fff;
+  position: relative; overflow: hidden; margin-bottom: 24px;
+  box-shadow: 0 12px 32px rgba(39,188,156,.25);
+}
+.dash-hero-card::before {
+  content:''; position:absolute; top:-60px; right:-60px;
+  width:240px; height:240px; background:rgba(255,255,255,.07); border-radius:50%;
+}
+.dash-hero-title { font-size:1.6rem; font-weight:800; letter-spacing:-.3px; margin:0; }
+.dash-hero-sub   { font-size:.85rem; opacity:.78; margin:4px 0 0; }
+.hbtn { display:inline-flex; align-items:center; gap:6px; padding:7px 16px;
+  border-radius:50px; font-size:.82rem; font-weight:600;
+  transition:var(--ease); cursor:pointer; border:none; text-decoration:none; }
+.hbtn-lt { background:rgba(255,255,255,.18); color:#fff; backdrop-filter:blur(8px); }
+.hbtn-lt:hover { background:rgba(255,255,255,.28); color:#fff; }
+.hbtn-wh { background:#fff; color:#1a2332; }
+.hbtn-wh:hover { background:#f0fdf9; transform:translateY(-1px); }
+
+/* Section Label */
+.slbl {
+  font-size:.68rem; font-weight:700; letter-spacing:1px; text-transform:uppercase;
+  color:var(--muted); margin:0 0 14px; display:flex; align-items:center; gap:8px;
+}
+.slbl::after { content:''; flex:1; height:1px; background:var(--border); }
+
+/* KPI Cards */
+.kgrid { display:grid; grid-template-columns:repeat(4,1fr); gap:18px; margin-bottom:24px; }
+@media(max-width:1199px){ .kgrid{grid-template-columns:repeat(2,1fr);} }
+@media(max-width:575px){  .kgrid{grid-template-columns:1fr;} }
+.kcard {
+  background:var(--surface); border-radius:var(--r-xl); border:1px solid var(--border);
+  padding:20px 22px; display:flex; justify-content:space-between; align-items:flex-start;
+  transition:var(--ease); text-decoration:none!important; color:inherit!important;
+  position:relative; overflow:hidden;
+}
+.kcard::after {
+  content:''; position:absolute; top:0; left:0; width:4px; height:100%;
+  border-radius:4px 0 0 4px; background:var(--kc, var(--brand));
+}
+.kcard:hover { transform:translateY(-4px); box-shadow:var(--sh-lg); border-color:var(--brand); }
+.klbl { font-size:.72rem; font-weight:600; color:var(--muted); text-transform:uppercase;
+        letter-spacing:.5px; margin-bottom:5px; }
+.kval { font-size:1.65rem; font-weight:800; color:var(--txt); line-height:1.1; margin-bottom:6px; }
+.ktrend { font-size:.72rem; font-weight:600; display:inline-flex; align-items:center;
+          gap:4px; padding:2px 8px; border-radius:20px; }
+.ktrend.up { background:rgba(39,188,156,.15); color:var(--brand-dk); }
+.ktrend.dn { background:rgba(220,38,38,.12);  color:#b91c1c; }
+.kico {
+  width:48px; height:48px; border-radius:13px; display:flex; align-items:center;
+  justify-content:center; font-size:1.2rem; flex-shrink:0;
+  background:var(--kbg, var(--brand-lt)); color:var(--kc, var(--brand));
+}
+
+/* Sector Cards */
+.sgrid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px; }
+@media(max-width:1199px){ .sgrid{grid-template-columns:repeat(2,1fr);} }
+@media(max-width:575px){  .sgrid{grid-template-columns:1fr;} }
+.scard {
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--r-xl);
+  padding:18px 20px; text-decoration:none!important; color:inherit!important;
+  transition:var(--ease); display:block;
+}
+.scard:hover { transform:translateY(-4px); box-shadow:var(--sh-lg); border-color:var(--brand); }
+.sico { width:40px; height:40px; border-radius:10px; display:flex; align-items:center;
+        justify-content:center; font-size:.95rem; margin-bottom:10px; }
+.sname { font-size:.76rem; font-weight:700; color:var(--txt); margin-bottom:3px; }
+.srev  { font-size:1rem;   font-weight:800; color:var(--brand); margin-bottom:8px; }
+.sbar  { height:5px; background:var(--border); border-radius:5px; overflow:hidden; }
+.sbar-f{ height:5px; border-radius:5px; }
+
+/* Chart Card */
+.cc { background:var(--surface); border:1px solid var(--border); border-radius:var(--r-xl);
+      overflow:hidden; margin-bottom:20px; transition:var(--ease); }
+.cc:hover { box-shadow:var(--sh-md); }
+.cch { display:flex; justify-content:space-between; align-items:center;
+       padding:14px 18px; border-bottom:1px solid var(--border); }
+.ccht { font-size:.86rem; font-weight:700; color:var(--txt); display:flex;
+        align-items:center; gap:7px; margin:0; }
+.ccht i { color:var(--brand); }
+.ccb { padding:16px 18px; }
+.cc-link { font-size:.78rem; color:var(--brand); text-decoration:none; font-weight:600; }
+.cc-link:hover { opacity:.8; }
+
+/* Alert cards */
+.alert-card {
+  border-radius:12px; padding:12px 16px; margin-bottom:10px; border:1px solid;
+  display:flex; align-items:center; gap:10px; transition:var(--ease);
+  text-decoration:none!important;
+}
+.alert-card:hover { transform:translateX(4px); }
+.alert-card.red   { background:#fff5f5; border-color:#fca5a5; color:#991b1b; }
+.alert-card.amber { background:#fffbeb; border-color:#fde68a; color:#92400e; }
+.alert-card.blue  { background:rgba(39,188,156,.06); border-color:rgba(39,188,156,.3); color:var(--brand-dk); }
+
+/* Activity Feed */
+.fi { display:flex; gap:10px; padding:9px 0; border-bottom:1px solid var(--border); }
+.fi:last-child { border-bottom:none; }
+.fdot { width:8px; height:8px; border-radius:50%; flex-shrink:0; margin-top:5px; }
+.fdesc { font-size:.82rem; color:var(--txt); font-weight:500; }
+.fmeta { font-size:.71rem; color:var(--muted); margin-top:1px; }
+.famt  { font-size:.8rem; font-weight:700; color:#16a34a; margin-left:auto;
+         white-space:nowrap; padding-left:8px; }
+
+/* Quick Links */
+.ql {
+  display:flex; align-items:center; gap:9px; padding:9px 12px;
+  border-radius:var(--r-lg); border:1px solid var(--border); margin-bottom:7px;
+  text-decoration:none!important; color:var(--txt)!important;
+  transition:var(--ease); font-size:.82rem; font-weight:500;
+}
+.ql:hover { background:var(--brand-lt); border-color:var(--brand); }
+.ql i { color:var(--brand); width:14px; text-align:center; }
+.ql-arr { margin-left:auto; font-size:.62rem; color:var(--muted); }
+
+/* Report Table */
+.rrow { display:flex; align-items:center; justify-content:space-between;
+        padding:9px 0; border-bottom:1px solid var(--border); font-size:.83rem; }
+.rrow:last-child { border-bottom:none; }
+.rrow-name { font-weight:600; color:var(--txt); }
+.rrow-val  { font-weight:700; color:var(--brand); }
+</style>
+
+<div class="dash-wrap">
+
+  <%# ===== HERO ===== %>
+  <div class="dash-hero-card">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; position:relative; z-index:1;">
+      <div>
+        <div class="dash-hero-title"><i class="fas fa-gauge-high" style="font-size:1.3rem;"></i>&nbsp; Master Dashboard</div>
+        <div class="dash-hero-sub">
+          MotoGate Admin &nbsp;|&nbsp; <%= Date.current.strftime("%d/%m/%Y") %>
+          &nbsp;|&nbsp; ລາຍຮັບລວມ: <strong><%= number_to_currency(grand_total, unit: "₭", precision: 0, delimiter: ",") %></strong>
+        </div>
+      </div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="hbtn hbtn-lt" onclick="window.location.reload()"><i class="fas fa-rotate"></i> ຣີເຟຣຊ</button>
+        <a href="/admin" class="hbtn hbtn-lt"><i class="fas fa-globe"></i> ພາບລວມ</a>
+        <a href="/admin/reports" class="hbtn hbtn-lt"><i class="fas fa-chart-line"></i> ລາຍງານ</a>
+        <button class="hbtn hbtn-wh" id="dt-btn" onclick="toggleDarkMode()" title="Dark/Light mode"><i class="fas fa-moon" id="dt-ico"></i></button>
+      </div>
+    </div>
+  </div>
+
+  <%# ===== KPI CARDS ===== %>
+  <div class="slbl">ຕົວຊີ້ວັດຫຼັກ (KPI)</div>
+  <div class="kgrid">
+    <% [
+      { label: "ລາຍຮັບລວມ",
+        value:    number_to_currency(grand_total, unit: "₭", precision: 0, delimiter: ","),
+        trend:    "#{rev_trend_pct >= 0 ? '+' : ''}#{rev_trend_pct}%",
+        trend_up: rev_trend_pct >= 0,
+        compare:  "vs ເດືອນກ່ອນ",
+        icon: "fas fa-coins",      kc: "#27bc9c", kbg: "rgba(39,188,156,.11)", href: "/admin/reports" },
+      { label: "ລາຍການທັງໝົດ",
+        value:    number_with_delimiter(total_transactions),
+        trend:    "#{txn_trend_pct >= 0 ? '+' : ''}#{txn_trend_pct}%",
+        trend_up: txn_trend_pct >= 0,
+        compare:  "vs ເດືອນກ່ອນ",
+        icon: "fas fa-file-lines", kc: "#2aa8c4", kbg: "rgba(42,168,196,.11)", href: "/admin/transactions" },
+      { label: "ລູກຄ້າໃໝ່",
+        value:    number_with_delimiter(new_users),
+        trend:    "#{user_trend_pct >= 0 ? '+' : ''}#{user_trend_pct}%",
+        trend_up: user_trend_pct >= 0,
+        compare:  "30 ວັນ ຜ່ານມາ",
+        icon: "fas fa-user-plus",  kc: "#5b8db8", kbg: "rgba(91,141,184,.11)", href: "/admin/users" },
+      { label: "ອັດຕາສຳເລັດ",
+        value:    "#{success_rate}%",
+        trend:    success_rate >= 90 ? "ດີ" : "ກວດສອບ",
+        trend_up: success_rate >= 90,
+        compare:  "ທຸລະກຳ success",
+        icon: "fas fa-chart-line", kc: "#7a8fa6", kbg: "rgba(122,143,166,.11)", href: "/admin/transactions" },
+    ].each do |k| %>
+    <a href="<%= k[:href] %>" class="kcard" style="--kc:<%= k[:kc] %>;--kbg:<%= k[:kbg] %>;">
+      <div>
+        <div class="klbl"><%= k[:label] %></div>
+        <div class="kval"><%= k[:value] %></div>
+        <span class="ktrend <%= k[:trend_up] ? 'up' : 'dn' %>">
+          <i class="fas fa-caret-<%= k[:trend_up] ? 'up' : 'down' %>"></i>
+          <%= k[:trend] %> <span style="font-weight:400;opacity:.7;font-size:.66rem;"><%= k[:compare] %></span>
+        </span>
+      </div>
+      <div class="kico"><i class="<%= k[:icon] %>"></i></div>
+    </a>
+    <% end %>
+  </div>
+
+  <%# ===== SECTOR SUMMARY ===== %>
+  <div class="slbl">ລາຍຮັບຕາມໝວດຫຼັກ</div>
+  <div class="sgrid">
+    <% [
+      { name: "ປະກັນໄພ (Insurance)",     rev: rev_insurance,  count: active_insurances,   color: "#3b9bcc", icon: "fas fa-shield-halved", href: "/admin/insurances" },
+      { name: "ເສຍຄ່າທາງ (Road Tax)",    rev: rev_road_tax,   count: paid_road_taxes,     color: "#27bc9c", icon: "fas fa-road",          href: "/admin/road_taxes" },
+      { name: "ກວດເຕັກນິກ (Inspection)", rev: rev_inspection, count: pending_inspections,  color: "#f0a500", icon: "fas fa-microscope",    href: "/admin/inspections" },
+      { name: "ທຸລະກຳອື່ນໆ",            rev: rev_other,      count: total_transactions,   color: "#d97c3a", icon: "fas fa-money-bill-wave", href: "/admin/transactions" },
+    ].each do |s|
+      pct = grand_total > 0 ? (s[:rev] / grand_total * 100).round(1) : 0
+    %>
+    <a href="<%= s[:href] %>" class="scard">
+      <div class="sico" style="background:<%= s[:color] %>22; color:<%= s[:color] %>;"><i class="<%= s[:icon] %>"></i></div>
+      <div class="sname"><%= s[:name] %></div>
+      <div class="srev"><%= number_to_currency(s[:rev], unit: "₭", precision: 0, delimiter: ",") %></div>
+      <div style="display:flex; justify-content:space-between; font-size:.7rem; color:var(--muted); margin-bottom:5px;">
+        <span><%= number_with_delimiter(s[:count]) %> ລາຍການ</span>
+        <span><%= pct %>%</span>
+      </div>
+      <div class="sbar"><div class="sbar-f" style="width:<%= [pct, 100].min %>%; background:<%= s[:color] %>;"></div></div>
+    </a>
+    <% end %>
+  </div>
+
+  <%# ===== SERVICE SUMMARY (placeholder) ===== %>
+  <div class="slbl">ການບໍລິການ ແລະ ສູນຄູ່ຮ່ວມ</div>
+  <div class="sgrid">
+    <% [
+      { name: "ສູນສ້ອມແປງ (Garage)",    color: "#9163c4", icon: "fas fa-screwdriver-wrench", href: "/admin",   count: "—", label: "ຍັງບໍ່ທັນເປີດ" },
+      { name: "ສູນຂາຍລົດ (Dealership)",  color: "#c0392b", icon: "fas fa-car-side",           href: "/admin",   count: "—", label: "ຍັງບໍ່ທັນເປີດ" },
+      { name: "ລາກລົດ (Towing)",         color: "#1abc9c", icon: "fas fa-truck-pickup",        href: "/admin",   count: "—", label: "ຍັງບໍ່ທັນເປີດ" },
+      { name: "ແຈ້ງເຕືອນໝົດອາຍຸ",       color: "#ef4444", icon: "fas fa-bell-exclamation",    href: "/admin/insurances",
+        count: expiring_insurances + expiring_road_taxes, label: "ລາຍການໃກ້ໝົດ" },
+    ].each do |svc| %>
+    <a href="<%= svc[:href] %>" class="scard">
+      <div class="sico" style="background:<%= svc[:color] %>22; color:<%= svc[:color] %>;"><i class="<%= svc[:icon] %>"></i></div>
+      <div class="sname"><%= svc[:name] %></div>
+      <div class="srev" style="color:<%= svc[:color] %>;"><%= svc[:count] %> <span style="font-size:.7rem; font-weight:600;"><%= svc[:label] %></span></div>
+    </a>
+    <% end %>
+  </div>
+
+  <%# ===== CHARTS ROW 1 ===== %>
+  <div class="slbl">ກຣາຟລາຍຮັບ ແລະ ສະຖິຕິ</div>
+  <div style="display:grid; grid-template-columns:2fr 1fr; gap:18px; margin-bottom:20px;">
+
+    <%# Stacked/Line chart %>
+    <div class="cc">
+      <div class="cch">
+        <p class="ccht"><i class="fas fa-chart-area"></i>ລາຍຮັບແຍກຕາມໝວດ 6 ເດືອນ</p>
+        <a href="/admin/reports" class="cc-link">ລາຍລະອຽດ <i class="fas fa-chevron-right" style="font-size:.6rem;"></i></a>
+      </div>
+      <div class="ccb"><div style="height:280px;"><canvas id="stackedChart"></canvas></div></div>
+    </div>
+
+    <%# Donut chart %>
+    <div class="cc">
+      <div class="cch"><p class="ccht"><i class="fas fa-chart-pie"></i>ສ່ວນແບ່ງລາຍຮັບ</p></div>
+      <div class="ccb">
+        <div style="height:190px;"><canvas id="sectorPie"></canvas></div>
+        <div style="margin-top:12px;">
+          <% [
+            { name: "ປະກັນໄພ",   rev: rev_insurance,  color: "#3b9bcc" },
+            { name: "ຄ່າທາງ",     rev: rev_road_tax,   color: "#27bc9c" },
+            { name: "ກວດເຕັກ",   rev: rev_inspection, color: "#f0a500" },
+            { name: "ອື່ນໆ",       rev: rev_other,      color: "#d97c3a" },
+          ].each do |r| %>
+          <div class="rrow">
+            <div class="rrow-name">
+              <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:<%= r[:color] %>;margin-right:5px;"></span><%= r[:name] %>
+            </div>
+            <div class="rrow-val"><%= number_to_currency(r[:rev] / 1_000_000.0, unit: "", precision: 1, delimiter: ",") %>M ₭</div>
+          </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <%# ===== CHARTS ROW 2 ===== %>
+  <div style="display:grid; grid-template-columns:2fr 1fr 1fr; gap:18px; margin-bottom:20px;">
+
+    <%# Line trend %>
+    <div class="cc">
+      <div class="cch"><p class="ccht"><i class="fas fa-chart-line"></i>ແນວໂນ້ມລາຍຮັບລວມ 6 ເດືອນ</p></div>
+      <div class="ccb"><div style="height:240px;"><canvas id="trendLine"></canvas></div></div>
+    </div>
+
+    <%# Transaction Status Donut (replaces Chat Donut) %>
+    <div class="cc">
+      <div class="cch"><p class="ccht"><i class="fas fa-circle-half-stroke"></i>ສະຖານະທຸລະກຳ</p></div>
+      <div class="ccb">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);text-align:center;gap:0;margin-bottom:12px;">
+          <div style="border-right:1px solid var(--border);">
+            <div style="font-size:.65rem;color:var(--muted);">ສຳເລັດ</div>
+            <div style="font-size:.95rem;font-weight:700;color:#27bc9c;"><%= success_count %></div>
+          </div>
+          <div style="border-right:1px solid var(--border);">
+            <div style="font-size:.65rem;color:var(--muted);">ລໍຖ້າ</div>
+            <div style="font-size:.95rem;font-weight:700;color:#f59e0b;"><%= txn_pending %></div>
+          </div>
+          <div>
+            <div style="font-size:.65rem;color:var(--muted);">ລົ້ມເຫຼວ</div>
+            <div style="font-size:.95rem;font-weight:700;color:#ef4444;"><%= txn_failed %></div>
+          </div>
+        </div>
+        <div style="height:160px;"><canvas id="statusPie"></canvas></div>
+      </div>
+    </div>
+
+    <%# Monthly New Users Bar %>
+    <div class="cc">
+      <div class="cch"><p class="ccht"><i class="fas fa-user-plus"></i>ລູກຄ້າໃໝ່</p></div>
+      <div class="ccb">
+        <div style="height:160px;"><canvas id="custBar"></canvas></div>
+        <div style="text-align:center;margin-top:12px;">
+          <div style="font-size:1.8rem;font-weight:800;color:var(--brand);"><%= new_users %></div>
+          <div style="font-size:.75rem;color:var(--muted);">ລູກຄ້າໃໝ່ 30 ວັນ</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <%# ===== BOTTOM ROW ===== %>
+  <div class="slbl">ກິດຈະກຳ ແລະ ການເຂົ້າເຖິງດ່ວນ</div>
+  <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:18px; margin-bottom:20px;">
+
+    <%# Activity Feed (recent transactions) %>
+    <div class="cc">
+      <div class="cch">
+        <p class="ccht"><i class="fas fa-bolt"></i>ກິດຈະກຳລ່າສຸດ</p>
+        <a href="/admin/transactions" class="cc-link">ທັງໝົດ</a>
+      </div>
+      <div class="ccb">
+        <% dot_colors = { "success" => "#10b981", "pending" => "#f59e0b", "failed" => "#ef4444" } %>
+        <% recent_transactions.each do |t| %>
+        <div class="fi">
+          <div class="fdot" style="background:<%= dot_colors[t.status] || '#64748b' %>;"></div>
+          <div style="flex:1;">
+            <div class="fdesc"><%= t.transaction_type %></div>
+            <div class="fmeta"><%= t.user&.phone_number %> · <%= time_ago_in_words(t.created_at) %></div>
+          </div>
+          <div class="famt">+<%= number_to_currency(t.amount, unit: "₭", precision: 0, delimiter: ",") %></div>
+        </div>
+        <% end %>
+        <% if recent_transactions.empty? %>
+        <div style="text-align:center;color:var(--muted);padding:20px;font-size:.82rem;">ຍັງບໍ່ມີຂໍ້ມູນ</div>
+        <% end %>
+      </div>
+    </div>
+
+    <%# Expiration Alerts %>
+    <div class="cc">
+      <div class="cch">
+        <p class="ccht"><i class="fas fa-bell"></i>ການແຈ້ງເຕືອນໝົດອາຍຸ</p>
+        <a href="/admin/insurances" class="cc-link">ທັງໝົດ</a>
+      </div>
+      <div class="ccb">
+        <a href="/admin/insurances" class="alert-card red">
+          <i class="fas fa-fire" style="font-size:1.1rem;flex-shrink:0;"></i>
+          <div style="flex:1;"><div style="font-weight:700;font-size:.83rem;">ໝົດອາຍຸແລ້ວ</div><div style="font-size:.71rem;opacity:.8;">ປະກັນໄພ</div></div>
+          <div style="font-weight:800;font-size:.88rem;"><%= expired_insurances %> ລາຍການ</div>
+        </a>
+        <a href="/admin/insurances" class="alert-card amber">
+          <i class="fas fa-clock" style="font-size:1.1rem;flex-shrink:0;"></i>
+          <div style="flex:1;"><div style="font-weight:700;font-size:.83rem;">ໃກ້ໝົດ 30 ວັນ</div><div style="font-size:.71rem;opacity:.8;">ປະກັນໄພ</div></div>
+          <div style="font-weight:800;font-size:.88rem;"><%= expiring_insurances %> ລາຍການ</div>
+        </a>
+        <a href="/admin/road_taxes" class="alert-card amber">
+          <i class="fas fa-road" style="font-size:1.1rem;flex-shrink:0;"></i>
+          <div style="flex:1;"><div style="font-weight:700;font-size:.83rem;">ໃກ້ໝົດ 30 ວັນ</div><div style="font-size:.71rem;opacity:.8;">ຄ່າທາງ</div></div>
+          <div style="font-weight:800;font-size:.88rem;"><%= expiring_road_taxes %> ລາຍການ</div>
+        </a>
+        <a href="/admin/inspections" class="alert-card blue">
+          <i class="fas fa-tools" style="font-size:1.1rem;flex-shrink:0;"></i>
+          <div style="flex:1;"><div style="font-weight:700;font-size:.83rem;">ກວດລົດ pending</div><div style="font-size:.71rem;opacity:.8;">ລໍຖ້າດຳເນີນການ</div></div>
+          <div style="font-weight:800;font-size:.88rem;"><%= pending_inspections %> ລາຍການ</div>
+        </a>
+      </div>
+    </div>
+
+    <%# Quick Links — ລາຍງານທັງໝົດ %>
+    <div class="cc">
+      <div class="cch"><p class="ccht"><i class="fas fa-rocket"></i>ລິ້ງດ່ວນ — ທຸກລາຍງານ</p></div>
+      <div class="ccb">
+        <% [
+          ["fas fa-shield-halved",        "/admin/insurances",       "ລາຍງານຂາຍປະກັນໄພ"],
+          ["fas fa-road",                 "/admin/road_taxes",        "ລາຍງານເສຍຄ່າທາງ"],
+          ["fas fa-microscope",           "/admin/inspections",       "ລາຍງານກວດເຕັກນິກ"],
+          ["fas fa-screwdriver-wrench",   "/admin",                   "ລາຍງານສູນສ້ອມ"],
+          ["fas fa-car-side",             "/admin",                   "ລາຍງານສູນຂາຍລົດ"],
+          ["fas fa-truck-pickup",         "/admin",                   "ລາຍງານລາກລົດ"],
+          ["fas fa-file-invoice-dollar",  "/admin/transactions",      "ລາຍງານລາຍຮັບ"],
+          ["fas fa-coins",                "/admin/reports",           "ລາຍງານການເງິນ"],
+          ["fas fa-users-gear",           "/admin/users",             "ຈັດການລູກຄ້າ"],
+          ["fas fa-comment-dots",         "/admin",                   "Feedback ລູກຄ້າ"],
+          ["fas fa-user-shield",          "/admin/admin_users",       "ຜູ້ດູແລລະບົບ"],
+          ["fas fa-chart-line",           "/admin/reports",           "ລາຍງານຮວມທັງໝົດ"],
+        ].each do |ico, href, label| %>
+        <a href="<%= href %>" class="ql">
+          <i class="<%= ico %>"></i><%= label %>
+          <i class="fas fa-chevron-right ql-arr"></i>
+        </a>
+        <% end %>
+      </div>
+    </div>
+
+  </div>
+
+  <%# ===== REPORT SUMMARY TABLE ===== %>
+  <div class="slbl">ສຸດຍອດລາຍຮັບທຸກໝວດ</div>
+  <div class="cc">
+    <div class="cch"><p class="ccht"><i class="fas fa-table"></i>ສະຫຼຸບລາຍຮັບທຸກໝວດ</p></div>
+    <div class="ccb" style="padding:0;">
+      <table class="index_table" style="min-width:auto;">
+        <thead>
+          <tr>
+            <th>ໝວດ</th>
+            <th style="text-align:right;">ລາຍຮັບ (₭)</th>
+            <th style="text-align:right;">ຈຳນວນ</th>
+            <th style="text-align:right;">%</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% [
+            { name: "ປະກັນໄພ (Insurance)",     rev: rev_insurance,  count: active_insurances,  color: "#3b9bcc", href: "/admin/insurances"   },
+            { name: "ເສຍຄ່າທາງ (Road Tax)",    rev: rev_road_tax,   count: paid_road_taxes,    color: "#27bc9c", href: "/admin/road_taxes"   },
+            { name: "ກວດເຕັກນິກ (Inspection)", rev: rev_inspection, count: pending_inspections, color: "#f0a500", href: "/admin/inspections"  },
+            { name: "ທຸລະກຳອື່ນໆ",            rev: rev_other,      count: total_transactions, color: "#d97c3a", href: "/admin/transactions" },
+          ].each do |row|
+            pct = grand_total > 0 ? (row[:rev] / grand_total * 100).round(1) : 0
+          %>
+          <tr>
+            <td>
+              <div style="display:flex;align-items:center;gap:7px;">
+                <span style="width:8px;height:8px;border-radius:50%;background:<%= row[:color] %>;display:inline-block;"></span>
+                <strong><%= row[:name] %></strong>
+              </div>
+            </td>
+            <td style="text-align:right;font-weight:700;color:#27bc9c;"><%= number_to_currency(row[:rev], unit: "₭", precision: 0, delimiter: ",") %></td>
+            <td style="text-align:right;color:var(--muted,#64748b);"><%= number_with_delimiter(row[:count]) %></td>
+            <td style="text-align:right;">
+              <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;">
+                <div style="width:50px;height:4px;background:#e2e8f0;border-radius:4px;overflow:hidden;">
+                  <div style="height:4px;background:<%= row[:color] %>;width:<%= [pct,100].min %>%;border-radius:4px;"></div>
+                </div>
+                <span style="font-size:.75rem;"><%= pct %>%</span>
+              </div>
+            </td>
+            <td style="text-align:right;">
+              <a href="<%= row[:href] %>" class="cc-link">ເບິ່ງ <i class="fas fa-chevron-right" style="font-size:.6rem;"></i></a>
+            </td>
+          </tr>
+          <% end %>
+          <tr style="background:#f0fdf9;font-weight:800;">
+            <td>ລວມທັງໝົດ</td>
+            <td style="text-align:right;color:#27bc9c;"><%= number_to_currency(grand_total, unit: "₭", precision: 0, delimiter: ",") %></td>
+            <td style="text-align:right;"><%= number_with_delimiter(total_transactions) %></td>
+            <td style="text-align:right;">100%</td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<%# ===== CHART.JS ===== %>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+(function(){
+  var gc = 'rgba(0,0,0,0.05)';
+  var ml = <%= raw month_labels.to_json %>;
+  var mi = <%= raw month_ins.to_json %>;
+  var mt = <%= raw month_tax.to_json %>;
+  var mn = <%= raw month_insp.to_json %>;
+  var mTotal = <%= raw month_total.to_json %>;
+
+  // 1. Stacked Bar
+  var el1 = document.getElementById('stackedChart');
+  if(el1){
+    new Chart(el1,{
+      type:'bar',
+      data:{
+        labels: ml,
+        datasets:[
+          {label:'ປະກັນໄພ',    data: mi, backgroundColor:'#3b9bcc', borderRadius:4, borderSkipped:false},
+          {label:'ຄ່າທາງ',     data: mt, backgroundColor:'#27bc9c', borderRadius:4, borderSkipped:false},
+          {label:'ກວດເຕັກ',   data: mn, backgroundColor:'#f0a500', borderRadius:4, borderSkipped:false},
+        ]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        interaction:{mode:'index',intersect:false},
+        plugins:{
+          legend:{position:'bottom',labels:{usePointStyle:true,padding:10,font:{size:10}}},
+          tooltip:{callbacks:{label:function(c){return ' '+c.dataset.label+': '+(c.raw/1000000).toFixed(1)+'M ₭';}}}
+        },
+        scales:{
+          x:{stacked:true, grid:{display:false}},
+          y:{stacked:true, grid:{color:gc}, ticks:{callback:function(v){return (v/1000000).toFixed(0)+'M';}}}
+        }
+      }
+    });
+  }
+
+  // 2. Sector Donut
+  var el2 = document.getElementById('sectorPie');
+  if(el2){
+    new Chart(el2,{
+      type:'doughnut',
+      data:{
+        labels:['ປະກັນໄພ','ຄ່າທາງ','ກວດເຕັກ','ອື່ນໆ'],
+        datasets:[{
+          data:[<%= rev_insurance.round %>,<%= rev_road_tax.round %>,<%= rev_inspection.round %>,<%= rev_other.round %>],
+          backgroundColor:['#3b9bcc','#27bc9c','#f0a500','#d97c3a'],
+          borderWidth:2, borderColor:'#fff', cutout:'62%'
+        }]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{legend:{display:false}}
+      }
+    });
+  }
+
+  // 3. Line Trend
+  var el3 = document.getElementById('trendLine');
+  if(el3){
+    new Chart(el3,{
+      type:'line',
+      data:{
+        labels: ml,
+        datasets:[{
+          label:'ລາຍຮັບ (₭)',
+          data: mTotal,
+          borderColor:'#27bc9c',
+          backgroundColor:'rgba(39,188,156,.12)',
+          borderWidth:3, tension:0.45, fill:true,
+          pointBackgroundColor:'#27bc9c', pointRadius:4, pointHoverRadius:7
+        }]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        interaction:{mode:'index',intersect:false},
+        plugins:{
+          legend:{display:false},
+          tooltip:{callbacks:{label:function(c){return ' '+(c.raw/1000000).toFixed(1)+'M ₭';}}}
+        },
+        scales:{
+          y:{beginAtZero:true, grid:{color:gc}, ticks:{callback:function(v){return (v/1000000).toFixed(0)+'M';}}},
+          x:{grid:{display:false}}
+        }
+      }
+    });
+  }
+
+  // 4. Transaction Status Donut
+  var el4 = document.getElementById('statusPie');
+  if(el4){
+    var totalTxn = <%= total_transactions %>;
+    new Chart(el4,{
+      type:'doughnut',
+      data:{
+        labels:['ສຳເລັດ','ລໍຖ້າ','ລົ້ມເຫຼວ'],
+        datasets:[{
+          data:[<%= success_count %>,<%= txn_pending %>,<%= txn_failed %>],
+          backgroundColor:['#27bc9c','#f59e0b','#ef4444'],
+          borderWidth:2, borderColor:'#fff', cutout:'65%'
+        }]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{
+          legend:{position:'bottom',labels:{usePointStyle:true,padding:10,font:{size:10}}}
+        }
+      },
+      plugins:[{
+        id:'centerTxt',
+        beforeDraw:function(chart){
+          var w=chart.width,h=chart.height,ctx=chart.ctx;
+          ctx.restore();
+          ctx.font='bold 1.1em Noto Sans Lao,sans-serif';
+          ctx.textBaseline='middle';
+          ctx.fillStyle='#1e293b';
+          var t=totalTxn.toLocaleString(),tx=Math.round((w-ctx.measureText(t).width)/2),ty=h/2-8;
+          ctx.fillText(t,tx,ty);
+          ctx.font='0.6em Noto Sans Lao,sans-serif';
+          ctx.fillStyle='#64748b';
+          var s='ລາຍການ',sx=Math.round((w-ctx.measureText(s).width)/2),sy=h/2+12;
+          ctx.fillText(s,sx,sy);
+          ctx.save();
+        }
+      }]
+    });
+  }
+
+  // 5. Monthly New Users Bar
+  var el5 = document.getElementById('custBar');
+  if(el5){
+    new Chart(el5,{
+      type:'bar',
+      data:{
+        labels: ml,
+        datasets:[{
+          label:'ລູກຄ້າໃໝ່',
+          data:<%= raw month_new_users.to_json %>,
+          backgroundColor:'rgba(39,188,156,.75)',
+          borderRadius:5, borderSkipped:false
+        }]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{legend:{display:false}},
+        scales:{
+          x:{grid:{display:false}},
+          y:{beginAtZero:true, grid:{color:gc}, ticks:{precision:0}}
+        }
+      }
+    });
+  }
+
+  // Center text plugin for sector donut
+  var el2b = document.getElementById('sectorPie');
+  if(el2b && el2b.__chartjs_instance__ === undefined){
+    var gt = <%= grand_total.round %>;
+    Chart.register({
+      id:'sectorCenter',
+      beforeDraw:function(chart){
+        if(chart.canvas.id!=='sectorPie') return;
+        var w=chart.width,h=chart.height,ctx=chart.ctx;
+        ctx.restore();
+        ctx.font='bold 0.9em Noto Sans Lao,sans-serif';
+        ctx.textBaseline='middle'; ctx.fillStyle='#1e293b';
+        var t=(gt/1000000).toFixed(1)+'M';
+        ctx.fillText(t,Math.round((w-ctx.measureText(t).width)/2),h/2-8);
+        ctx.font='0.58em Noto Sans Lao,sans-serif'; ctx.fillStyle='#64748b';
+        var s='ລາຍຮັບລວມ';
+        ctx.fillText(s,Math.round((w-ctx.measureText(s).width)/2),h/2+12);
+        ctx.save();
+      }
+    });
+  }
+})();
+</script>
+<script>
+function toggleDarkMode(){
+  var root = document.documentElement;
+  var ico  = document.getElementById('dt-ico');
+  if(root.getAttribute('data-theme') === 'dark'){
+    root.removeAttribute('data-theme');
+    if(ico){ ico.className = 'fas fa-moon'; }
+  } else {
+    root.setAttribute('data-theme','dark');
+    if(ico){ ico.className = 'fas fa-sun'; }
+  }
+}
+</script>
