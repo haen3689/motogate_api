@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="lo">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MotoGate Verification Report</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 32px 28px; background: #F4F8F7; color: #1A1A1A;
+      font-family: "Noto Sans Lao", "Courier New", monospace;
+    }
+    .sheet { max-width: 720px; margin: 0 auto; background: #fff; padding: 28px 32px; box-shadow: 0 4px 20px rgba(0,0,0,.08); }
+    table { border-collapse: collapse; width: 100%; }
+    @media print {
+      body { background: #fff; padding: 0; }
+      .sheet { box-shadow: none; padding: 0; max-width: none; }
+      .no-print { display: none !important; }
+      @page { margin: 14mm; }
+    }
+  </style>
+</head>
+<body>
+  <div class="sheet"><%= yield %></div>
+</body>
+</html>

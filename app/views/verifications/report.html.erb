@@ -1,0 +1,145 @@
+<% if @valid %>
+  <div class="no-print" style="text-align:right;margin-bottom:18px;">
+    <button onclick="window.print()"
+            style="background:#0F9B8E;color:#fff;border:none;border-radius:8px;padding:10px 22px;
+                   font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">
+      🖨 Print / Save as PDF
+    </button>
+  </div>
+
+  <div style="font-family:'Courier New',monospace,'Noto Sans Lao';border-top:4px double #1A1A1A;
+              border-bottom:4px double #1A1A1A;padding:14px 0;text-align:center;">
+    <div style="font-size:15px;font-weight:800;letter-spacing:.08em;">MOTOGATE LAOS SYSTEM</div>
+    <div style="font-size:13px;font-weight:700;margin-top:4px;">ບົດລາຍງານການກວດສອບເອກະສານລົດ</div>
+    <div style="font-size:10.5px;color:#555;margin-top:2px;">(VEHICLE VERIFICATION REPORT)</div>
+  </div>
+
+  <% if @vehicle_reports.empty? %>
+    <div style="text-align:center;color:#888;font-size:12px;padding:30px 0;">ຍັງບໍ່ມີພາຫະນະໃນລະບົບ</div>
+  <% end %>
+
+  <% owner = [@user.first_name, @user.last_name].compact_blank.join(" ").presence || @user.name.presence || "—" %>
+
+  <% @vehicle_reports.each_with_index do |r, ri| %>
+    <% v = r[:vehicle] %>
+    <% overall_pass = r[:fail_count] == 0 %>
+    <% fail_labels = r[:checks].select { |c| c[:status] != :valid }.map { |c| c[:label] } %>
+
+    <div style="<%= "margin-top:22px;" if ri > 0 %>padding:14px 4px 12px;border-bottom:2px solid #1A1A1A;">
+      <div style="font-size:11px;font-weight:800;margin-bottom:8px;">[ຂໍ້ມູນອ້າງອີງລະບົບ]</div>
+      <table style="font-size:11px;width:100%;">
+        <tr><td style="width:200px;color:#555;padding:3px 0;">ເຈົ້າຂອງ (Owner)</td><td style="padding:3px 0;">: <b><%= owner %></b> · <%= @user.phone_number %></td></tr>
+        <tr><td style="color:#555;padding:3px 0;">ລະຫັດອ້າງອີງ (Ref Code)</td><td style="padding:3px 0;">: <b>MG-<%= @ref %><%= "-#{v.id}" if @vehicle_reports.size > 1 %></b></td></tr>
+        <tr><td style="color:#555;padding:3px 0;">ວັນທີ-ເວລາ ກວດສອບ</td><td style="padding:3px 0;">: <%= @checked_at.strftime("%d/%m/%Y | %H:%M") %></td></tr>
+        <tr>
+          <td style="color:#555;padding:3px 0;vertical-align:top;">ສະຖານະຮວມ (Overall)</td>
+          <td style="padding:3px 0;">
+            : <b style="color:<%= overall_pass ? "#16A34A" : "#DC2626" %>;">
+              [ <%= overall_pass ? "✓" : "X" %> ] <%= overall_pass ? "ຜ່ານ / PASSED" : "ບໍ່ຜ່ານ / ACTION REQUIRED" %>
+            </b>
+            <% if fail_labels.any? %><span style="color:#DC2626;">(<%= fail_labels.join(", ") %>ມີບັນຫາ)</span><% end %>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <div style="padding:14px 4px;border-bottom:2px solid #1A1A1A;">
+      <div style="font-size:11.5px;font-weight:800;margin-bottom:10px;">1. ຂໍ້ມູນພື້ນຖານຂອງລົດ (VEHICLE SPECIFICATIONS)</div>
+      <table style="font-size:10.5px;width:100%;">
+        <% specs = [
+             ["ຍີ່ຫໍ້ພາຫະນະ", v.brand],
+             ["ປະເພດ", vehicle_type_label(v.vehicle_type)],
+             ["ລຸ້ນ", v.model],
+             ["ປະເພດການນຳໃຊ້", v.usage_type],
+             ["ປະເພດເຄື່ອງຈັກ", v.fuel_type],
+             ["ສີ", v.color],
+             ["ຊີຊີ", v.cc],
+             ["ເລກທະບຽນ", v.plate_number],
+             ["ເລກຈັກ", v.engine_number],
+             ["ເລກຖັງ", v.chassis_number],
+             ["ປີຜະລິດ", v.year],
+             ["ຈຳນວນບ່ອນນັ່ງຜູ້ໂດຍສານ", v.seat_count],
+             ["ຈຳນວນເພົາ", v.axle_count],
+             ["ຈຳນວນສູບ", v.cylinder_count],
+             ["ເປົ້າໝາຍການນຳໃຊ້ລົດ", plate_type_label(v.plate_type)],
+           ] %>
+        <% specs.each_slice(2).each_with_index do |pair, i| %>
+          <tr>
+            <% pair.each_with_index do |(label, value), j| %>
+              <td style="padding:4px 2px 4px 0;color:#888;white-space:nowrap;width:18px;"><%= i * 2 + j + 1 %>.</td>
+              <td style="padding:4px 10px 4px 0;color:#555;white-space:nowrap;"><%= label %></td>
+              <td style="padding:4px 24px 4px 4px;font-weight:700;border-bottom:1px dotted #ccc;">: <%= value.presence || "—" %></td>
+            <% end %>
+          </tr>
+        <% end %>
+      </table>
+    </div>
+
+    <div style="padding:14px 4px;border-bottom:2px solid #1A1A1A;">
+      <div style="font-size:11.5px;font-weight:800;margin-bottom:10px;">2. ຕາຕະລາງສະຖານະເອກະສານ (DOCUMENT COMPLIANCE STATUS)</div>
+      <table style="width:100%;border-collapse:collapse;font-size:10.5px;">
+        <thead>
+          <tr style="border-top:1px solid #1A1A1A;border-bottom:1px solid #1A1A1A;">
+            <th style="padding:6px 4px;text-align:center;">ລຳດັບ</th>
+            <th style="padding:6px 4px;text-align:left;">ລາຍການເອກະສານ</th>
+            <th style="padding:6px 4px;text-align:center;">ວັນທີໝົດອາຍຸ</th>
+            <th style="padding:6px 4px;text-align:center;">ສະຖານະ</th>
+            <th style="padding:6px 4px;text-align:left;">ໝາຍເຫດ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% r[:checks].each_with_index do |c, i| %>
+            <% pass = c[:status] == :valid %>
+            <tr style="border-bottom:1px solid #ddd;background:<%= pass ? "transparent" : "#FFF5F5" %>;">
+              <td style="padding:7px 4px;text-align:center;"><%= i + 1 %></td>
+              <td style="padding:7px 4px;font-weight:700;"><%= c[:label] %></td>
+              <td style="padding:7px 4px;text-align:center;"><%= c[:date]&.strftime("%d/%m/%Y") || "—" %></td>
+              <td style="padding:7px 4px;text-align:center;font-weight:800;color:<%= pass ? "#16A34A" : "#DC2626" %>;white-space:nowrap;">
+                [ <%= pass ? "PASS" : "FAIL" %> ] <%= pass ? "ຜ່ານ" : "ບໍ່ຜ່ານ" %>
+              </td>
+              <td style="padding:7px 4px;color:#555;"><%= c[:remark] %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+
+    <% if r[:fail_count] > 0 %>
+      <div style="padding:14px 4px;border-bottom:2px solid #1A1A1A;">
+        <div style="font-size:11.5px;font-weight:800;margin-bottom:10px;">3. ຂໍ້ສະເໜີແນະ / ແຈ້ງເຕືອນ (RECOMMENDATIONS)</div>
+        <% r[:checks].select { |c| c[:recommendation] }.each do |c| %>
+          <div style="font-size:10.5px;color:#BC770C;padding:4px 0;line-height:1.6;">[!] <%= c[:recommendation] %></div>
+        <% end %>
+      </div>
+    <% end %>
+
+    <table style="width:100%;font-size:10px;margin-top:28px;">
+      <tr>
+        <td style="width:50%;text-align:center;font-weight:800;">[  ກວດສອບໂດຍ  ]</td>
+        <td style="width:50%;text-align:center;font-weight:800;">[  ອະນຸມັດໂດຍ  ]</td>
+      </tr>
+      <tr><td colspan="2" style="height:34px;"></td></tr>
+      <tr>
+        <td style="text-align:center;color:#888;">
+          ...................................<br>
+          ( &nbsp; )<br>
+          ວັນທີ: ....../....../<%= @checked_at.year %>
+        </td>
+        <td style="text-align:center;color:#888;">
+          ...................................<br>
+          ( &nbsp; )<br>
+          ວັນທີ: ....../....../<%= @checked_at.year %>
+        </td>
+      </tr>
+    </table>
+  <% end %>
+
+  <div style="border-top:4px double #1A1A1A;text-align:center;padding-top:12px;margin-top:22px;font-size:9.5px;color:#666;">
+    MotoGate Laos - Vehicle Document &amp; Tax Tracking System
+  </div>
+<% else %>
+  <div style="text-align:center;padding:60px 20px;">
+    <div style="font-size:18px;font-weight:800;color:#DC2626;"><%= @error_message %></div>
+    <div style="font-size:12px;color:#666;margin-top:8px;">ບໍ່ສາມາດອອກລາຍງານໄດ້ — QR ອາດໝົດອາຍຸແລ້ວ ຫຼືບໍ່ຖືກຕ້ອງ</div>
+  </div>
+<% end %>

@@ -8,6 +8,7 @@ Rails.application.routes.draw do
   # Public QR-verification landing page (no login) — scanned from the
   # "QR CODE ເອກະສານ" feature in the app.
   get "verify/:token", to: "verifications#show", as: :verification, constraints: { token: /.+/ }
+  get "verify_report/:token", to: "verifications#report", as: :verification_report, constraints: { token: /.+/ }
 
   namespace :api do
     namespace :v1 do
