@@ -99,7 +99,11 @@ class VerificationsController < ApplicationController
     road_tax = vehicle.road_taxes.order(expired_at: :desc).first
     insurance = vehicle.insurances.order(end_date: :desc).first
     inspection = vehicle.inspections.order(appointment_at: :desc).first
-    has_registration_photo = vehicle.registration_front.attached? || vehicle.registration_back.attached?
+    registration_urls = [vehicle.registration_front, vehicle.registration_back]
+                         .select(&:attached?).map { |a| url_for(a) }
+    has_registration_photo = registration_urls.any?
+    license_urls = @user.license_image.attached? ? [url_for(@user.license_image)] : []
+    no_photos = []
 
     inspection_status =
       if inspection.nil?
@@ -113,11 +117,11 @@ class VerificationsController < ApplicationController
       end
 
     values = {
-      license:      { status: @license_status, date: @user.license_expiry_date },
-      registration: { status: has_registration_photo ? :valid : :missing, date: vehicle.registration_expiry_date },
-      road_tax:     { status: status_for(road_tax&.expired_at), date: road_tax&.expired_at },
-      inspection:   { status: inspection_status, date: inspection&.appointment_at },
-      insurance:    { status: status_for(insurance&.end_date), date: insurance&.end_date },
+      license:      { status: @license_status, date: @user.license_expiry_date, image_urls: license_urls },
+      registration: { status: has_registration_photo ? :valid : :missing, date: vehicle.registration_expiry_date, image_urls: registration_urls },
+      road_tax:     { status: status_for(road_tax&.expired_at), date: road_tax&.expired_at, image_urls: no_photos },
+      inspection:   { status: inspection_status, date: inspection&.appointment_at, image_urls: no_photos },
+      insurance:    { status: status_for(insurance&.end_date), date: insurance&.end_date, image_urls: no_photos },
     }
 
     checks = CHECK_DEFS.map do |d|

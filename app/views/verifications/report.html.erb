@@ -18,21 +18,21 @@
     <% overall_pass = r[:fail_count] == 0 %>
     <% fail_labels = r[:checks].select { |c| c[:status] != :valid }.map { |c| c[:label] } %>
 
-    <div class="page" style="font-family:'Courier New',monospace,'Noto Sans Lao';font-size:10px;color:#1A1A1A;
+    <div class="page" style="font-family:'Courier New',monospace,'Noto Sans Lao';font-size:12.5px;color:#1A1A1A;
                 <%= "page-break-after:always;" if ri < @vehicle_reports.size - 1 %>">
 
       <%# ── Letterhead ── %>
-      <table style="width:100%;border-bottom:4px double #1A1A1A;padding-bottom:10px;margin-bottom:10px;">
+      <table class="letterhead-table" style="width:100%;border-bottom:4px double #1A1A1A;padding-bottom:8px;margin-bottom:8px;">
         <tr>
-          <td style="width:52px;vertical-align:top;">
-            <%= image_tag "/admin_logo.png", width: 44, height: 44, style: "border-radius:10px;display:block;" %>
+          <td style="width:54px;vertical-align:top;">
+            <%= image_tag "/admin_logo.png", width: 46, height: 46, style: "border-radius:10px;display:block;" %>
           </td>
           <td style="vertical-align:top;">
-            <div style="font-size:15px;font-weight:800;letter-spacing:.06em;">MOTOGATE LAOS SYSTEM</div>
-            <div style="font-size:11px;font-weight:700;margin-top:2px;">ບົດລາຍງານການກວດສອບເອກະສານລົດ</div>
-            <div style="font-size:9px;color:#666;">(Vehicle Verification Report)</div>
+            <div style="font-size:18px;font-weight:800;letter-spacing:.06em;">MOTOGATE LAOS SYSTEM</div>
+            <div style="font-size:13.5px;font-weight:700;margin-top:2px;">ບົດລາຍງານການກວດສອບເອກະສານລົດ</div>
+            <div style="font-size:11px;color:#666;">(Vehicle Verification Report)</div>
           </td>
-          <td style="text-align:right;vertical-align:top;font-size:9.5px;color:#555;line-height:1.7;">
+          <td style="text-align:right;vertical-align:top;font-size:11.5px;color:#555;line-height:1.6;">
             REF: <b>MG-<%= @ref %><%= "-#{v.id}" if @vehicle_reports.size > 1 %></b><br>
             <%= @checked_at.strftime("%d/%m/%Y | %H:%M") %><br>
             ເຈົ້າຂອງ: <b><%= owner %></b> · <%= @user.phone_number %>
@@ -42,17 +42,17 @@
 
       <%# ── Overall status banner ── %>
       <div style="background:<%= overall_pass ? "#DCFCE7" : "#FEE2E2" %>;border:1.5px solid <%= overall_pass ? "#16A34A" : "#DC2626" %>;
-                  border-radius:6px;padding:8px 12px;margin-bottom:14px;font-weight:800;color:<%= overall_pass ? "#16A34A" : "#DC2626" %>;">
+                  border-radius:6px;padding:9px 14px;margin-bottom:10px;font-size:13px;font-weight:800;color:<%= overall_pass ? "#16A34A" : "#DC2626" %>;">
         [ <%= overall_pass ? "✓" : "X" %> ] ສະຖານະຮວມ: <%= overall_pass ? "ຜ່ານ / PASSED" : "ບໍ່ຜ່ານ / ACTION REQUIRED" %>
         <% if fail_labels.any? %><span style="font-weight:400;">— <%= fail_labels.join(", ") %> ມີບັນຫາ</span><% end %>
       </div>
 
       <%# ── Balanced two-column body: specs left, status+recommendations right ── %>
-      <table style="width:100%;">
+      <table class="two-col-table" style="width:100%;">
         <tr>
-          <td style="width:52%;vertical-align:top;padding-right:14px;border-right:1px solid #ddd;">
-            <div style="font-size:10.5px;font-weight:800;margin-bottom:8px;">1. ຂໍ້ມູນພື້ນຖານຂອງລົດ (SPECIFICATIONS)</div>
-            <table style="width:100%;font-size:9.5px;">
+          <td class="col-specs" style="width:53%;vertical-align:top;padding-right:12px;border-right:1px solid #ddd;">
+            <div style="font-size:13px;font-weight:800;margin-bottom:6px;">1. ຂໍ້ມູນພື້ນຖານຂອງລົດ (SPECIFICATIONS)</div>
+            <table style="width:100%;font-size:12px;">
               <% specs = [
                    ["ຍີ່ຫໍ້ພາຫະນະ", v.brand],
                    ["ປະເພດ", vehicle_type_label(v.vehicle_type)],
@@ -72,31 +72,31 @@
                  ] %>
               <% specs.each_with_index do |(label, value), i| %>
                 <tr>
-                  <td style="padding:2.5px 2px;color:#888;white-space:nowrap;width:14px;"><%= i + 1 %>.</td>
-                  <td style="padding:2.5px 6px 2.5px 0;color:#555;white-space:nowrap;"><%= label %></td>
-                  <td style="padding:2.5px 0;font-weight:700;border-bottom:1px dotted #ddd;width:100%;">: <%= value.presence || "—" %></td>
+                  <td style="padding:3px 3px;color:#888;width:18px;"><%= i + 1 %>.</td>
+                  <td style="padding:3px 6px 3px 0;color:#555;"><%= label %></td>
+                  <td style="padding:3px 0;font-weight:700;border-bottom:1px dotted #ddd;width:100%;">: <%= value.presence || "—" %></td>
                 </tr>
               <% end %>
             </table>
           </td>
 
-          <td style="width:48%;vertical-align:top;padding-left:14px;">
-            <div style="font-size:10.5px;font-weight:800;margin-bottom:8px;">2. ສະຖານະເອກະສານ (DOCUMENT STATUS)</div>
-            <table style="width:100%;border-collapse:collapse;font-size:9.5px;">
+          <td class="col-status" style="width:47%;vertical-align:top;padding-left:12px;">
+            <div style="font-size:13px;font-weight:800;margin-bottom:6px;">2. ສະຖານະເອກະສານ (DOCUMENT STATUS)</div>
+            <table style="width:100%;border-collapse:collapse;font-size:12px;">
               <thead>
                 <tr style="border-top:1px solid #1A1A1A;border-bottom:1px solid #1A1A1A;">
-                  <th style="padding:4px 2px;text-align:left;">ລາຍການ</th>
-                  <th style="padding:4px 2px;text-align:center;">ວັນທີ</th>
-                  <th style="padding:4px 2px;text-align:center;">ສະຖານະ</th>
+                  <th style="padding:5px 3px;text-align:left;">ລາຍການ</th>
+                  <th style="padding:5px 3px;text-align:center;">ວັນທີ</th>
+                  <th style="padding:5px 3px;text-align:center;">ສະຖານະ</th>
                 </tr>
               </thead>
               <tbody>
                 <% r[:checks].each do |c| %>
                   <% pass = c[:status] == :valid %>
                   <tr style="border-bottom:1px solid #eee;background:<%= pass ? "transparent" : "#FFF5F5" %>;">
-                    <td style="padding:5px 2px;font-weight:700;"><%= c[:label] %></td>
-                    <td style="padding:5px 2px;text-align:center;white-space:nowrap;"><%= c[:date]&.strftime("%d/%m/%y") || "—" %></td>
-                    <td style="padding:5px 2px;text-align:center;font-weight:800;color:<%= pass ? "#16A34A" : "#DC2626" %>;white-space:nowrap;">
+                    <td style="padding:6px 3px;font-weight:700;"><%= c[:label] %></td>
+                    <td style="padding:6px 3px;text-align:center;"><%= c[:date]&.strftime("%d/%m/%y") || "—" %></td>
+                    <td style="padding:6px 3px;text-align:center;font-weight:800;color:<%= pass ? "#16A34A" : "#DC2626" %>;white-space:nowrap;">
                       <%= pass ? "✓ PASS" : "✗ FAIL" %>
                     </td>
                   </tr>
@@ -105,35 +105,16 @@
             </table>
 
             <% if r[:fail_count] > 0 %>
-              <div style="font-size:10.5px;font-weight:800;margin:12px 0 6px;">3. ຂໍ້ສະເໜີແນະ (RECOMMENDATIONS)</div>
+              <div style="font-size:13px;font-weight:800;margin:10px 0 6px;">3. ຂໍ້ສະເໜີແນະ (RECOMMENDATIONS)</div>
               <% r[:checks].select { |c| c[:recommendation] }.each do |c| %>
-                <div style="font-size:8.8px;color:#BC770C;padding:2px 0;line-height:1.5;">[!] <%= c[:recommendation] %></div>
+                <div style="font-size:11px;color:#BC770C;padding:2px 0;line-height:1.45;">[!] <%= c[:recommendation] %></div>
               <% end %>
             <% end %>
           </td>
         </tr>
       </table>
 
-      <%# ── Signatures ── %>
-      <table style="width:100%;font-size:9px;margin-top:20px;">
-        <tr>
-          <td style="width:50%;text-align:center;font-weight:800;">[  ກວດສອບໂດຍ  ]</td>
-          <td style="width:50%;text-align:center;font-weight:800;">[  ອະນຸມັດໂດຍ  ]</td>
-        </tr>
-        <tr><td colspan="2" style="height:26px;"></td></tr>
-        <tr>
-          <td style="text-align:center;color:#888;">
-            ...................................<br>
-            ( &nbsp; ) &nbsp; ວັນທີ: ....../....../<%= @checked_at.year %>
-          </td>
-          <td style="text-align:center;color:#888;">
-            ...................................<br>
-            ( &nbsp; ) &nbsp; ວັນທີ: ....../....../<%= @checked_at.year %>
-          </td>
-        </tr>
-      </table>
-
-      <div style="border-top:4px double #1A1A1A;text-align:center;padding-top:8px;margin-top:16px;font-size:8.5px;color:#666;">
+      <div style="border-top:4px double #1A1A1A;text-align:center;padding-top:6px;margin-top:16px;font-size:10.5px;color:#666;">
         MotoGate Laos - Vehicle Document &amp; Tax Tracking System
       </div>
     </div>

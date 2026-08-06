@@ -11,9 +11,13 @@
     body {
       margin: 0; min-height: 100vh; background: var(--bg); color: var(--ink);
       font-family: "Noto Sans Lao", system-ui, sans-serif;
-      display: flex; align-items: center; justify-content: center; padding: 24px;
+      padding: 24px;
     }
-    .wrap { width: 100%; max-width: 420px; }
+    /* Block-level centering (not flex) so nothing inside .wrap can force
+       the page wider than the viewport — flex containers let children
+       ignore max-width if their content doesn't wrap, which is what was
+       making mobile browsers zoom the whole page out to fit. */
+    .wrap { width: 100%; max-width: 420px; margin: 0 auto; overflow-x: hidden; }
   </style>
 </head>
 <body>

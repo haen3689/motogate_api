@@ -19,6 +19,27 @@
       .no-print { display: none !important; }
       @page { margin: 14mm; }
     }
+    /* On a narrow phone screen (before printing), stack the letterhead
+       and the two-column body instead of squeezing them side-by-side —
+       this is what caused the sideways overflow. Print/desktop keep the
+       original two-column layout since there's room for it there. */
+    @media screen and (max-width: 640px) {
+      body { padding: 14px 10px; }
+      .sheet { padding: 14px; }
+      .letterhead-table, .letterhead-table > tbody, .letterhead-table > tbody > tr {
+        display: block !important; width: 100% !important;
+      }
+      .letterhead-table td {
+        display: block !important; width: 100% !important; text-align: left !important; padding: 0 0 6px !important;
+      }
+      .two-col-table, .two-col-table > tbody, .two-col-table > tbody > tr {
+        display: block !important; width: 100% !important;
+      }
+      .two-col-table > tbody > tr > td.col-specs,
+      .two-col-table > tbody > tr > td.col-status {
+        display: block !important; width: 100% !important; padding: 0 0 16px !important; border: none !important;
+      }
+    }
   </style>
 </head>
 <body>
