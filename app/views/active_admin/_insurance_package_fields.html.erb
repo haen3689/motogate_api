@@ -1,37 +1,64 @@
-<tbody class="icf-pkg-group">
-  <tr>
-    <td>
-      <% if f.object.persisted? %>
-        <%= f.hidden_field :id %>
-      <% end %>
-      <%= f.hidden_field :_destroy, class: 'icf-destroy-input' %>
-      <%= f.text_field :name, class: 'icf-tbl-input', placeholder: 'ຊື່ແພັກເກັດ' %>
-    </td>
-    <td class="icf-col-sm"><%= f.text_field :min_cc, class: 'icf-tbl-input', placeholder: '0' %></td>
-    <td class="icf-col-sm"><%= f.text_field :max_cc, class: 'icf-tbl-input', placeholder: '1000' %></td>
-    <td>
+<div class="icf-pkg-card">
+  <% if f.object.persisted? %>
+    <%= f.hidden_field :id %>
+  <% end %>
+  <%= f.hidden_field :_destroy, class: 'icf-destroy-input' %>
+
+  <div class="icf-pkg-card-hd">
+    <%= f.text_field :name, class: 'icf-tbl-input icf-pkg-name', placeholder: 'ຊື່ແພັກເກັດ' %>
+    <div class="icf-status-toggle">
+      <%= f.hidden_field :status, value: f.object.status.presence || 'active', class: 'icf-status-input' %>
+      <button type="button" class="icf-status-btn <%= 'is-on' if f.object.status != 'inactive' %>" data-status="active">ເປີດ</button>
+      <button type="button" class="icf-status-btn <%= 'is-off' if f.object.status == 'inactive' %>" data-status="inactive">ປິດ</button>
+    </div>
+    <button type="button" class="icf-remove-pkg" title="ລົບແພັກເກັດນີ້"><i class="fas fa-trash-alt"></i></button>
+  </div>
+
+  <div class="icf-pkg-card-grid">
+    <div class="icf-field-sm">
+      <span class="icf-field-label">ປະເພດລົດ</span>
       <%= f.select :vehicle_type,
-            [['ລົດຈັກ','motorcycle'],['ລົດຍົນ','car'],['ລົດບັນທຸກ','truck']],
-            { include_blank: '—' }, class: 'icf-tbl-input' %>
-    </td>
-    <td class="icf-col-md"><%= f.text_field :price, class: 'icf-tbl-input', placeholder: 'ລາຄາ' %></td>
-    <td class="icf-col-sm"><%= f.text_field :duration_months, class: 'icf-tbl-input', placeholder: '12' %></td>
-    <td class="icf-col-status">
-      <div class="icf-status-toggle">
-        <%= f.hidden_field :status, value: f.object.status.presence || 'active', class: 'icf-status-input' %>
-        <button type="button" class="icf-status-btn <%= 'is-on' if f.object.status != 'inactive' %>" data-status="active">ເປີດ</button>
-        <button type="button" class="icf-status-btn <%= 'is-off' if f.object.status == 'inactive' %>" data-status="inactive">ປິດ</button>
+            [['ລົດຈັກ','motorcycle'],['ລົດເກັ່ງ','car'],['ລົດກະບະ','pickup'],['ລົດຈິບ','suv'],
+             ['ລົດຕູ້','van'],['ລົດເມ','bus'],['ລົດລາກ','towtruck'],['ລົດພ່ວງ','trailer']],
+            { include_blank: '—' }, class: 'icf-tbl-input icf-vehicle-type-select' %>
+    </div>
+
+    <div class="icf-field-sm">
+      <span class="icf-field-label">ຂອບເຂດ</span>
+      <div class="icf-range-pair icf-range-cc">
+        <%= f.text_field :min_cc, class: 'icf-tbl-input', placeholder: 'CC ຕ່ຳ' %>
+        <%= f.text_field :max_cc, class: 'icf-tbl-input', placeholder: 'CC ສູງ' %>
       </div>
-    </td>
-    <td class="icf-col-del">
-      <button type="button" class="icf-remove-pkg" title="ລົບແພັກເກັດນີ້"><i class="fas fa-trash-alt"></i></button>
-    </td>
-  </tr>
-  <tr class="icf-detail-row">
-    <td colspan="8">
-      <div class="icf-coverage-label"><i class="fas fa-info-circle"></i>ລາຍລະອຽດຄວາມຄຸ້ມຄອງ (ສະແດງໃນ App)</div>
-      <%= f.text_area :coverage, class: 'icf-tbl-input icf-tbl-textarea', rows: 2,
-            placeholder: 'ລະບຸລາຍລະອຽດຄວາມຄຸ້ມຄອງ, ວົງເງິນປະກັນ, ແລະ ເງື່ອນໄຂຕ່າງໆ...' %>
-    </td>
-  </tr>
-</tbody>
+      <div class="icf-range-pair icf-range-seats">
+        <%= f.text_field :min_seats, class: 'icf-tbl-input', placeholder: 'ບ່ອນນັ່ງ ຕ່ຳ' %>
+        <%= f.text_field :max_seats, class: 'icf-tbl-input', placeholder: 'ບ່ອນນັ່ງ ສູງ' %>
+      </div>
+      <div class="icf-range-pair icf-range-weight">
+        <%= f.text_field :min_weight, class: 'icf-tbl-input', placeholder: 'ຕັນ ຕ່ຳ' %>
+        <%= f.text_field :max_weight, class: 'icf-tbl-input', placeholder: 'ຕັນ ສູງ' %>
+      </div>
+    </div>
+
+    <div class="icf-field-sm">
+      <span class="icf-field-label">ການນຳໃຊ້</span>
+      <%= f.select :usage_type, InsurancePackage::USAGE_TYPES,
+            { include_blank: 'ທຸກປະເພດ' }, class: 'icf-tbl-input' %>
+    </div>
+
+    <div class="icf-field-sm">
+      <span class="icf-field-label">ລາຄາ (ກີບ)</span>
+      <%= f.text_field :price, class: 'icf-tbl-input', placeholder: 'ລາຄາ' %>
+    </div>
+
+    <div class="icf-field-sm">
+      <span class="icf-field-label">ໄລຍະ (ເດືອນ)</span>
+      <%= f.text_field :duration_months, class: 'icf-tbl-input', placeholder: '12' %>
+    </div>
+  </div>
+
+  <div class="icf-pkg-coverage">
+    <div class="icf-coverage-label"><i class="fas fa-info-circle"></i>ລາຍລະອຽດຄວາມຄຸ້ມຄອງ (ສະແດງໃນ App)</div>
+    <%= f.text_area :coverage, class: 'icf-tbl-input icf-tbl-textarea', rows: 2,
+          placeholder: 'ລະບຸລາຍລະອຽດຄວາມຄຸ້ມຄອງ, ວົງເງິນປະກັນ, ແລະ ເງື່ອນໄຂຕ່າງໆ...' %>
+  </div>
+</div>

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_05_170533) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_06_081142) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -140,11 +140,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_05_170533) do
     t.integer "duration_months"
     t.integer "insurance_company_id"
     t.integer "max_cc"
+    t.integer "max_seats"
+    t.decimal "max_weight"
     t.integer "min_cc"
+    t.integer "min_seats"
+    t.decimal "min_weight"
     t.string "name"
     t.decimal "price"
     t.string "status"
     t.datetime "updated_at", null: false
+    t.string "usage_type"
     t.string "vehicle_type"
   end
 
@@ -286,6 +291,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_05_170533) do
     t.string "usage_type"
     t.bigint "user_id", null: false
     t.string "vehicle_type"
+    t.string "weight"
     t.integer "year"
     t.index ["user_id"], name: "index_vehicles_on_user_id"
   end

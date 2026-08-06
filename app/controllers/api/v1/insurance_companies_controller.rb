@@ -3,12 +3,12 @@ class Api::V1::InsuranceCompaniesController < ApiController
 
   def index
     companies = InsuranceCompany.active.order(:name)
-    render_success(companies.as_json(include: { insurance_packages: { only: %i[id name vehicle_type min_cc max_cc price coverage duration_months status] } }))
+    render_success(companies.as_json(include: { insurance_packages: { only: %i[id name vehicle_type min_cc max_cc min_seats max_seats min_weight max_weight usage_type price coverage duration_months status] } }))
   end
 
   def show
     company = InsuranceCompany.find(params[:id])
-    render_success(company.as_json(include: { insurance_packages: { only: %i[id name vehicle_type min_cc max_cc price coverage duration_months status] } }))
+    render_success(company.as_json(include: { insurance_packages: { only: %i[id name vehicle_type min_cc max_cc min_seats max_seats min_weight max_weight usage_type price coverage duration_months status] } }))
   rescue ActiveRecord::RecordNotFound
     render_error("ບໍ່ພົບບໍລິສັດປະກັນໄພ", status: :not_found)
   end

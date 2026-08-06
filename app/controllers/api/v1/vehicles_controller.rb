@@ -46,7 +46,7 @@ class Api::V1::VehiclesController < ApiController
   def vehicle_params
     params.permit(:plate_number, :plate_type, :brand, :model, :year, :color, :vehicle_type,
                   :engine_number, :chassis_number, :cc, :province, :usage_type,
-                  :owner_name, :fuel_type, :seat_count, :axle_count, :cylinder_count,
+                  :owner_name, :fuel_type, :seat_count, :axle_count, :cylinder_count, :weight,
                   :registration_expiry_date, :fee_paid)
   end
 

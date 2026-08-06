@@ -5,9 +5,10 @@ ActiveAdmin.register InsuranceCompany do
   config.filters = false
 
   permit_params :name, :logo, :logo_file, :phone, :email, :status, :description,
-    insurance_packages_attributes: [:id, :name, :vehicle_type, :min_cc, :max_cc, :price, :coverage, :duration_months, :status, :_destroy]
+    insurance_packages_attributes: [:id, :name, :vehicle_type, :min_cc, :max_cc, :min_seats, :max_seats,
+      :min_weight, :max_weight, :usage_type, :price, :coverage, :duration_months, :status, :_destroy]
 
-  index title: false, download_links: false do
+  index as: :content do
     render partial: "active_admin/insurance_companies_content"
   end
 
@@ -27,7 +28,16 @@ ActiveAdmin.register InsuranceCompany do
       table_for insurance_company.insurance_packages do
         column :name
         column("ປະເພດ") { |p| p.vehicle_type }
-        column("CC") { |p| "#{p.min_cc} - #{p.max_cc}" }
+        column("ຂອບເຂດ") { |p|
+          if InsurancePackage::SEAT_BASED_TYPES.include?(p.vehicle_type)
+            "#{p.min_seats} - #{p.max_seats} ບ່ອນນັ່ງ"
+          elsif InsurancePackage::WEIGHT_BASED_TYPES.include?(p.vehicle_type)
+            "#{p.min_weight} - #{p.max_weight} ຕັນ"
+          else
+            "#{p.min_cc} - #{p.max_cc} CC"
+          end
+        }
+        column("ການນຳໃຊ້") { |p| p.usage_type.presence || "ທຸກປະເພດ" }
         column("ລາຄາ") { |p| number_to_currency(p.price, unit: "₭", precision: 0, delimiter: ",") }
         column("ໄລຍະ") { |p| "#{p.duration_months} ເດືອນ" }
         column("ສະຖານະ") { |p| status_tag p.status }

@@ -5,7 +5,7 @@ ActiveAdmin.register Vehicle do
 
   permit_params :user_id, :plate_number, :plate_type, :brand, :model, :year, :color, :vehicle_type,
                 :engine_number, :chassis_number, :cc, :province, :usage_type,
-                :owner_name, :fuel_type, :seat_count, :axle_count, :cylinder_count,
+                :owner_name, :fuel_type, :seat_count, :axle_count, :cylinder_count, :weight,
                 :registration_expiry_date,
                 :registration_front, :registration_back
 

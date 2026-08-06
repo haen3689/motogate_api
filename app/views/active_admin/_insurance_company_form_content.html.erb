@@ -85,43 +85,53 @@
   .icf-logo-preview i { font-size:32px; color:#c2cad4; }
   .icf-logo-wrap input[type="file"] { max-width:280px; margin:0 auto; }
 
-  /* ── Packages table ── */
+  /* ── Packages: card-based repeater (was a cramped, horizontally-scrolling table) ── */
   .icf-btn-add-pkg { border:1.5px solid #27bc9c; border-radius:9px; padding:7px 16px; font-size:12.5px;
                       font-weight:700; background:#f0fdfa; color:#0f766e; cursor:pointer;
                       display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
   .icf-btn-add-pkg:hover { background:#e6f7f3; }
-  .icf-pkg-table-wrap { overflow-x:auto; }
-  .icf-pkg-table { width:100%; border-collapse:collapse; min-width:760px; }
-  .icf-pkg-table thead th { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase;
-                             letter-spacing:.4px; text-align:left; padding:0 8px 10px; white-space:nowrap; }
-  .icf-pkg-table tbody.icf-pkg-group { border-bottom:1px solid var(--soft); }
-  .icf-pkg-table tbody.icf-pkg-group:last-child { border-bottom:none; }
-  .icf-pkg-table td { padding:6px 8px; vertical-align:top; }
+
   .icf-tbl-input {
     border:1.5px solid var(--line); border-radius:8px; padding:9px 11px; font-size:13px;
-    background:#fafbfc; outline:none; font-family:inherit; color:var(--ink);
+    background:#fff; outline:none; font-family:inherit; color:var(--ink);
     width:100%; box-sizing:border-box; min-height:40px;
   }
   .icf-tbl-input:focus { border-color:#27bc9c; background:#fff; box-shadow:0 0 0 3px rgba(39,188,156,.12); }
-  .icf-tbl-textarea { min-height:44px; resize:vertical; }
-  .icf-col-sm { width:80px; }
-  .icf-col-md { width:110px; }
-  .icf-col-status { width:104px; }
-  .icf-col-del { width:36px; }
+  .icf-tbl-textarea { min-height:56px; resize:vertical; }
 
-  .icf-status-toggle { display:flex; border:1.5px solid var(--line); border-radius:8px; overflow:hidden; }
-  .icf-status-btn { flex:1; border:none; background:#fafafa; color:#94a3b8; font-size:11px; font-weight:700;
-                     padding:9px 4px; cursor:pointer; }
+  .icf-pkg-empty { text-align:center; padding:32px 16px; color:var(--muted); font-size:13px; }
+
+  .icf-pkg-card { border:1.5px solid var(--line); border-radius:16px; padding:18px 20px;
+                  margin-bottom:14px; background:#fbfcfd; transition:.15s; position:relative; }
+  .icf-pkg-card:last-child { margin-bottom:0; }
+  .icf-pkg-card:hover { border-color:#c9d3dc; }
+  .icf-pkg-card:focus-within { border-color:#27bc9c; box-shadow:0 0 0 3px rgba(39,188,156,.1); }
+
+  .icf-pkg-card-hd { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+  .icf-pkg-name { flex:1; min-width:0; font-weight:700 !important; font-size:14px !important; }
+
+  .icf-pkg-card-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:12px; }
+  .icf-field-sm { display:flex; flex-direction:column; gap:5px; min-width:0; }
+  .icf-field-label { font-size:10.5px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.3px; }
+
+  /* CC / Seats / Weight range groups — only one shown per card, based on vehicle type */
+  .icf-range-pair { display:none; gap:6px; }
+  .icf-range-pair.icf-range-visible { display:flex; }
+  .icf-range-pair .icf-tbl-input { min-width:0; }
+
+  .icf-status-toggle { display:flex; border:1.5px solid var(--line); border-radius:8px; overflow:hidden; flex-shrink:0; }
+  .icf-status-btn { border:none; background:#fafafa; color:#94a3b8; font-size:11px; font-weight:700;
+                     padding:9px 14px; cursor:pointer; }
   .icf-status-btn.is-on  { background:#16a34a; color:#fff; }
   .icf-status-btn.is-off { background:#dc2626; color:#fff; }
 
   .icf-remove-pkg { border:1px solid #f87171; background:#fff1f2; color:#991b1b; border-radius:8px;
-                     width:36px; height:40px; cursor:pointer; display:inline-flex; align-items:center;
-                     justify-content:center; }
+                     width:40px; height:40px; cursor:pointer; display:inline-flex; align-items:center;
+                     justify-content:center; flex-shrink:0; }
   .icf-remove-pkg:hover { background:#dc2626; color:#fff; }
 
-  .icf-detail-row td { padding:0 8px 14px; }
-  .icf-coverage-label { font-size:11px; font-weight:700; color:var(--muted); margin:2px 0 6px 2px;
+  .icf-pkg-coverage { margin-top:14px; }
+  .icf-coverage-label { font-size:11px; font-weight:700; color:var(--muted); margin:0 0 6px 2px;
                          display:flex; align-items:center; gap:5px; }
 </style>
 
@@ -223,25 +233,15 @@
           </button>
         </div>
 
-        <div class="icf-pkg-table-wrap">
-          <table class="icf-pkg-table" id="packages-table">
-            <thead>
-              <tr>
-                <th>ຊື່ແພັກເກັດ</th>
-                <th>CC ຕ່ຳ</th>
-                <th>CC ສູງ</th>
-                <th>ປະເພດ</th>
-                <th>ລາຄາ</th>
-                <th>ໄລຍະ</th>
-                <th>ສະຖານະ</th>
-                <th></th>
-              </tr>
-            </thead>
-            <%= f.fields_for :insurance_packages do |pf| %>
-              <%= render 'active_admin/insurance_package_fields', f: pf %>
-            <% end %>
-          </table>
+        <div id="packages-list">
+          <%= f.fields_for :insurance_packages do |pf| %>
+            <%= render 'active_admin/insurance_package_fields', f: pf %>
+          <% end %>
         </div>
+        <p class="icf-pkg-empty" id="packages-empty-hint"
+           style="<%= 'display:none;' if company.insurance_packages.any? %>">
+          ຍັງບໍ່ມີແພັກເກັດ — ກົດ "ເພີ່ມແພັກເກັດ" ເພື່ອເລີ່ມ
+        </p>
 
         <template id="package-template">
           <%= f.fields_for :insurance_packages, InsurancePackage.new, child_index: 'NEW_RECORD' do |pf| %>
@@ -268,14 +268,46 @@
     });
   }
 
+  var SEAT_BASED_TYPES = ['van', 'bus'];
+  var WEIGHT_BASED_TYPES = ['towtruck', 'trailer'];
+  var packagesList = document.getElementById('packages-list');
+  var emptyHint = document.getElementById('packages-empty-hint');
+
+  function updateRangeVisibility(selectEl) {
+    var card = selectEl.closest('.icf-pkg-card');
+    if (!card) return;
+    var mode = SEAT_BASED_TYPES.indexOf(selectEl.value) !== -1 ? 'seats'
+             : WEIGHT_BASED_TYPES.indexOf(selectEl.value) !== -1 ? 'weight'
+             : 'cc';
+    card.querySelectorAll('.icf-range-pair').forEach(function (pair) {
+      pair.classList.toggle('icf-range-visible', pair.classList.contains('icf-range-' + mode));
+    });
+  }
+
+  function refreshEmptyHint() {
+    if (!emptyHint) return;
+    var visibleCards = Array.from(packagesList.children).filter(function (c) { return c.style.display !== 'none'; });
+    emptyHint.style.display = visibleCards.length === 0 ? '' : 'none';
+  }
+
+  document.querySelectorAll('.icf-vehicle-type-select').forEach(updateRangeVisibility);
+
   document.getElementById('add-package-btn').addEventListener('click', function () {
     var template = document.getElementById('package-template').innerHTML;
     var newIndex = new Date().getTime();
     var html = template.replace(/NEW_RECORD/g, newIndex);
-    document.getElementById('packages-table').insertAdjacentHTML('beforeend', html);
+    packagesList.insertAdjacentHTML('beforeend', html);
+    var newCard = packagesList.lastElementChild;
+    var newSelect = newCard.querySelector('.icf-vehicle-type-select');
+    if (newSelect) updateRangeVisibility(newSelect);
+    refreshEmptyHint();
   });
 
-  document.getElementById('packages-table').addEventListener('click', function (e) {
+  packagesList.addEventListener('change', function (e) {
+    if (e.target.classList.contains('icf-vehicle-type-select')) updateRangeVisibility(e.target);
+  });
+
+  packagesList.addEventListener('click', function (e) {
     var statusBtn = e.target.closest('.icf-status-btn');
     if (statusBtn) {
       var toggle = statusBtn.closest('.icf-status-toggle');
@@ -290,14 +322,15 @@
     var removeBtn = e.target.closest('.icf-remove-pkg');
     if (removeBtn) {
       e.preventDefault();
-      var group = removeBtn.closest('.icf-pkg-group');
-      var destroyInput = group.querySelector('.icf-destroy-input');
+      var card = removeBtn.closest('.icf-pkg-card');
+      var destroyInput = card.querySelector('.icf-destroy-input');
       if (destroyInput) {
         destroyInput.value = '1';
-        group.style.display = 'none';
+        card.style.display = 'none';
       } else {
-        group.remove();
+        card.remove();
       }
+      refreshEmptyHint();
     }
   });
 </script>

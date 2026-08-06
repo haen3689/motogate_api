@@ -242,8 +242,8 @@
         </div>
       </div>
 
-      <%# Row 7 — ຈຳນວນເພົາ + ຈຳນວນສູບ %>
-      <div class="vef-g2" style="margin-top:20px;">
+      <%# Row 7 — ຈຳນວນເພົາ + ຈຳນວນສູບ + ນ້ຳໜັກ %>
+      <div class="vef-g3" style="margin-top:20px;">
         <div class="vef-field">
           <label class="vef-label">ຈຳນວນເພົາ</label>
           <%= f.select :axle_count, ['2 ລໍ້', '4 ລໍ້', '6 ລໍ້', '8 ລໍ້', '10 ລໍ້', '12 ລໍ້'],
@@ -253,6 +253,10 @@
           <label class="vef-label">ຈຳນວນສູບ</label>
           <%= f.select :cylinder_count, ['1 ສູບ', '2 ສູບ', '3 ສູບ', '4 ສູບ', '6 ສູບ', '8 ສູບ', '12 ສູບ'],
                 { include_blank: '— ເລືອກ —' }, class: 'vef-input' %>
+        </div>
+        <div class="vef-field">
+          <label class="vef-label">ນ້ຳໜັກລົດ (ຕັນ)</label>
+          <%= f.text_field :weight, class: 'vef-input', placeholder: 'ເຊັ່ນ: 5' %>
         </div>
       </div>
 
