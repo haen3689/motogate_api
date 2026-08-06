@@ -5,16 +5,6 @@ Rails.application.routes.draw do
   get "up" => "rails/health#show", as: :rails_health_check
   get "/favicon.ico", to: redirect("/admin_logo.png")
 
-  # Dashboard (custom admin panel)
-  namespace :dashboard do
-    root 'home#index'
-    resources :vehicles,           only: %i[index show destroy]
-    resources :users,              only: %i[index show]
-    resources :inspection_centers, only: %i[index show]
-    resources :insurance_companies, only: %i[index show]
-    resources :service_centers,    only: %i[index show]
-  end
-
   namespace :api do
     namespace :v1 do
       # Auth

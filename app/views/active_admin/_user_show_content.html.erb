@@ -351,10 +351,10 @@
                   </div>
                 </td>
                 <td>
-                  <% if v.try(:status) == 'active' %>
+                  <% if v.try(:fee_paid) %>
                     <span class="usw-veh-on"><i class="fas fa-check-circle" style="margin-right:4px;"></i>ໃຊ້ງານ</span>
                   <% else %>
-                    <span class="usw-veh-off"><i class="fas fa-times-circle" style="margin-right:4px;"></i>ຢຸດໃຊ້</span>
+                    <span class="usw-veh-off"><i class="fas fa-times-circle" style="margin-right:4px;"></i>ຍັງບໍ່ຊຳລະຄ່າທຳນຽມ</span>
                   <% end %>
                 </td>
               </tr>
