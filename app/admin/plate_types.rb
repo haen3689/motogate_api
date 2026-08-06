@@ -6,7 +6,7 @@ ActiveAdmin.register PlateType do
 
   permit_params :plate_code, :name, :color_class, :show_province, :status, :position
 
-  index title: false, download_links: false do
+  index as: :content do
     render partial: "active_admin/plate_types_content"
   end
 

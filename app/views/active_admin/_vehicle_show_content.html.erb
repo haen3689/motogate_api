@@ -52,11 +52,15 @@
 
   /* ── Plate badge ── */
   .vsw-plate-wrap { text-align:center; margin-bottom:16px; }
+  /* Fixed size (matches the app's hero plate display) so every plate looks the
+     same regardless of text length or whether the province line is shown. */
   .plate-badge-lg { display:inline-flex; flex-direction:column; align-items:center; justify-content:center;
-                    padding:10px 24px; border-radius:10px; border:3px solid #333;
-                    background:#FFD600; min-width:110px; }
-  .plate-badge-lg .plate-province { font-size:10px; font-weight:700; color:#000; display:block; }
-  .plate-badge-lg .plate-number   { font-size:22px; font-weight:900; color:#000; letter-spacing:2px; }
+                    padding:10px 16px; border-radius:10px; border:3px solid #333;
+                    background:#FFD600; width:150px; height:88px; box-sizing:border-box; overflow:hidden; }
+  .plate-badge-lg .plate-province { font-size:10px; font-weight:700; color:#000; display:block;
+                                     white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+  .plate-badge-lg .plate-number   { font-size:22px; font-weight:900; color:#000; letter-spacing:2px;
+                                     white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
 
   /* Plate colors */
   .plate-badge-lg.plate-yellow        { background:linear-gradient(135deg,#ffcc00,#ffdb4d); border-color:#333; }
@@ -155,7 +159,7 @@
     end
   end
 
-  latest_tax = vehicle.road_taxes.max_by(&:expired_at)
+  latest_tax = vehicle.road_taxes.reject { |t| t.expired_at.nil? }.max_by(&:expired_at)
   tax_expiry = latest_tax&.expired_at
   tax_val_class = tax_expiry && tax_expiry.to_date < today ? 'vsw-val-danger' : 'vsw-val-ok'
 
@@ -164,7 +168,7 @@
   ins_val_class = ins_expiry && ins_expiry.to_date < today ? 'vsw-val-danger' : 'vsw-val-ok'
 
   last_insp = vehicle.inspections.order(created_at: :desc).first
-  next_insp = vehicle.inspections.max_by(&:appointment_at)
+  next_insp = vehicle.inspections.reject { |i| i.appointment_at.nil? }.max_by(&:appointment_at)
   next_insp_class = next_insp&.appointment_at && next_insp.appointment_at.to_date < today ? 'vsw-val-danger' : 'vsw-val-warning'
 
   owner = vehicle.user

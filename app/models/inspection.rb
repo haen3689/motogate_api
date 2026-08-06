@@ -6,7 +6,7 @@ class Inspection < ApplicationRecord
   validates :status, inclusion: { in: STATUSES }
 
   def self.ransackable_attributes(auth_object = nil)
-    %w[id center_name appointment_at status notes created_at updated_at]
+    %w[id center_name service_name amount appointment_at status notes created_at updated_at]
   end
 
   def self.ransackable_associations(auth_object = nil)

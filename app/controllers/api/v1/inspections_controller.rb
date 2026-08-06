@@ -11,16 +11,31 @@ class Api::V1::InspectionsController < ApiController
     render_error("ບໍ່ພົບຂໍ້ມູນ", status: :not_found)
   end
 
+  # Price is computed server-side from the center's InspectionService that
+  # matches the vehicle (type/CC) — the client only picks center + vehicle +
+  # appointment time, it can't set the amount itself.
   def create
     vehicle = current_user.vehicles.find(params[:vehicle_id])
-    inspection = vehicle.inspections.build(inspection_params)
+    center = InspectionCenter.find(params[:inspection_center_id])
+    service = center.inspection_services.for_vehicle(vehicle)
+    return render_error("ບໍ່ພົບແພັກເກັດກວດກາສຳລັບລົດຄັນນີ້") unless service
+
+    inspection = vehicle.inspections.build(
+      center_name: center.name,
+      center_address: center.location,
+      service_name: service.name,
+      amount: service.price,
+      appointment_at: params[:appointment_at],
+      status: 'confirmed',
+      notes: params[:notes]
+    )
     if inspection.save
       render_success(inspection.as_json, status: :created)
     else
       render_error(inspection.errors.full_messages.join(", "))
     end
   rescue ActiveRecord::RecordNotFound
-    render_error("ບໍ່ພົບລົດ", status: :not_found)
+    render_error("ບໍ່ພົບລົດ ຫຼື ສູນກວດກາ", status: :not_found)
   end
 
   def update

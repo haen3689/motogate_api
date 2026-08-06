@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_06_081142) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_06_160417) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -112,11 +112,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_06_081142) do
   end
 
   create_table "inspections", force: :cascade do |t|
+    t.decimal "amount"
     t.datetime "appointment_at"
     t.string "center_address"
     t.string "center_name"
     t.datetime "created_at", null: false
     t.string "notes"
+    t.string "service_name"
     t.string "status"
     t.datetime "updated_at", null: false
     t.bigint "vehicle_id", null: false
@@ -198,10 +200,35 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_06_081142) do
     t.datetime "updated_at", null: false
   end
 
+  create_table "road_tax_rates", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "max_cc"
+    t.integer "max_seats"
+    t.decimal "max_weight"
+    t.integer "min_cc"
+    t.integer "min_seats"
+    t.decimal "min_weight"
+    t.decimal "price"
+    t.string "status"
+    t.datetime "updated_at", null: false
+    t.string "vehicle_type"
+  end
+
+  create_table "road_tax_settings", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "fee_type"
+    t.decimal "flat_amount"
+    t.decimal "percent_rate"
+    t.datetime "updated_at", null: false
+  end
+
   create_table "road_taxes", force: :cascade do |t|
     t.decimal "amount"
     t.datetime "created_at", null: false
     t.date "expired_at"
+    t.date "paid_at"
+    t.decimal "service_fee"
+    t.string "source"
     t.string "status"
     t.integer "tax_year"
     t.datetime "updated_at", null: false

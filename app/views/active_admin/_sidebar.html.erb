@@ -91,7 +91,10 @@
       </button>
       <div class="sidebar-submenu">
         <a href="/admin" class="submenu-link"><i class="fas fa-chart-line"></i>Dashboard Inspection</a>
-        <a href="#" class="submenu-link"><i class="fas fa-warehouse"></i>ສູນກວດກາເຕັກນິກ</a>
+        <%= link_to admin_inspection_centers_path,
+            class: "submenu-link #{'active' if cp.start_with?('/admin/inspection_centers')}" do %>
+          <i class="fas fa-warehouse"></i>ສູນກວດກາເຕັກນິກ
+        <% end %>
         <%= link_to admin_inspections_path,
             class: "submenu-link #{'active' if cp.start_with?('/admin/inspections')}" do %>
           <i class="fas fa-car"></i>ລົດທີ່ຈະເຂົ້າມາກວດ
@@ -101,7 +104,7 @@
     </div>
 
     <%# Road Tax dropdown %>
-    <% rt_open = cp.start_with?('/admin/road_taxes') %>
+    <% rt_open = cp.start_with?('/admin/road_taxes') || cp.start_with?('/admin/road_tax_rates') || cp.start_with?('/admin/road_tax_settings') %>
     <div class="sidebar-group <%= 'open' if rt_open %>">
       <button class="sidebar-link sidebar-group-btn <%= 'parent-active' if rt_open %>" type="button">
         <i class="fas fa-road"></i><span>ຈັດການເສຍຄ່າທາງ</span>
@@ -112,6 +115,14 @@
         <%= link_to admin_road_taxes_path,
             class: "submenu-link #{'active' if cp.start_with?('/admin/road_taxes')}" do %>
           <i class="fas fa-file-invoice-dollar"></i>ຈັດການຄ່າທາງ
+        <% end %>
+        <%= link_to admin_road_tax_rates_path,
+            class: "submenu-link #{'active' if cp.start_with?('/admin/road_tax_rates')}" do %>
+          <i class="fas fa-tags"></i>ອັດຕາຄ່າທາງ
+        <% end %>
+        <%= link_to edit_admin_road_tax_setting_path(RoadTaxSetting.current),
+            class: "submenu-link #{'active' if cp.start_with?('/admin/road_tax_settings')}" do %>
+          <i class="fas fa-sliders-h"></i>ຄ່າທຳນຽມແພລດຟອມ
         <% end %>
         <a href="/admin/reports" class="submenu-link"><i class="fas fa-chart-bar"></i>ລາຍງານເສຍຄ່າທາງ</a>
       </div>

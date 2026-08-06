@@ -43,7 +43,7 @@ class TelbizSmsService
     body = {
       title:   "OTP",
       phone:   @phone_number,
-      message: "MotoGate OTP ຂອງທ່ານຄື: #{@otp} (ໝົດອາຍຸໃນ 5 ນາທີ)"
+      message: "ລະຫັດ MotoGate OTP ຂອງທ່ານແມ່ນ: #{@otp} "
     }
     headers = { "Authorization" => "Bearer #{access_token}" }
     res = post("#{BASE_URL}/smsservice/newtransaction", body, headers)

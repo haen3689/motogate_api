@@ -26,6 +26,8 @@ Rails.application.routes.draw do
 
       # Road Tax
       resources :road_taxes, only: %i[index create show]
+      resources :road_tax_rates, only: %i[index]
+      resource :road_tax_setting, only: %i[show]
 
       # Insurance
       resources :insurances, only: %i[index create show]

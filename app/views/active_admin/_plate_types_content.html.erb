@@ -95,12 +95,14 @@
   /* Fixed size so ALL 10 badge types look the same in the table */
   .plate-badge { border:2px solid #333; border-radius:9px; display:inline-flex; flex-direction:column;
              justify-content:center; align-items:center;
-             width:136px; height:62px; text-align:center;
+             width:136px; height:62px; text-align:center; box-sizing:border-box; overflow:hidden;
              box-shadow:0 3px 8px rgba(0,0,0,.12); flex-shrink:0; }
   /* Preview badge: larger but same proportions */
   .plate-badge.lg { width:150px; height:68px; transform:scale(1.3); transform-origin:center; }
-  .plate-province { font-size:9.5px; font-weight:700; display:block; line-height:1.1; text-transform:uppercase; }
-  .plate-number   { font-size:17px; font-weight:900; display:block; line-height:1.3; letter-spacing:1px; }
+  .plate-province { font-size:9.5px; font-weight:700; line-height:1.1; text-transform:uppercase;
+                     white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+  .plate-number   { font-size:17px; font-weight:900; line-height:1.3; letter-spacing:1px;
+                     white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
   .plate-badge.plate-yellow        { background:linear-gradient(135deg,#ffcc00,#ffdb4d); border-color:#333; }
   .plate-badge.plate-yellow        .plate-province, .plate-badge.plate-yellow        .plate-number { color:#000; }
   .plate-badge.plate-yellow-blue   { background:linear-gradient(135deg,#ffcc00,#ffdb4d); border-color:#3b82f6; }
