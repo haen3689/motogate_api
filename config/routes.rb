@@ -5,6 +5,10 @@ Rails.application.routes.draw do
   get "up" => "rails/health#show", as: :rails_health_check
   get "/favicon.ico", to: redirect("/admin_logo.png")
 
+  # Public QR-verification landing page (no login) — scanned from the
+  # "QR CODE ເອກະສານ" feature in the app.
+  get "verify/:token", to: "verifications#show", as: :verification, constraints: { token: /.+/ }
+
   namespace :api do
     namespace :v1 do
       # Auth
@@ -14,6 +18,7 @@ Rails.application.routes.draw do
       post "auth/register_device"
       post "auth/login_phone"
       put  "auth/profile"
+      post "auth/verify_token"
 
       # Vehicles
       resources :vehicles

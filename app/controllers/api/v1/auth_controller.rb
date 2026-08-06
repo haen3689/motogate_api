@@ -63,6 +63,28 @@ class Api::V1::AuthController < ApiController
     render_error(e.message)
   end
 
+  # POST /api/v1/auth/verify_token
+  # Issues a short-lived, single-purpose token for the "QR CODE ເອກະສານ"
+  # feature. Scoped to `verify` so it can't be used to call the regular
+  # authenticated API even if it leaks, and expires quickly so a
+  # screenshotted QR can't be reused indefinitely.
+  VERIFY_TOKEN_TTL = 5.minutes
+
+  def verify_token
+    extra = { scope: "verify" }
+    if params[:vehicle_id].present?
+      vehicle = current_user.vehicles.find(params[:vehicle_id])
+      extra[:vehicle_id] = vehicle.id
+    end
+    expires_at = VERIFY_TOKEN_TTL.from_now
+    token = JwtService.encode(current_user.id, expiry: VERIFY_TOKEN_TTL, extra: extra)
+    render_success({ token: token, expires_at: expires_at.iso8601 })
+  rescue ActiveRecord::RecordNotFound
+    render_error("Vehicle not found", status: :not_found)
+  rescue => e
+    render_error(e.message)
+  end
+
   private
 
   def profile_params
