@@ -13,7 +13,7 @@ class InspectionCenter < ApplicationRecord
   scope :active, -> { where(status: 'active') }
 
   def self.ransackable_attributes(auth_object = nil)
-    %w[id name location phone status logo capacity_per_day created_at updated_at]
+    %w[id name location phone status logo capacity_per_day latitude longitude created_at updated_at]
   end
 
   def self.ransackable_associations(auth_object = nil)

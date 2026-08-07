@@ -1,0 +1,420 @@
+<% center = resource %>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+<style>
+  #titlebar { display:none !important; }
+  body.active_admin, #wrapper, #active_admin_content, #main_content,
+  #main, .flashes { background:#f4f6f9 !important; }
+  #main_content > .panel { background:transparent !important; border:none !important; box-shadow:none !important; padding:0 !important; margin:0 !important; }
+  #main_content > .panel > .panel_contents { padding:0 !important; }
+
+  .vef-page {
+    --brand:#27bc9c; --brand-d:#1e9e82; --ink:#1f2a37; --muted:#6b7684; --line:#e9edf2; --soft:#f4f6f9;
+    color:var(--ink); font-family:"Noto Sans Lao","Phetsarath OT",system-ui,sans-serif;
+    max-width:1280px;
+  }
+
+  .vef-bar { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:28px; }
+  .vef-bar-l { display:flex; align-items:center; gap:14px; }
+  .vef-bar-ico { width:50px; height:50px; border-radius:14px; display:grid; place-items:center;
+                 background:linear-gradient(135deg,#27bc9c,#1e9e82); color:#fff; font-size:20px;
+                 box-shadow:0 8px 20px rgba(39,188,156,.35); flex-shrink:0; }
+  .vef-bar h2 { font-size:21px; font-weight:800; margin:0; }
+  .vef-bar p  { font-size:12.5px; color:var(--muted); margin:3px 0 0; }
+  .vef-bar-btns { display:flex; gap:10px; }
+  .vef-btn { display:inline-flex; align-items:center; gap:7px; padding:10px 22px; border-radius:11px;
+             font-size:13.5px; font-weight:700; cursor:pointer; text-decoration:none !important;
+             text-shadow:none !important; border:none; transition:.15s; white-space:nowrap;
+             font-family:inherit; }
+  .vef-btn-save { background:linear-gradient(135deg,#27bc9c,#1e9e82); color:#fff !important;
+                  box-shadow:0 6px 16px rgba(39,188,156,.35); }
+  .vef-btn-save:hover { filter:brightness(1.07); color:#fff !important; transform:translateY(-1px); }
+  .vef-btn-back { background:#fff; border:1.5px solid var(--line); color:var(--muted) !important;
+                  box-shadow:0 2px 8px rgba(0,0,0,.06); }
+  .vef-btn-back:hover { border-color:#27bc9c; color:#27bc9c !important; }
+
+  .vef-card { background:#fff; border-radius:20px; box-shadow:0 4px 20px rgba(16,24,40,.06);
+              padding:28px 32px; margin-bottom:20px; }
+  .vef-card-hd { display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:15px; font-weight:800;
+                 color:var(--ink); margin-bottom:24px; padding-bottom:14px;
+                 border-bottom:2px solid var(--soft); }
+  .vef-card-hd-l { display:flex; align-items:center; gap:10px; }
+  .vef-card-hd i { width:32px; height:32px; border-radius:9px; display:grid; place-items:center;
+                   background:#e6f7f3; color:#27bc9c; font-size:14px; flex-shrink:0; }
+
+  .vef-g2 { display:grid; grid-template-columns:repeat(2,1fr); gap:20px; }
+
+  .vef-field { display:flex; flex-direction:column; gap:6px; }
+  .vef-label { font-size:12px; font-weight:700; color:#475569; letter-spacing:.02em; text-transform:uppercase; }
+  .vef-label span { color:#ef4444; }
+  .vef-input {
+    border:1.5px solid var(--line) !important; border-radius:10px !important;
+    padding:11px 14px !important; font-size:13.5px !important; background:#fff !important;
+    outline:none !important; font-family:inherit !important; color:var(--ink) !important;
+    transition:.2s; width:100% !important; box-sizing:border-box !important;
+    min-height:44px !important; line-height:1.4 !important; margin:0 !important;
+    box-shadow:none !important; appearance:none; -webkit-appearance:none;
+  }
+  .vef-input:focus { border-color:#27bc9c !important; box-shadow:0 0 0 3px rgba(39,188,156,.13) !important; }
+  .vef-input::placeholder { color:#b0bac5; }
+  .vef-input[readonly] { background:#f4f6f9 !important; color:var(--muted) !important; }
+  textarea.vef-input { min-height:64px !important; resize:vertical; }
+
+  .vef-status-wrap { display:flex; gap:8px; flex-wrap:wrap; }
+  .vef-sr { display:none; }
+  .vef-sl { padding:8px 18px; border-radius:9px; border:1.5px solid var(--line);
+            background:#fafafa; color:#94a3b8; font-size:13px; font-weight:700;
+            cursor:pointer; transition:.15s; user-select:none; }
+  .vef-sl:hover { border-color:#27bc9c; color:#27bc9c; }
+  #ics_active:checked   + .vef-sl { color:#fff;    background:#16a34a; border-color:#16a34a; }
+  #ics_inactive:checked + .vef-sl { color:#dc2626; background:#fff1f2; border-color:#f87171; }
+
+  .vef-errors { background:#fff1f2; border:1.5px solid #fca5a5; border-radius:14px;
+                padding:16px 22px; margin-bottom:20px; }
+  .vef-errors strong { color:#dc2626; display:block; margin-bottom:8px; }
+  .vef-errors li { color:#dc2626; font-size:13px; margin-bottom:2px; }
+
+  /* ── Two-column layout ── */
+  .icf-layout { display:grid; grid-template-columns:5fr 7fr; gap:20px; align-items:start; }
+  @media (max-width:900px) { .icf-layout { grid-template-columns:1fr; } }
+
+  /* ── Logo upload ── */
+  .icf-logo-wrap { text-align:center; margin-bottom:20px; }
+  .icf-logo-preview { width:120px; height:120px; margin:10px auto 14px; border-radius:20px;
+                       background:#f8f9fa; border:2px dashed #d8dee6; display:flex;
+                       align-items:center; justify-content:center; overflow:hidden; }
+  .icf-logo-preview img { width:100%; height:100%; object-fit:contain; }
+  .icf-logo-preview i { font-size:32px; color:#c2cad4; }
+  .icf-logo-wrap input[type="file"] { max-width:280px; margin:0 auto; }
+
+  /* ── GPS map ── */
+  .icf-map-wrap { margin-top:4px; }
+  .icf-map-btn { border:1.5px solid var(--line); border-radius:9px; background:#f0fdfa; color:#0f766e;
+                 font-size:12.5px; font-weight:700; padding:8px 16px; cursor:pointer; margin-bottom:10px;
+                 display:inline-flex; align-items:center; gap:6px; }
+  .icf-map-btn:hover { background:#e6f7f3; }
+  .icf-map-btn:disabled { opacity:.6; cursor:default; }
+  #ic_map { height:280px; border-radius:12px; border:1.5px solid var(--line); margin-top:4px; }
+
+  /* ── Services: card-based repeater ── */
+  .icf-btn-add-pkg { border:1.5px solid #27bc9c; border-radius:9px; padding:7px 16px; font-size:12.5px;
+                      font-weight:700; background:#f0fdfa; color:#0f766e; cursor:pointer;
+                      display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
+  .icf-btn-add-pkg:hover { background:#e6f7f3; }
+
+  .icf-tbl-input {
+    border:1.5px solid var(--line); border-radius:8px; padding:9px 11px; font-size:13px;
+    background:#fff; outline:none; font-family:inherit; color:var(--ink);
+    width:100%; box-sizing:border-box; min-height:40px;
+  }
+  .icf-tbl-input:focus { border-color:#27bc9c; background:#fff; box-shadow:0 0 0 3px rgba(39,188,156,.12); }
+  .icf-tbl-textarea { min-height:56px; resize:vertical; }
+
+  .icf-pkg-empty { text-align:center; padding:32px 16px; color:var(--muted); font-size:13px; }
+
+  .icf-pkg-card { border:1.5px solid var(--line); border-radius:16px; padding:18px 20px;
+                  margin-bottom:14px; background:#fbfcfd; transition:.15s; position:relative; }
+  .icf-pkg-card:last-child { margin-bottom:0; }
+  .icf-pkg-card:hover { border-color:#c9d3dc; }
+  .icf-pkg-card:focus-within { border-color:#27bc9c; box-shadow:0 0 0 3px rgba(39,188,156,.1); }
+
+  .icf-pkg-card-hd { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+  .icf-pkg-name { flex:1; min-width:0; font-weight:700 !important; font-size:14px !important; }
+
+  .icf-pkg-card-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:12px; }
+  .icf-field-sm { display:flex; flex-direction:column; gap:5px; min-width:0; }
+  .icf-field-label { font-size:10.5px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.3px; }
+
+  .icf-status-toggle { display:flex; border:1.5px solid var(--line); border-radius:8px; overflow:hidden; flex-shrink:0; }
+  .icf-status-btn { border:none; background:#fafafa; color:#94a3b8; font-size:11px; font-weight:700;
+                     padding:9px 14px; cursor:pointer; }
+  .icf-status-btn.is-on  { background:#16a34a; color:#fff; }
+  .icf-status-btn.is-off { background:#dc2626; color:#fff; }
+
+  .icf-remove-pkg { border:1px solid #f87171; background:#fff1f2; color:#991b1b; border-radius:8px;
+                     width:40px; height:40px; cursor:pointer; display:inline-flex; align-items:center;
+                     justify-content:center; flex-shrink:0; }
+  .icf-remove-pkg:hover { background:#dc2626; color:#fff; }
+
+  .icf-pkg-coverage { margin-top:14px; }
+  .icf-coverage-label { font-size:11px; font-weight:700; color:var(--muted); margin:0 0 6px 2px;
+                         display:flex; align-items:center; gap:5px; }
+</style>
+
+<div class="vef-page">
+  <%= form_with model: [:admin, center], local: true, multipart: true, html: { style:"margin:0;" } do |f| %>
+
+    <div class="vef-bar">
+      <div class="vef-bar-l">
+        <div class="vef-bar-ico"><i class="fas fa-warehouse"></i></div>
+        <div>
+          <h2><%= center.persisted? ? 'ແກ້ໄຂຂໍ້ມູນສູນກວດກາເຕັກນິກ' : 'ເພີ່ມສູນກວດກາເຕັກນິກໃໝ່' %></h2>
+          <p>ກະລຸນາລະບຸຂໍ້ມູນສູນກວດກາ ແລະ ລາຍການບໍລິການໃຫ້ຄົບຖ້ວນ</p>
+        </div>
+      </div>
+      <div class="vef-bar-btns">
+        <%= f.submit(center.persisted? ? 'ບັນທຶກການແກ້ໄຂ' : 'ບັນທຶກທັງໝົດ', class: 'vef-btn vef-btn-save') %>
+        <%= link_to admin_inspection_centers_path, class: 'vef-btn vef-btn-back' do %>
+          <i class="fas fa-arrow-left"></i>ກັບຄືນ
+        <% end %>
+      </div>
+    </div>
+
+    <% if center.errors.any? %>
+      <div class="vef-errors">
+        <strong><i class="fas fa-exclamation-circle" style="margin-right:6px;"></i>ກະລຸນາກວດສອບຂໍ້ມູນ</strong>
+        <ul style="margin:0;padding-left:18px;">
+          <% center.errors.full_messages.each do |msg| %>
+            <li><%= msg %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <div class="icf-layout">
+      <%# ── Left: center info + GPS map ── %>
+      <div>
+        <div class="vef-card">
+          <div class="vef-card-hd">
+            <div class="vef-card-hd-l"><i class="fas fa-warehouse"></i>ຂໍ້ມູນສູນກວດກາເຕັກນິກ</div>
+          </div>
+
+          <div class="icf-logo-wrap">
+            <label class="vef-label" style="display:block;">ຮູບໂລໂກ້ສູນກວດກາ</label>
+            <div class="icf-logo-preview" id="logoPreview">
+              <% if center.logo.present? %>
+                <img src="<%= center.logo %>" alt="logo">
+              <% else %>
+                <i class="fas fa-image"></i>
+              <% end %>
+            </div>
+            <%= f.file_field :logo_file, class: 'vef-input', accept: 'image/*', id: 'logoFileInput' %>
+          </div>
+
+          <div class="vef-field" style="margin-bottom:20px;">
+            <label class="vef-label">ຊື່ສູນກວດກາເຕັກນິກ <span>*</span></label>
+            <%= f.text_field :name, class: 'vef-input', placeholder: 'ລະບຸຊື່ສູນກວດກາ...' %>
+          </div>
+
+          <div class="vef-g2" style="margin-bottom:20px;">
+            <div class="vef-field">
+              <label class="vef-label">ເບີໂທລະສັບ</label>
+              <%= f.text_field :phone, class: 'vef-input', placeholder: '021 XXX XXX' %>
+            </div>
+            <div class="vef-field">
+              <label class="vef-label">ຮອງຮັບ (ຄັນ/ວັນ)</label>
+              <%= f.text_field :capacity_per_day, class: 'vef-input', placeholder: '0' %>
+            </div>
+          </div>
+
+          <div class="vef-field" style="margin-bottom:20px;">
+            <label class="vef-label">ທີ່ຕັ້ງຂອງສູນ</label>
+            <%= f.text_area :location, class: 'vef-input', rows: 2, placeholder: 'ບ້ານ, ເມືອງ, ແຂວງ...' %>
+          </div>
+
+          <div class="vef-field" style="margin-bottom:20px;">
+            <label class="vef-label">ສະຖານະສູນກວດກາ</label>
+            <div class="vef-status-wrap">
+              <%= f.radio_button :status, 'active', id: 'ics_active', class: 'vef-sr', checked: center.status != 'inactive' %>
+              <label class="vef-sl" for="ics_active">ເປີດໃຊ້ງານ</label>
+
+              <%= f.radio_button :status, 'inactive', id: 'ics_inactive', class: 'vef-sr' %>
+              <label class="vef-sl" for="ics_inactive">ປິດໃຊ້ງານ</label>
+            </div>
+          </div>
+
+          <div class="vef-g2" style="margin-bottom:8px;">
+            <div class="vef-field">
+              <label class="vef-label">Latitude</label>
+              <%= f.text_field :latitude, class: 'vef-input', placeholder: '17.9757', id: 'inspection_center_latitude' %>
+            </div>
+            <div class="vef-field">
+              <label class="vef-label">Longitude</label>
+              <%= f.text_field :longitude, class: 'vef-input', placeholder: '102.6331', id: 'inspection_center_longitude' %>
+            </div>
+          </div>
+
+          <div class="vef-field icf-map-wrap">
+            <label class="vef-label">ພິກັດ GPS (ຄລິກ ຫຼື ລາກໝຸດເທິງແຜນທີ່ເພື່ອປັກຕຳແໜ່ງ)</label>
+            <button type="button" class="icf-map-btn" id="ic_btn_get_location">
+              <i class="fas fa-crosshairs"></i>ປັກໝຸດປັດຈຸບັນ
+            </button>
+            <div id="ic_map"></div>
+          </div>
+        </div>
+      </div>
+
+      <%# ── Right: services table ── %>
+      <div class="vef-card">
+        <div class="vef-card-hd">
+          <div class="vef-card-hd-l"><i class="fas fa-clipboard-list"></i>ລາຍການ/ຄ່າທຳນຽມ ການກວດກາ</div>
+          <button type="button" id="add-service-btn" class="icf-btn-add-pkg">
+            <i class="fas fa-plus"></i>ເພີ່ມລາຍການ
+          </button>
+        </div>
+
+        <div id="services-list">
+          <%= f.fields_for :inspection_services do |sf| %>
+            <%= render 'active_admin/inspection_service_fields', f: sf %>
+          <% end %>
+        </div>
+        <p class="icf-pkg-empty" id="services-empty-hint"
+           style="<%= 'display:none;' if center.inspection_services.any? %>">
+          ຍັງບໍ່ມີລາຍການ — ກົດ "ເພີ່ມລາຍການ" ເພື່ອເລີ່ມ
+        </p>
+
+        <template id="service-template">
+          <%= f.fields_for :inspection_services, InspectionService.new, child_index: 'NEW_RECORD' do |sf| %>
+            <%= render 'active_admin/inspection_service_fields', f: sf %>
+          <% end %>
+        </template>
+      </div>
+    </div>
+
+  <% end %>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  var logoFileInput = document.getElementById('logoFileInput');
+  if (logoFileInput) {
+    logoFileInput.addEventListener('change', function () {
+      var file = this.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        document.getElementById('logoPreview').innerHTML = '<img src="' + e.target.result + '" alt="logo">';
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  var servicesList = document.getElementById('services-list');
+  var emptyHint = document.getElementById('services-empty-hint');
+
+  function refreshEmptyHint() {
+    if (!emptyHint) return;
+    var visibleCards = Array.from(servicesList.children).filter(function (c) { return c.style.display !== 'none'; });
+    emptyHint.style.display = visibleCards.length === 0 ? '' : 'none';
+  }
+
+  document.getElementById('add-service-btn').addEventListener('click', function () {
+    var template = document.getElementById('service-template').innerHTML;
+    var newIndex = new Date().getTime();
+    var html = template.replace(/NEW_RECORD/g, newIndex);
+    servicesList.insertAdjacentHTML('beforeend', html);
+    refreshEmptyHint();
+  });
+
+  servicesList.addEventListener('click', function (e) {
+    var statusBtn = e.target.closest('.icf-status-btn');
+    if (statusBtn) {
+      var toggle = statusBtn.closest('.icf-status-toggle');
+      var input = toggle.querySelector('.icf-status-input');
+      var status = statusBtn.dataset.status;
+      input.value = status;
+      toggle.querySelectorAll('.icf-status-btn').forEach(function (b) { b.classList.remove('is-on', 'is-off'); });
+      statusBtn.classList.add(status === 'active' ? 'is-on' : 'is-off');
+      return;
+    }
+
+    var removeBtn = e.target.closest('.icf-remove-pkg');
+    if (removeBtn) {
+      e.preventDefault();
+      var card = removeBtn.closest('.icf-pkg-card');
+      var destroyInput = card.querySelector('.icf-destroy-input');
+      if (destroyInput) {
+        destroyInput.value = '1';
+        card.style.display = 'none';
+      } else {
+        card.remove();
+      }
+      refreshEmptyHint();
+    }
+  });
+
+  /* ── GPS map (Leaflet + CARTO tiles), mirrors the legacy PHP prototype ── */
+  (function () {
+    function boot() {
+      var latInput = document.getElementById('inspection_center_latitude');
+      var lngInput = document.getElementById('inspection_center_longitude');
+      var mapDiv = document.getElementById('ic_map');
+      var btn = document.getElementById('ic_btn_get_location');
+      if (!latInput || !lngInput || !mapDiv || typeof L === 'undefined') { return; }
+
+      var defaultLat = parseFloat(latInput.value) || 17.9757;
+      var defaultLng = parseFloat(lngInput.value) || 102.6331;
+
+      var map = L.map(mapDiv).setView([defaultLat, defaultLng], 13);
+
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap &copy; CARTO',
+        subdomains: 'abcd',
+        maxZoom: 20
+      }).addTo(map);
+
+      var marker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(map);
+
+      function updateInputs(lat, lng) {
+        latInput.value = lat.toFixed(6);
+        lngInput.value = lng.toFixed(6);
+      }
+
+      function updateMarkerFromInputs() {
+        var lat = parseFloat(latInput.value);
+        var lng = parseFloat(lngInput.value);
+        if (!isNaN(lat) && !isNaN(lng)) {
+          marker.setLatLng([lat, lng]);
+          map.setView([lat, lng]);
+        }
+      }
+
+      marker.on('dragend', function () {
+        var pos = marker.getLatLng();
+        updateInputs(pos.lat, pos.lng);
+      });
+
+      map.on('click', function (e) {
+        marker.setLatLng(e.latlng);
+        updateInputs(e.latlng.lat, e.latlng.lng);
+      });
+
+      latInput.addEventListener('change', updateMarkerFromInputs);
+      lngInput.addEventListener('change', updateMarkerFromInputs);
+
+      if (btn) {
+        btn.addEventListener('click', function () {
+          if (!navigator.geolocation) {
+            alert('ບໍ່ຮອງຮັບ GPS ໃນອຸປະກອນນີ້');
+            return;
+          }
+          var originalText = btn.innerHTML;
+          btn.disabled = true;
+          btn.innerHTML = 'ກຳລັງຄົ້ນຫາ...';
+          navigator.geolocation.getCurrentPosition(function (pos) {
+            var lat = pos.coords.latitude;
+            var lng = pos.coords.longitude;
+            map.setView([lat, lng], 15);
+            marker.setLatLng([lat, lng]);
+            updateInputs(lat, lng);
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+          }, function () {
+            alert('ບໍ່ສາມາດເຂົ້າເຖິງ GPS ຂອງທ່ານໄດ້');
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+          });
+        });
+      }
+
+      setTimeout(function () { map.invalidateSize(); }, 300);
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', boot);
+    } else {
+      boot();
+    }
+  })();
+</script>

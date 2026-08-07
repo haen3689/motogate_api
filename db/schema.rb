@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_06_160417) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_07_022040) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -90,8 +90,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_06_160417) do
   create_table "inspection_centers", force: :cascade do |t|
     t.integer "capacity_per_day"
     t.datetime "created_at", null: false
+    t.decimal "latitude", precision: 10, scale: 6
     t.text "location"
     t.string "logo"
+    t.decimal "longitude", precision: 10, scale: 6
     t.string "name"
     t.string "phone"
     t.string "status"

@@ -1,0 +1,45 @@
+<div class="icf-pkg-card">
+  <% if f.object.persisted? %>
+    <%= f.hidden_field :id %>
+  <% end %>
+  <%= f.hidden_field :_destroy, class: 'icf-destroy-input' %>
+
+  <div class="icf-pkg-card-hd">
+    <%= f.text_field :name, class: 'icf-tbl-input icf-pkg-name', placeholder: 'ຊື່ລາຍການ' %>
+    <div class="icf-status-toggle">
+      <%= f.hidden_field :status, value: f.object.status.presence || 'active', class: 'icf-status-input' %>
+      <button type="button" class="icf-status-btn <%= 'is-on' if f.object.status != 'inactive' %>" data-status="active">ເປີດ</button>
+      <button type="button" class="icf-status-btn <%= 'is-off' if f.object.status == 'inactive' %>" data-status="inactive">ປິດ</button>
+    </div>
+    <button type="button" class="icf-remove-pkg" title="ລົບລາຍການນີ້"><i class="fas fa-trash-alt"></i></button>
+  </div>
+
+  <div class="icf-pkg-card-grid">
+    <div class="icf-field-sm">
+      <span class="icf-field-label">ປະເພດລົດ</span>
+      <%= f.select :vehicle_type,
+            [['ລົດຈັກ','motorcycle'],['ລົດເກັ່ງ','car'],['ລົດກະບະ','pickup'],['ລົດຈິບ','suv'],
+             ['ລົດຕູ້','van'],['ລົດເມ','bus'],['ລົດລາກ','towtruck'],['ລົດພ່ວງ','trailer']],
+            { include_blank: 'ທຸກປະເພດ' }, class: 'icf-tbl-input' %>
+    </div>
+
+    <div class="icf-field-sm">
+      <span class="icf-field-label">ຊີຊີ (Min - Max)</span>
+      <div style="display:flex;gap:6px;">
+        <%= f.text_field :min_cc, class: 'icf-tbl-input', placeholder: 'Min' %>
+        <%= f.text_field :max_cc, class: 'icf-tbl-input', placeholder: 'Max' %>
+      </div>
+    </div>
+
+    <div class="icf-field-sm">
+      <span class="icf-field-label">ຄ່າທຳນຽມ (ກີບ)</span>
+      <%= f.text_field :price, class: 'icf-tbl-input', placeholder: 'ລາຄາ' %>
+    </div>
+  </div>
+
+  <div class="icf-pkg-coverage">
+    <div class="icf-coverage-label"><i class="fas fa-info-circle"></i>ລາຍລະອຽດເພີ່ມເຕີມ</div>
+    <%= f.text_area :detail, class: 'icf-tbl-input icf-tbl-textarea', rows: 2,
+          placeholder: 'ລາຍລະອຽດເພີ່ມເຕີມ...' %>
+  </div>
+</div>

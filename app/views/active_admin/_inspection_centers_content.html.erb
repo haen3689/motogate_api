@@ -1,0 +1,314 @@
+<%
+  filter_search = params.dig(:q, :search)
+  filter_status = params.dig(:q, :status)
+
+  scope = InspectionCenter.left_joins(:inspection_services).select("inspection_centers.*, COUNT(inspection_services.id) AS services_count").group("inspection_centers.id").order(name: :asc)
+  scope = scope.where("inspection_centers.name ILIKE :q OR inspection_centers.location ILIKE :q OR inspection_centers.phone ILIKE :q", q: "%#{filter_search.strip}%") if filter_search.present?
+  scope = scope.where(status: filter_status) if filter_status.present?
+
+  page     = (params[:page] || 1).to_i
+  per_page = 20
+  centers = scope.page(page).per(per_page)
+
+  total          = InspectionCenter.count
+  active_count   = InspectionCenter.where(status: 'active').count
+  inactive_count = total - active_count
+  services_count = InspectionService.count
+  has_filter     = filter_search.present? || filter_status.present?
+%>
+
+<style>
+  .index_content .scopes, #titlebar { display:none !important; }
+  body.active_admin, #wrapper, #active_admin_content, #main_content,
+  .index_content, #main, .flashes { background:#f4f6f9 !important; }
+  .index_content > .panel,
+  .index_as_content,
+  #main_content .panel:first-child { background:transparent !important; border:none !important; box-shadow:none !important; padding:0 !important; margin:0 !important; }
+  .index_content > .panel > .panel_contents,
+  .index_as_content > .panel_contents { padding:0 !important; background:transparent !important; }
+
+  .icc-page { --brand:#27bc9c; --brand-d:#1e9e82; --ink:#1f2a37; --muted:#6b7684; --line:#e9edf2;
+             color:var(--ink); font-family:"Noto Sans Lao","Phetsarath OT",system-ui,sans-serif; }
+
+  .icc-head { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:24px; }
+  .icc-head-l { display:flex; align-items:center; gap:14px; }
+  .icc-head-ico { width:48px; height:48px; border-radius:14px; display:grid; place-items:center;
+                 color:#fff; font-size:20px; background:linear-gradient(135deg,#27bc9c,#1e9e82);
+                 box-shadow:0 8px 18px rgba(39,188,156,.35); flex-shrink:0; }
+  .icc-head h2 { font-size:20px; font-weight:800; margin:0; letter-spacing:-.2px; }
+  .icc-head p  { font-size:12.5px; color:var(--muted); margin:3px 0 0; }
+  .icc-btn-add { border:none; border-radius:11px; padding:10px 20px; font-size:13.5px; font-weight:700;
+                background:linear-gradient(135deg,#27bc9c,#1e9e82); color:#fff !important;
+                box-shadow:0 6px 14px rgba(39,188,156,.32); cursor:pointer; display:inline-flex;
+                align-items:center; gap:8px; text-decoration:none !important; transition:.15s; }
+  .icc-btn-add:hover { filter:brightness(1.06); color:#fff !important; transform:translateY(-1px); }
+
+  .icc-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:22px; }
+  .icc-stat { background:#fff; border-radius:16px; padding:18px 20px;
+             box-shadow:0 4px 16px rgba(16,24,40,.05); display:flex; align-items:center; gap:16px;
+             border-left:4px solid transparent; }
+  .icc-stat.teal  { border-left-color:#27bc9c; }
+  .icc-stat.green { border-left-color:#16a34a; }
+  .icc-stat.red   { border-left-color:#dc2626; }
+  .icc-stat.blue  { border-left-color:#2563eb; }
+  .icc-stat-ico { width:44px; height:44px; border-radius:12px; display:grid; place-items:center; font-size:18px; flex-shrink:0; }
+  .icc-stat.teal  .icc-stat-ico { background:#e6f7f3; color:#27bc9c; }
+  .icc-stat.green .icc-stat-ico { background:#dcfce7; color:#16a34a; }
+  .icc-stat.red   .icc-stat-ico { background:#fee2e2; color:#dc2626; }
+  .icc-stat.blue  .icc-stat-ico { background:#dbeafe; color:#2563eb; }
+  .icc-stat-label { font-size:12px; color:var(--muted); font-weight:600; margin:0 0 4px; }
+  .icc-stat-val   { font-size:24px; font-weight:800; margin:0; letter-spacing:-.5px; }
+
+  .icc-filter { background:#fff; border-radius:16px; padding:18px 20px; margin-bottom:20px;
+               box-shadow:0 4px 16px rgba(16,24,40,.05); }
+  .icc-filter-label { display:block; font-size:12.5px; font-weight:700; color:#334155; margin-bottom:6px; }
+  .icc-filter-input { width:100%; border:1px solid var(--line); border-radius:10px; padding:10px 14px;
+                     font-size:13.5px; background:#fff; outline:none;
+                     font-family:inherit; color:var(--ink); }
+  .icc-filter-input:focus { border-color:#27bc9c; box-shadow:0 0 0 3px rgba(39,188,156,.12); }
+  .icc-filter-row { display:flex !important; flex-direction:row !important; gap:12px; align-items:flex-end; flex-wrap:nowrap; }
+  .icc-filter-search { flex:2.5; min-width:0; }
+  .icc-filter-sel    { flex:1.5; min-width:0; }
+  .icc-filter-btns   { flex-shrink:0; display:flex; flex-direction:column; gap:6px; }
+  .icc-btn-filter { border:none; border-radius:10px; padding:10px 18px; font-size:13.5px; font-weight:700;
+                   background:#1f2a37; color:#fff; cursor:pointer; display:inline-flex; align-items:center; gap:6px;
+                   white-space:nowrap; width:100%; justify-content:center; min-height:44px; box-sizing:border-box; }
+  .icc-btn-filter:hover { background:#374151; }
+  .icc-btn-clear { border:1px solid var(--line); border-radius:10px; padding:10px 18px; font-size:13.5px;
+                  font-weight:600; background:#fff; text-decoration:none !important;
+                  display:inline-flex; align-items:center; gap:6px; white-space:nowrap;
+                  width:100%; justify-content:center; color:var(--muted) !important;
+                  min-height:44px; box-sizing:border-box; }
+  .icc-btn-clear:hover { background:#f8fafc; color:var(--ink) !important; }
+
+  .icc-table-card { background:#fff; border-radius:20px; overflow:hidden; box-shadow:0 4px 20px rgba(16,24,40,.06); }
+  .icc-table { width:100%; border-collapse:collapse; }
+  .icc-table thead th { background:#f8fafc; padding:12px 14px; font-size:12px; font-weight:700;
+                       color:var(--muted); text-transform:uppercase; letter-spacing:.5px;
+                       border-bottom:1px solid var(--line); white-space:nowrap; }
+  .icc-table thead th:first-child { padding-left:20px; }
+  .icc-table thead th:last-child  { padding-right:20px; text-align:center; }
+  .icc-table tbody td { padding:12px 14px; font-size:13.5px; border-bottom:1px solid var(--line); vertical-align:middle; }
+  .icc-table tbody td:first-child { padding-left:20px; }
+  .icc-table tbody td:last-child  { padding-right:20px; text-align:center; }
+  .icc-table tbody tr:last-child td { border-bottom:none; }
+  .icc-table tbody tr:hover td { background:#fafcfb; }
+
+  .icc-logo { width:44px; height:44px; border-radius:50%; background:#f1f5f9; display:flex;
+             align-items:center; justify-content:center; overflow:hidden; border:1px solid var(--line); flex-shrink:0; }
+  .icc-logo img { width:100%; height:100%; object-fit:contain; }
+  .icc-logo i { color:#94a3b8; font-size:16px; }
+
+  .icc-status { display:inline-block; padding:5px 12px; border-radius:20px; font-size:12px; font-weight:600; white-space:nowrap; }
+  .icc-status-active   { background:#dcfce7; color:#16a34a; }
+  .icc-status-inactive { background:#fee2e2; color:#dc2626; }
+
+  .icc-badge { display:inline-flex; align-items:center; gap:5px; padding:4px 12px; border-radius:20px;
+              background:#e0f2fe; color:#0369a1; font-size:12px; font-weight:700; white-space:nowrap; }
+  .icc-gps { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:20px;
+             background:#f0fdfa; color:#0f766e; font-size:11.5px; font-weight:700; white-space:nowrap;
+             text-decoration:none !important; border:1px solid #ccfbf1; transition:.15s; }
+  .icc-gps:hover { background:#0f766e; color:#fff !important; }
+  .icc-no-gps { color:#b0bac5; font-size:12px; }
+
+  .icc-actions { display:flex; gap:5px; justify-content:center; }
+  .icc-btn-view { border:1px solid #0ea5e9; background:#f0f9ff; color:#0369a1 !important; border-radius:7px;
+                 padding:5px 10px; font-size:12px; font-weight:700; text-decoration:none !important;
+                 display:inline-flex; align-items:center; gap:4px; transition:.15s; }
+  .icc-btn-view:hover { background:#0ea5e9; color:#fff !important; }
+  .icc-btn-edit { border:1px solid #16a34a; background:#f0fdf4; color:#15803d !important; border-radius:7px;
+                 padding:5px 10px; font-size:12px; font-weight:700; text-decoration:none !important;
+                 display:inline-flex; align-items:center; gap:4px; transition:.15s; }
+  .icc-btn-edit:hover { background:#16a34a; color:#fff !important; }
+  .icc-btn-del { border:1px solid #f87171; background:#fff1f2; color:#991b1b; border-radius:7px;
+                padding:5px 10px; font-size:12px; font-weight:700; cursor:pointer;
+                display:inline-flex; align-items:center; gap:4px; transition:.15s; }
+  .icc-btn-del:hover { background:#dc2626; color:#fff; border-color:#dc2626; }
+  .icc-btn-del form { margin:0; }
+
+  .icc-empty { text-align:center; padding:60px 20px; }
+  .icc-empty i { font-size:3rem; color:#cbd5e1; display:block; margin-bottom:12px; }
+  .icc-empty p { color:var(--muted); font-size:14px; margin:0; }
+
+  .icc-page-wrap .pagination .page.current a,
+  .icc-page-wrap .pagination .page.current span { background:#27bc9c; border-color:#27bc9c; color:#fff; border-radius:8px; }
+  .icc-page-wrap .pagination a, .icc-page-wrap .pagination span { border-radius:8px; }
+</style>
+
+<div class="icc-page">
+
+  <div class="icc-head">
+    <div class="icc-head-l">
+      <div class="icc-head-ico"><i class="fas fa-warehouse"></i></div>
+      <div>
+        <h2>ສູນກວດກາເຕັກນິກ</h2>
+        <p>ບໍລິຫານຈັດການຂໍ້ມູນສູນກວດກາເຕັກນິກ ແລະ ລາຍການບໍລິການຕ່າງໆ</p>
+      </div>
+    </div>
+    <%= link_to new_admin_inspection_center_path, class: 'icc-btn-add' do %>
+      <i class="fas fa-plus"></i>ເພີ່ມສູນກວດກາໃໝ່
+    <% end %>
+  </div>
+
+  <div class="icc-stats">
+    <div class="icc-stat teal">
+      <div class="icc-stat-ico"><i class="fas fa-warehouse"></i></div>
+      <div>
+        <p class="icc-stat-label">ສູນທັງໝົດ</p>
+        <p class="icc-stat-val"><%= number_with_delimiter(total) %></p>
+      </div>
+    </div>
+    <div class="icc-stat green">
+      <div class="icc-stat-ico"><i class="fas fa-check-circle"></i></div>
+      <div>
+        <p class="icc-stat-label">ເປີດໃຫ້ບໍລິການ</p>
+        <p class="icc-stat-val"><%= number_with_delimiter(active_count) %></p>
+      </div>
+    </div>
+    <div class="icc-stat red">
+      <div class="icc-stat-ico"><i class="fas fa-times-circle"></i></div>
+      <div>
+        <p class="icc-stat-label">ປິດໃຫ້ບໍລິການ</p>
+        <p class="icc-stat-val"><%= number_with_delimiter(inactive_count) %></p>
+      </div>
+    </div>
+    <div class="icc-stat blue">
+      <div class="icc-stat-ico"><i class="fas fa-clipboard-list"></i></div>
+      <div>
+        <p class="icc-stat-label">ລາຍການບໍລິການທັງໝົດ</p>
+        <p class="icc-stat-val"><%= number_with_delimiter(services_count) %></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="icc-filter">
+    <form method="GET" action="<%= admin_inspection_centers_path %>">
+      <div class="icc-filter-row">
+        <div class="icc-filter-search">
+          <label class="icc-filter-label">ຄົ້ນຫາ</label>
+          <input type="text" name="q[search]" class="icc-filter-input"
+                 value="<%= filter_search %>" placeholder="ຊື່, ທີ່ຕັ້ງ, ເບີໂທ...">
+        </div>
+        <div class="icc-filter-sel">
+          <label class="icc-filter-label">ສະຖານະ</label>
+          <select name="q[status]" class="icc-filter-input">
+            <option value="">ທັງໝົດ</option>
+            <option value="active"   <%= 'selected' if filter_status == 'active'   %>>ເປີດໃຫ້ບໍລິການ</option>
+            <option value="inactive" <%= 'selected' if filter_status == 'inactive' %>>ປິດໃຫ້ບໍລິການ</option>
+          </select>
+        </div>
+        <div class="icc-filter-btns">
+          <button type="submit" class="icc-btn-filter">
+            <i class="fas fa-filter"></i>ກອງຂໍ້ມູນ
+          </button>
+          <% if has_filter %>
+            <a href="<%= admin_inspection_centers_path %>" class="icc-btn-clear">
+              <i class="fas fa-times"></i>ລ້າງ
+            </a>
+          <% end %>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div class="icc-table-card">
+    <div style="overflow-x:auto;">
+      <table class="icc-table">
+        <thead>
+          <tr>
+            <th>ໂລໂກ້</th>
+            <th>ຊື່ສູນ</th>
+            <th>ທີ່ຕັ້ງ / ຕິດຕໍ່</th>
+            <th>ພິກັດ GPS</th>
+            <th>ບໍລິການ</th>
+            <th>ຮອງຮັບ/ວັນ</th>
+            <th>ສະຖານະ</th>
+            <th>ຈັດການ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% centers.each do |c| %>
+            <tr>
+              <td>
+                <div class="icc-logo">
+                  <% if c.logo.present? %>
+                    <img src="<%= c.logo %>" alt="logo">
+                  <% else %>
+                    <i class="fas fa-warehouse"></i>
+                  <% end %>
+                </div>
+              </td>
+              <td>
+                <div style="font-weight:700;font-size:13.5px;"><%= c.name %></div>
+                <div style="font-size:12px;color:#94a3b8;">ID: #<%= c.id.to_s.rjust(4, '0') %></div>
+              </td>
+              <td style="font-size:13px;color:var(--muted);max-width:220px;">
+                <% if c.location.present? %>
+                  <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px;">
+                    <i class="fas fa-map-marker-alt" style="color:#dc2626;"></i> <%= c.location %>
+                  </div>
+                <% end %>
+                <% if c.phone.present? %>
+                  <div style="margin-top:2px;"><i class="fas fa-phone-alt" style="color:#16a34a;"></i> <%= c.phone %></div>
+                <% end %>
+                <% if c.location.blank? && c.phone.blank? %>—<% end %>
+              </td>
+              <td>
+                <% if c.latitude.present? && c.longitude.present? %>
+                  <%= link_to "https://www.google.com/maps/search/?api=1&query=#{c.latitude},#{c.longitude}", target: '_blank', rel: 'noopener', class: 'icc-gps' do %>
+                    <i class="fas fa-location-dot"></i> ເປີດແຜນທີ່
+                  <% end %>
+                <% else %>
+                  <span class="icc-no-gps">— ບໍ່ມີພິກັດ —</span>
+                <% end %>
+              </td>
+              <td>
+                <span class="icc-badge"><i class="fas fa-clipboard-list"></i> <%= c.services_count %> ລາຍການ</span>
+              </td>
+              <td style="font-size:13px;color:var(--muted);"><%= c.capacity_per_day.presence || '—' %> ຄັນ</td>
+              <td>
+                <span class="icc-status <%= c.status == 'active' ? 'icc-status-active' : 'icc-status-inactive' %>">
+                  <%= c.status == 'active' ? 'ເປີດໃຫ້ບໍລິການ' : 'ປິດໃຫ້ບໍລິການ' %>
+                </span>
+              </td>
+              <td>
+                <div class="icc-actions">
+                  <%= link_to admin_inspection_center_path(c), class: 'icc-btn-view' do %>
+                    <i class="fas fa-eye"></i>
+                  <% end %>
+                  <%= link_to edit_admin_inspection_center_path(c), class: 'icc-btn-edit' do %>
+                    <i class="fas fa-edit"></i>
+                  <% end %>
+                  <%= button_to admin_inspection_center_path(c), method: :delete,
+                        class: 'icc-btn-del',
+                        form: { style: 'margin:0;' },
+                        data: { confirm: "ຢືນຢັນການລົບສູນ #{c.name}?" } do %>
+                    <i class="fas fa-trash"></i>
+                  <% end %>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+
+          <% if centers.empty? %>
+            <tr>
+              <td colspan="8">
+                <div class="icc-empty">
+                  <i class="fas fa-warehouse"></i>
+                  <p>ບໍ່ພົບຂໍ້ມູນສູນກວດກາເຕັກນິກ</p>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <% if centers.respond_to?(:total_pages) && centers.total_pages > 1 %>
+    <div class="icc-page-wrap" style="display:flex;justify-content:center;margin-top:20px;">
+      <%= paginate centers %>
+    </div>
+  <% end %>
+
+</div>

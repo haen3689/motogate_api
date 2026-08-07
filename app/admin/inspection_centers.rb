@@ -1,22 +1,15 @@
 ActiveAdmin.register InspectionCenter do
   menu label: "ສູນກວດກາເຕັກນິກ", priority: 6
 
-  permit_params :name, :location, :phone, :status, :capacity_per_day, :logo_file,
+  config.batch_actions = false
+  config.filters = false
+
+  permit_params :name, :location, :phone, :status, :capacity_per_day, :logo_file, :latitude, :longitude,
     inspection_services_attributes: [:id, :name, :vehicle_type, :min_cc, :max_cc, :price, :detail, :status, :_destroy]
 
-  index do
-    selectable_column
-    id_column
-    column("ຊື່") { |c| c.name }
-    column("ສະຖານທີ່") { |c| c.location }
-    column("ເບີໂທ") { |c| c.phone }
-    column("ຈຳນວນບໍລິການ") { |c| c.inspection_services.count }
-    column("ສະຖານະ") { |c| status_tag c.status }
-    actions
+  index as: :content do
+    render partial: "active_admin/inspection_centers_content"
   end
-
-  filter :name
-  filter :status, as: :select, collection: InspectionCenter::STATUSES
 
   show do
     attributes_table do
@@ -25,6 +18,15 @@ ActiveAdmin.register InspectionCenter do
       row("ສະຖານທີ່") { |c| c.location }
       row("ເບີໂທ") { |c| c.phone }
       row("ຈຳນວນຮັບໄດ້ຕໍ່ວັນ") { |c| c.capacity_per_day }
+      row("ພິກັດ GPS") do |c|
+        if c.latitude.present? && c.longitude.present?
+          link_to "#{c.latitude}, #{c.longitude} (ເປີດໃນ Google Maps)",
+            "https://www.google.com/maps/search/?api=1&query=#{c.latitude},#{c.longitude}",
+            target: "_blank", rel: "noopener"
+        else
+          "ບໍ່ມີຂໍ້ມູນ"
+        end
+      end
       row("ສະຖານະ") { |c| status_tag c.status }
       row("ໂລໂກ້") { |c| image_tag(c.logo, style: "max-height: 120px;") if c.logo.present? }
       row :created_at
@@ -43,31 +45,11 @@ ActiveAdmin.register InspectionCenter do
     end
   end
 
-  form do |f|
-    f.inputs "ຂໍ້ມູນສູນກວດກາ" do
-      f.input :name, label: "ຊື່"
-      f.input :location, label: "ສະຖານທີ່"
-      f.input :phone, label: "ເບີໂທ"
-      f.input :status, as: :select, collection: InspectionCenter::STATUSES, include_blank: false, label: "ສະຖານະ"
-      f.input :capacity_per_day, label: "ຈຳນວນຮັບໄດ້ຕໍ່ວັນ"
-      if f.object.logo.present?
-        f.template.concat f.template.image_tag(f.object.logo, style: "max-height: 100px; display: block; margin-bottom: 10px;")
-      end
-      f.input :logo_file, as: :file, label: "ໂລໂກ້"
-    end
+  form partial: "active_admin/inspection_center_form_content"
 
-    f.inputs "ບໍລິການ (Services)" do
-      f.has_many :inspection_services, allow_destroy: true, new_record: "ເພີ່ມບໍລິການ" do |sf|
-        sf.input :name, label: "ຊື່"
-        sf.input :vehicle_type, as: :select, collection: InspectionService::VEHICLE_TYPES, include_blank: "ທຸກປະເພດ", label: "ປະເພດລົດ"
-        sf.input :min_cc, label: "CC ຕ່ຳ"
-        sf.input :max_cc, label: "CC ສູງ"
-        sf.input :price, label: "ລາຄາ"
-        sf.input :detail, label: "ລາຍລະອຽດ"
-        sf.input :status, as: :select, collection: InspectionService::STATUSES, include_blank: false, label: "ສະຖານະ"
-      end
+  controller do
+    def find_resource
+      scoped_collection.includes(:inspection_services).find(params[:id])
     end
-
-    f.actions
   end
 end
