@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_07_022040) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_07_093517) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -60,11 +60,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_07_022040) do
     t.datetime "created_at", null: false
     t.string "email", default: "", null: false
     t.string "encrypted_password", default: "", null: false
+    t.bigint "inspection_center_id"
     t.datetime "remember_created_at"
     t.datetime "reset_password_sent_at"
     t.string "reset_password_token"
+    t.string "role", default: "admin", null: false
     t.datetime "updated_at", null: false
     t.index ["email"], name: "index_admin_users_on_email", unique: true
+    t.index ["inspection_center_id"], name: "index_admin_users_on_inspection_center_id"
     t.index ["reset_password_token"], name: "index_admin_users_on_reset_password_token", unique: true
   end
 
@@ -119,11 +122,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_07_022040) do
     t.string "center_address"
     t.string "center_name"
     t.datetime "created_at", null: false
+    t.bigint "inspection_center_id"
     t.string "notes"
     t.string "service_name"
     t.string "status"
+    t.string "sticker"
     t.datetime "updated_at", null: false
     t.bigint "vehicle_id", null: false
+    t.index ["inspection_center_id"], name: "index_inspections_on_inspection_center_id"
     t.index ["vehicle_id"], name: "index_inspections_on_vehicle_id"
   end
 
@@ -327,8 +333,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_07_022040) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "admin_users", "inspection_centers"
   add_foreign_key "chat_messages", "users"
   add_foreign_key "documents", "vehicles"
+  add_foreign_key "inspections", "inspection_centers"
   add_foreign_key "inspections", "vehicles"
   add_foreign_key "insurances", "vehicles"
   add_foreign_key "notifications", "users"

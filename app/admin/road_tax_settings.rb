@@ -1,5 +1,5 @@
 ActiveAdmin.register RoadTaxSetting do
-  menu label: "ຄ່າທຳນຽມແພລດຟອມ", priority: 5
+  menu label: "ຄ່າທຳນຽມແພລດຟອມ", priority: 5, if: -> { !current_admin_user.partner? }
 
   actions :show, :edit, :update
   config.batch_actions = false

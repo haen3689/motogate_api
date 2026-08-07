@@ -1,5 +1,5 @@
 ActiveAdmin.register InsuranceCompany do
-  menu label: "ບໍລິສັດປະກັນໄພ", priority: 6
+  menu label: "ບໍລິສັດປະກັນໄພ", priority: 6, if: -> { !current_admin_user.partner? }
 
   config.batch_actions = false
   config.filters = false

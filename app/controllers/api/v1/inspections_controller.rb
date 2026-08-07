@@ -21,6 +21,7 @@ class Api::V1::InspectionsController < ApiController
     return render_error("ບໍ່ພົບແພັກເກັດກວດກາສຳລັບລົດຄັນນີ້") unless service
 
     inspection = vehicle.inspections.build(
+      inspection_center: center,
       center_name: center.name,
       center_address: center.location,
       service_name: service.name,
@@ -30,6 +31,8 @@ class Api::V1::InspectionsController < ApiController
       notes: params[:notes]
     )
     if inspection.save
+      notify_center(center, inspection)
+      broadcast_new_booking(inspection)
       render_success(inspection.as_json, status: :created)
     else
       render_error(inspection.errors.full_messages.join(", "))
@@ -57,5 +60,28 @@ class Api::V1::InspectionsController < ApiController
 
   def inspection_params
     params.permit(:center_name, :center_address, :appointment_at, :status, :notes)
+  end
+
+  # Notify the inspection center's phone that a new booking came in.
+  # Best-effort — must never fail the customer's booking if SMS is down.
+  def notify_center(center, inspection)
+    return if center.phone.blank?
+
+    message = "ມີການຈອງກວດສະພາບລົດໃໝ່ ທະບຽນ #{inspection.vehicle.plate_number} " \
+              "ບໍລິການ #{inspection.service_name} ວັນທີ #{inspection.appointment_at.strftime('%d/%m/%Y %H:%M')}"
+    TelbizSmsService.send_message(phone_number: center.phone, message: message)
+  rescue => e
+    Rails.logger.error("[Inspection] Failed to notify center #{center.id}: #{e.message}")
+  end
+
+  # Pushes the new booking to any admin browser currently subscribed via
+  # AdminInspectionsChannel, so the backend list updates live instead of
+  # needing a manual refresh. Best-effort, same as notify_center.
+  def broadcast_new_booking(inspection)
+    ActionCable.server.broadcast("admin_inspections", {
+      inspection: inspection.as_json.merge(plate_number: inspection.vehicle.plate_number)
+    })
+  rescue => e
+    Rails.logger.error("[Inspection] Failed to broadcast new booking #{inspection.id}: #{e.message}")
   end
 end

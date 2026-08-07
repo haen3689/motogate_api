@@ -1,41 +1,26 @@
 ActiveAdmin.register Inspection do
-  menu priority: 5
+  menu label: "ກວດສະພາບລົດ", priority: 5
 
-  permit_params :status, :notes
+  config.batch_actions = false
+  config.filters = false
 
-  index do
-    selectable_column
-    id_column
-    column :vehicle do |i| i.vehicle.plate_number end
-    column :center_name
-    column :appointment_at
-    column :status do |i| status_tag i.status, class: i.status end
-    column :created_at
-    actions
+  permit_params :status, :notes, :sticker_file
+
+  index as: :content do
+    render partial: "active_admin/inspections_content"
   end
 
-  filter :status, as: :select, collection: Inspection::STATUSES
-  filter :center_name
-  filter :appointment_at
-
-  show do
-    attributes_table do
-      row :id
-      row :vehicle do |i| link_to i.vehicle.plate_number, admin_vehicle_path(i.vehicle) end
-      row :center_name
-      row :center_address
-      row :appointment_at
-      row :status do |i| status_tag i.status end
-      row :notes
-      row :created_at
-    end
+  show as: :content do
+    render partial: "active_admin/inspection_show_content"
   end
 
-  form do |f|
-    f.inputs do
-      f.input :status, as: :select, collection: Inspection::STATUSES
-      f.input :notes
+  form partial: "active_admin/inspection_form_content"
+
+  controller do
+    def find_resource
+      scope = scoped_collection.includes(vehicle: :user)
+      scope = scope.where(inspection_center_id: current_admin_user.inspection_center_id) if current_admin_user.partner?
+      scope.find(params[:id])
     end
-    f.actions
   end
 end

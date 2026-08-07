@@ -1,5 +1,5 @@
 ActiveAdmin.register RoadTax do
-  menu label: "ເສຍຄ່າທາງ", priority: 4
+  menu label: "ເສຍຄ່າທາງ", priority: 4, if: -> { !current_admin_user.partner? }
 
   permit_params :vehicle_id, :tax_year, :amount, :service_fee, :status, :source, :paid_at, :expired_at
 

@@ -1,9 +1,18 @@
 <%# MotoGate Admin Header — gradient matching demo navbar %>
 <%
-  notif_expiry = Insurance.where(status: "active").where(end_date: Date.today..(Date.today + 30)).count +
-                 RoadTax.where(status: "paid").where(expired_at: Date.today..(Date.today + 30)).count
-  notif_pending = Inspection.where(status: "pending").count
-  notif_total   = notif_expiry + notif_pending
+  # Partners only ever see their own center's pending bookings — platform-
+  # wide insurance/road-tax notices are both irrelevant to them and land on
+  # pages PartnerAccessControl blocks, so they're left out entirely rather
+  # than shown-then-denied.
+  if current_admin_user.partner?
+    notif_pending = current_admin_user.inspection_center.inspections.where(status: "pending").count
+    notif_expiry  = 0
+  else
+    notif_expiry  = Insurance.where(status: "active").where(end_date: Date.today..(Date.today + 30)).count +
+                    RoadTax.where(status: "paid").where(expired_at: Date.today..(Date.today + 30)).count
+    notif_pending = Inspection.where(status: "pending").count
+  end
+  notif_total = notif_expiry + notif_pending
 %>
 
 <header class="admin-header" id="admin-header">
@@ -39,15 +48,21 @@
           <span class="hdr-dd-cnt" id="notif-total-badge"><%= notif_total %> ໃໝ່</span>
         </div>
         <div id="hdr-live-updates"></div>
-        <% ins_exp  = Insurance.where(status: "active").where(end_date: Date.today..(Date.today + 30)).count
-           rt_exp   = RoadTax.where(status: "paid").where(expired_at: Date.today..(Date.today + 30)).count
-           ins_dead = Insurance.where(status: "active").where(end_date: ...Date.today).count %>
-        <% [
-          { href: "/admin/insurances", icon: "fas fa-fire",              cls: "danger",  title: "ປະກັນໄພໝົດແລ້ວ",     count: ins_dead,   unit: "ລາຍການ" },
-          { href: "/admin/insurances", icon: "fas fa-triangle-exclamation", cls: "warn", title: "ປະກັນໄພໃກ້ໝົດ (30ວ)", count: ins_exp,    unit: "ລາຍການ" },
-          { href: "/admin/road_taxes", icon: "fas fa-road",              cls: "info",    title: "ຄ່າທາງໃກ້ໝົດ (30ວ)",  count: rt_exp,     unit: "ລາຍການ" },
-          { href: "/admin/inspections",icon: "fas fa-microscope",        cls: "primary", title: "ກວດສະພາບ Pending",     count: notif_pending, unit: "ລາຍການ" },
-        ].each do |n| next if n[:count] == 0 %>
+        <% notif_items =
+          if current_admin_user.partner?
+            [{ href: admin_inspections_path, icon: "fas fa-microscope", cls: "primary", title: "ກວດສະພາບ Pending", count: notif_pending, unit: "ລາຍການ" }]
+          else
+            ins_exp  = Insurance.where(status: "active").where(end_date: Date.today..(Date.today + 30)).count
+            rt_exp   = RoadTax.where(status: "paid").where(expired_at: Date.today..(Date.today + 30)).count
+            ins_dead = Insurance.where(status: "active").where(end_date: ...Date.today).count
+            [
+              { href: "/admin/insurances", icon: "fas fa-fire",              cls: "danger",  title: "ປະກັນໄພໝົດແລ້ວ",     count: ins_dead,   unit: "ລາຍການ" },
+              { href: "/admin/insurances", icon: "fas fa-triangle-exclamation", cls: "warn", title: "ປະກັນໄພໃກ້ໝົດ (30ວ)", count: ins_exp,    unit: "ລາຍການ" },
+              { href: "/admin/road_taxes", icon: "fas fa-road",              cls: "info",    title: "ຄ່າທາງໃກ້ໝົດ (30ວ)",  count: rt_exp,     unit: "ລາຍການ" },
+              { href: "/admin/inspections",icon: "fas fa-microscope",        cls: "primary", title: "ກວດສະພາບ Pending",     count: notif_pending, unit: "ລາຍການ" },
+            ]
+          end %>
+        <% notif_items.each do |n| next if n[:count] == 0 %>
         <a href="<%= n[:href] %>" class="hdr-dd-item">
           <div class="hdr-dd-ico <%= n[:cls] %>"><i class="<%= n[:icon] %>"></i></div>
           <div style="flex:1;">
@@ -66,7 +81,9 @@
         <% end %>
         </div>
         <div class="hdr-dd-foot">
-          <a href="/admin/insurances"><i class="fas fa-clock-rotate-left"></i> ເບິ່ງທັງໝົດ</a>
+          <a href="<%= current_admin_user.partner? ? admin_inspections_path : admin_insurances_path %>">
+            <i class="fas fa-clock-rotate-left"></i> ເບິ່ງທັງໝົດ
+          </a>
         </div>
       </div>
     </div>
@@ -171,6 +188,22 @@ document.addEventListener('click', function() {
 
       var badge = document.getElementById('notif-total-badge');
       if (badge) badge.textContent = ((parseInt(badge.textContent, 10) || 0) + 1) + ' ໃໝ່';
+      var bellBadge = document.querySelector('#notif-btn .hdr-badge');
+      var notifBtn = document.getElementById('notif-btn');
+      if (bellBadge) {
+        bellBadge.textContent = (parseInt(bellBadge.textContent, 10) || 0) + 1;
+      } else if (notifBtn) {
+        bellBadge = document.createElement('span');
+        bellBadge.className = 'hdr-badge';
+        bellBadge.textContent = '1';
+        notifBtn.appendChild(bellBadge);
+      }
+      if (notifBtn) {
+        notifBtn.classList.remove('bell-ring');
+        void notifBtn.offsetWidth; // restart the animation even if it's still mid-ring
+        notifBtn.classList.add('bell-ring');
+        setTimeout(function () { notifBtn.classList.remove('bell-ring'); }, 700);
+      }
       var empty = document.getElementById('notif-empty');
       if (empty) empty.style.display = 'none';
 
@@ -189,6 +222,82 @@ document.addEventListener('click', function() {
       // Currently viewing the Users list — refresh it so the table
       // reflects the change right away instead of staying stale.
       if (onUsersPage) {
+        setTimeout(function () { window.location.reload(); }, 1200);
+      }
+    }
+  });
+})();
+
+/* ── Live "new inspection booking" notifications ────────────────────
+   Api::V1::InspectionsController#create broadcasts to "admin_inspections"
+   the moment a customer books through the app; AdminInspectionsChannel
+   streams from it. Same pattern as the user-updates subscriber above —
+   toast + bell update, and auto-refresh if the admin is on the
+   bookings list right now so it doesn't sit stale waiting for a
+   manual refresh. */
+(function () {
+  if (typeof ActionCable === 'undefined') return;
+
+  function toast(text) {
+    var el = document.createElement('div');
+    el.textContent = text;
+    el.style.cssText = 'position:fixed;top:16px;right:16px;z-index:9999;background:#0f172a;color:#fff;' +
+      'padding:12px 18px;border-radius:10px;font-size:.85rem;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.25);' +
+      'opacity:0;transform:translateY(-8px);transition:opacity .2s,transform .2s;max-width:320px;';
+    document.body.appendChild(el);
+    requestAnimationFrame(function () { el.style.opacity = '1'; el.style.transform = 'translateY(0)'; });
+    setTimeout(function () {
+      el.style.opacity = '0'; el.style.transform = 'translateY(-8px)';
+      setTimeout(function () { el.remove(); }, 250);
+    }, 6000);
+  }
+
+  var cable = ActionCable.createConsumer('/cable');
+  cable.subscriptions.create('AdminInspectionsChannel', {
+    received: function (data) {
+      var i = data.inspection;
+      if (!i) return;
+      var onBookingsPage = window.location.pathname === '/admin/inspections';
+
+      toast('ມີການຈອງກວດສະພາບລົດໃໝ່ ທະບຽນ ' + (i.plate_number || '-') +
+        (onBookingsPage ? ' — ກຳລັງໂຫລດຂໍ້ມູນໃໝ່...' : ' — ກົດເພື່ອເບິ່ງ'));
+
+      var badge = document.getElementById('notif-total-badge');
+      if (badge) badge.textContent = ((parseInt(badge.textContent, 10) || 0) + 1) + ' ໃໝ່';
+      var bellBadge = document.querySelector('#notif-btn .hdr-badge');
+      var notifBtn = document.getElementById('notif-btn');
+      if (bellBadge) {
+        bellBadge.textContent = (parseInt(bellBadge.textContent, 10) || 0) + 1;
+      } else if (notifBtn) {
+        bellBadge = document.createElement('span');
+        bellBadge.className = 'hdr-badge';
+        bellBadge.textContent = '1';
+        notifBtn.appendChild(bellBadge);
+      }
+      if (notifBtn) {
+        notifBtn.classList.remove('bell-ring');
+        void notifBtn.offsetWidth; // restart the animation even if it's still mid-ring
+        notifBtn.classList.add('bell-ring');
+        setTimeout(function () { notifBtn.classList.remove('bell-ring'); }, 700);
+      }
+      var empty = document.getElementById('notif-empty');
+      if (empty) empty.style.display = 'none';
+
+      var container = document.getElementById('hdr-live-updates');
+      if (container) {
+        var a = document.createElement('a');
+        a.href = '/admin/inspections/' + i.id;
+        a.className = 'hdr-dd-item';
+        a.innerHTML = '<div class="hdr-dd-ico primary"><i class="fas fa-clipboard-check"></i></div>' +
+          '<div style="flex:1;"><div class="hdr-dd-title">ຈອງກວດສະພາບລົດ ' + (i.plate_number || '-') + '</div>' +
+          '<div class="hdr-dd-sub">' + (i.service_name || '') + ' — ກົດເພື່ອເບິ່ງ</div></div>' +
+          '<i class="fas fa-chevron-right" style="font-size:.6rem;opacity:.4;"></i>';
+        container.prepend(a);
+      }
+
+      // Currently viewing the bookings list — refresh it so the new
+      // row shows up right away instead of staying stale.
+      if (onBookingsPage) {
         setTimeout(function () { window.location.reload(); }, 1200);
       }
     }

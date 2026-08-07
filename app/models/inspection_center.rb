@@ -1,5 +1,7 @@
 class InspectionCenter < ApplicationRecord
   has_many :inspection_services, dependent: :destroy
+  has_many :inspections
+  has_many :admin_users, dependent: :nullify
   accepts_nested_attributes_for :inspection_services, allow_destroy: true,
     reject_if: proc { |attrs| attrs['name'].blank? }
 

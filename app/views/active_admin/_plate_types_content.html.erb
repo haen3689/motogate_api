@@ -211,7 +211,7 @@
               <div class="pt-field">
                 <label class="pt-label">ປະເພດປ້າຍ <span class="pt-req">*</span></label>
                 <input type="text" name="plate_type[plate_code]" id="add_plate_code" class="pt-input"
-                       placeholder="ຍົກຕົວຢ່າງ: ຈ2, ພກ, ປກສ..." oninput="updateAddPreview()">
+                       placeholder="ຍົກຕົວຢ່າງ: ກກ, ພກ, ປກສ..." oninput="updateAddPreview()">
               </div>
               <div class="pt-field">
                 <label class="pt-label">ຊື່ປ້າຍ <span class="pt-req">*</span></label>
@@ -256,7 +256,7 @@
             <small>ຕົວຢ່າງປ້າຍ</small>
             <div id="add-preview" class="plate-badge lg plate-yellow">
               <span class="plate-province" id="add-preview-province">ນະຄອນຫຼວງວຽງຈັນ</span>
-              <span class="plate-number"><span id="add-preview-code">ຈ2</span> <span>1234</span></span>
+              <span class="plate-number"><span id="add-preview-code">ກກ</span> <span>1234</span></span>
             </div>
           </div>
         </div>
@@ -294,7 +294,7 @@
               <td style="text-align:center;">
                 <div class="plate-badge <%= pt.color_class %>">
                   <% if pt.show_province %>
-                    <span class="plate-province">ນະຄອນຫຼວງ</span>
+                    <span class="plate-province">ນະຄອນຫຼວງວຽງຈັນ</span>
                   <% end %>
                   <span class="plate-number"><span><%= pt.plate_code %></span> <span>1234</span></span>
                 </div>
@@ -428,7 +428,7 @@
               <small>ຕົວຢ່າງປ້າຍ</small>
               <div id="edit-preview" class="plate-badge lg plate-yellow">
                 <span class="plate-province" id="edit-preview-province">ນະຄອນຫຼວງວຽງຈັນ</span>
-                <span class="plate-number"><span id="edit-preview-code">ຈ2</span> <span>1234</span></span>
+                <span class="plate-number"><span id="edit-preview-code">ກກ</span> <span>1234</span></span>
               </div>
             </div>
           </div>
@@ -464,7 +464,7 @@
     var badge = document.getElementById(prefix + '-preview');
     badge.className = 'plate-badge lg ' + colorClass;
     document.getElementById(prefix + '-preview-province').style.display = showProvince ? '' : 'none';
-    document.getElementById(prefix + '-preview-code').textContent = (code && code.trim()) ? code : 'ຈ2';
+    document.getElementById(prefix + '-preview-code').textContent = (code && code.trim()) ? code : 'ກກ';
   }
   function updateAddPreview() {
     renderPreview('add',

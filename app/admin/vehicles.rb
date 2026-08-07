@@ -1,5 +1,5 @@
 ActiveAdmin.register Vehicle do
-  menu priority: 3
+  menu priority: 3, if: -> { !current_admin_user.partner? }
   config.batch_actions = false
   config.filters = false
 

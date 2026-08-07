@@ -8,12 +8,21 @@ class TelbizSmsService
   SECRET    = ENV.fetch("TELBIZ_SECRET",    "")
 
   def self.send_otp(phone_number:, otp:)
-    new(phone_number:, otp:).send!
+    new(phone_number:, title: "OTP", message: "ລະຫັດ MotoGate OTP ຂອງທ່ານແມ່ນ: #{otp} ").send!
   end
 
-  def initialize(phone_number:, otp:)
+  # Telbiz's "title" is a fixed enum, not freeform text — only
+  # Telbiz | Info | News | OTP | Promotion are accepted (anything else
+  # is rejected with UNSUPPORTED_HEADER). Non-OTP transactional
+  # messages (e.g. booking notifications) should use "Info".
+  def self.send_message(phone_number:, message:, title: "Info")
+    new(phone_number:, title:, message:).send!
+  end
+
+  def initialize(phone_number:, title:, message:)
     @phone_number = normalize_phone(phone_number)
-    @otp          = otp
+    @title        = title
+    @message      = message
   end
 
   def send!
@@ -41,9 +50,9 @@ class TelbizSmsService
   # Step 2: Send SMS with Bearer token
   def send_sms(access_token)
     body = {
-      title:   "OTP",
+      title:   @title,
       phone:   @phone_number,
-      message: "ລະຫັດ MotoGate OTP ຂອງທ່ານແມ່ນ: #{@otp} "
+      message: @message
     }
     headers = { "Authorization" => "Bearer #{access_token}" }
     res = post("#{BASE_URL}/smsservice/newtransaction", body, headers)

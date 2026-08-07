@@ -1,0 +1,182 @@
+<%
+  booking = resource
+  status_label = {
+    'pending' => 'ລໍຖ້າຢືນຢັນ', 'confirmed' => 'ຢືນຢັນແລ້ວ',
+    'completed' => 'ສຳເລັດແລ້ວ', 'cancelled' => 'ຍົກເລີກ'
+  }
+  status_class = {
+    'pending' => 'ibs-status-pending', 'confirmed' => 'ibs-status-confirmed',
+    'completed' => 'ibs-status-completed', 'cancelled' => 'ibs-status-cancelled'
+  }
+%>
+
+<style>
+  #titlebar { display:none !important; }
+  body.active_admin, #wrapper, #active_admin_content, #main_content,
+  #main, .flashes { background:#f4f6f9 !important; }
+  #main_content > .panel { background:transparent !important; border:none !important; box-shadow:none !important; padding:0 !important; margin:0 !important; }
+  #main_content > .panel > .panel_contents { padding:0 !important; }
+
+  .ibs-page { --brand:#27bc9c; --brand-d:#1e9e82; --ink:#1f2a37; --muted:#6b7684; --line:#e9edf2; --soft:#f4f6f9;
+              color:var(--ink); font-family:"Noto Sans Lao","Phetsarath OT",system-ui,sans-serif; max-width:1280px; }
+
+  .ibs-bar { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:28px; }
+  .ibs-bar-l { display:flex; align-items:center; gap:14px; }
+  .ibs-ico { width:56px; height:56px; border-radius:16px; display:flex; align-items:center; justify-content:center;
+              color:#fff; font-size:22px; background:linear-gradient(135deg,#27bc9c,#1e9e82);
+              box-shadow:0 8px 20px rgba(39,188,156,.35); flex-shrink:0; }
+  .ibs-bar h2 { font-size:21px; font-weight:800; margin:0; }
+  .ibs-bar p  { font-size:12.5px; color:var(--muted); margin:3px 0 0; }
+  .ibs-bar-btns { display:flex; gap:10px; }
+  .ibs-btn { display:inline-flex; align-items:center; gap:7px; padding:10px 22px; border-radius:11px;
+             font-size:13.5px; font-weight:700; cursor:pointer; text-decoration:none !important;
+             border:none; transition:.15s; white-space:nowrap; font-family:inherit; }
+  .ibs-btn-edit { background:linear-gradient(135deg,#27bc9c,#1e9e82); color:#fff !important;
+                  box-shadow:0 6px 16px rgba(39,188,156,.35); }
+  .ibs-btn-edit:hover { filter:brightness(1.07); color:#fff !important; transform:translateY(-1px); }
+  .ibs-btn-back { background:#fff; border:1.5px solid var(--line); color:var(--muted) !important;
+                  box-shadow:0 2px 8px rgba(0,0,0,.06); }
+  .ibs-btn-back:hover { border-color:#27bc9c; color:#27bc9c !important; }
+
+  .ibs-status { display:inline-flex; align-items:center; gap:5px; padding:5px 14px; border-radius:20px; font-size:12.5px; font-weight:700; }
+  .ibs-status-pending   { background:#fef3c7; color:#b45309; }
+  .ibs-status-confirmed { background:#dbeafe; color:#1d4ed8; }
+  .ibs-status-completed { background:#dcfce7; color:#16a34a; }
+  .ibs-status-cancelled { background:#fee2e2; color:#dc2626; }
+
+  .ibs-layout { display:grid; grid-template-columns:5fr 7fr; gap:20px; align-items:start; }
+  @media (max-width:900px) { .ibs-layout { grid-template-columns:1fr; } }
+
+  .ibs-card { background:#fff; border-radius:20px; box-shadow:0 4px 20px rgba(16,24,40,.06);
+              padding:28px 32px; margin-bottom:20px; }
+  .ibs-card-hd { display:flex; align-items:center; gap:10px; font-size:15px; font-weight:800;
+                 color:var(--ink); margin-bottom:20px; padding-bottom:14px; border-bottom:2px solid var(--soft); }
+  .ibs-card-hd i { width:32px; height:32px; border-radius:9px; display:grid; place-items:center;
+                   background:#e6f7f3; color:#27bc9c; font-size:14px; flex-shrink:0; }
+
+  .ibs-row { display:flex; align-items:flex-start; gap:12px; padding:11px 0; border-bottom:1px solid var(--soft); }
+  .ibs-row:last-child { border-bottom:none; padding-bottom:0; }
+  .ibs-row i { width:30px; height:30px; border-radius:9px; background:var(--soft); color:#64748b;
+               display:grid; place-items:center; font-size:13px; flex-shrink:0; }
+  .ibs-row-label { font-size:11.5px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.3px; margin:0 0 3px; }
+  .ibs-row-val { font-size:14px; font-weight:600; color:var(--ink); margin:0; word-break:break-word; }
+  .ibs-row-val a { color:#0f766e; font-weight:700; }
+</style>
+
+<div class="ibs-page">
+
+  <div class="ibs-bar">
+    <div class="ibs-bar-l">
+      <div class="ibs-ico"><i class="fas fa-clipboard-check"></i></div>
+      <div>
+        <h2>ການຈອງ #<%= booking.id.to_s.rjust(4, '0') %></h2>
+        <p>
+          ສ້າງເມື່ອ <%= booking.created_at.strftime('%d/%m/%Y %H:%M') %>
+          &nbsp;·&nbsp;
+          <span class="ibs-status <%= status_class[booking.status] %>">
+            <%= status_label[booking.status] || booking.status %>
+          </span>
+        </p>
+      </div>
+    </div>
+    <div class="ibs-bar-btns">
+      <%= link_to edit_admin_inspection_path(booking), class: 'ibs-btn ibs-btn-edit' do %>
+        <i class="fas fa-edit"></i>ແກ້ໄຂ
+      <% end %>
+      <%= link_to admin_inspections_path, class: 'ibs-btn ibs-btn-back' do %>
+        <i class="fas fa-arrow-left"></i>ກັບຄືນ
+      <% end %>
+    </div>
+  </div>
+
+  <div class="ibs-layout">
+    <%# ── Left: vehicle & owner ── %>
+    <div class="ibs-card">
+      <div class="ibs-card-hd"><i class="fas fa-motorcycle"></i>ຂໍ້ມູນລົດ ແລະ ເຈົ້າຂອງ</div>
+
+      <div class="ibs-row">
+        <i class="fas fa-id-card"></i>
+        <div>
+          <p class="ibs-row-label">ທະບຽນລົດ</p>
+          <p class="ibs-row-val"><%= link_to booking.vehicle.plate_number, admin_vehicle_path(booking.vehicle) %></p>
+        </div>
+      </div>
+      <div class="ibs-row">
+        <i class="fas fa-user"></i>
+        <div>
+          <p class="ibs-row-label">ເຈົ້າຂອງລົດ</p>
+          <p class="ibs-row-val"><%= link_to booking.vehicle.user.phone_number, admin_user_path(booking.vehicle.user) %></p>
+        </div>
+      </div>
+    </div>
+
+    <%# ── Right: booking details ── %>
+    <div class="ibs-card">
+      <div class="ibs-card-hd"><i class="fas fa-clipboard-list"></i>ຂໍ້ມູນການຈອງ</div>
+
+      <div class="ibs-row">
+        <i class="fas fa-warehouse"></i>
+        <div>
+          <p class="ibs-row-label">ສູນກວດກາ</p>
+          <p class="ibs-row-val"><%= booking.center_name.presence || '—' %></p>
+        </div>
+      </div>
+      <div class="ibs-row">
+        <i class="fas fa-map-marker-alt"></i>
+        <div>
+          <p class="ibs-row-label">ທີ່ຢູ່ສູນກວດກາ</p>
+          <p class="ibs-row-val"><%= booking.center_address.presence || '—' %></p>
+        </div>
+      </div>
+      <div class="ibs-row">
+        <i class="fas fa-tools"></i>
+        <div>
+          <p class="ibs-row-label">ບໍລິການ</p>
+          <p class="ibs-row-val"><%= booking.service_name.presence || '—' %></p>
+        </div>
+      </div>
+      <div class="ibs-row">
+        <i class="fas fa-money-bill-wave"></i>
+        <div>
+          <p class="ibs-row-label">ຈຳນວນເງິນ</p>
+          <p class="ibs-row-val"><%= booking.amount.present? ? number_to_currency(booking.amount, unit: "₭", precision: 0, delimiter: ",") : '—' %></p>
+        </div>
+      </div>
+      <div class="ibs-row">
+        <i class="fas fa-calendar-alt"></i>
+        <div>
+          <p class="ibs-row-label">ວັນນັດໝາຍ</p>
+          <p class="ibs-row-val"><%= booking.appointment_at.present? ? booking.appointment_at.strftime('%d/%m/%Y %H:%M') : '—' %></p>
+        </div>
+      </div>
+      <div class="ibs-row">
+        <i class="fas fa-image"></i>
+        <div style="flex:1;">
+          <p class="ibs-row-label">ຮູບສະຕິກເກີ້ (ຫຼັກຖານກວດແລ້ວ)</p>
+          <% if booking.sticker.present? %>
+            <%= link_to booking.sticker, target: "_blank", rel: "noopener" do %>
+              <img src="<%= booking.sticker %>" alt="sticker" style="max-width:180px;border-radius:10px;margin-top:6px;display:block;">
+            <% end %>
+          <% else %>
+            <p class="ibs-row-val">— ຍັງບໍ່ໄດ້ອັບໂຫລດ —</p>
+          <% end %>
+        </div>
+      </div>
+      <div class="ibs-row">
+        <i class="fas fa-sticky-note"></i>
+        <div>
+          <p class="ibs-row-label">ໝາຍເຫດ</p>
+          <p class="ibs-row-val"><%= booking.notes.presence || '—' %></p>
+        </div>
+      </div>
+      <div class="ibs-row">
+        <i class="fas fa-clock"></i>
+        <div>
+          <p class="ibs-row-label">ອັບເດດຫຼ້າສຸດ</p>
+          <p class="ibs-row-val"><%= booking.updated_at.strftime('%d/%m/%Y %H:%M') %></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

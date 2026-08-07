@@ -1,0 +1,264 @@
+<%
+  status_label = {
+    'pending' => 'ລໍຖ້າຢືນຢັນ', 'confirmed' => 'ຢືນຢັນແລ້ວ',
+    'completed' => 'ສຳເລັດແລ້ວ', 'cancelled' => 'ຍົກເລີກ'
+  }
+  status_icon = {
+    'pending' => 'fa-hourglass-half', 'confirmed' => 'fa-check',
+    'completed' => 'fa-flag-checkered', 'cancelled' => 'fa-ban'
+  }
+  status_color = {
+    'pending' => '#f59e0b', 'confirmed' => '#2563eb',
+    'completed' => '#16a34a', 'cancelled' => '#dc2626'
+  }
+
+  center      = current_admin_user.inspection_center
+  inspections = center.inspections
+  total       = inspections.count
+  pending     = inspections.where(status: 'pending').count
+  confirmed   = inspections.where(status: 'confirmed').count
+  completed   = inspections.where(status: 'completed').count
+
+  upcoming = inspections.includes(vehicle: :user)
+              .where('appointment_at >= ?', Time.current)
+              .order(appointment_at: :asc)
+              .limit(5)
+
+  # ── Shared date range for the trend chart + results panel — same
+  # 6-preset system as the Reports page, replacing the old separate
+  # 1/6/12-month tabs so the whole dashboard filters together. ──
+  begin
+    period_start = params[:from].present? ? Date.parse(params[:from]) : 30.days.ago.to_date
+    period_end   = params[:to].present?   ? Date.parse(params[:to])   : Date.current
+  rescue ArgumentError
+    period_start = 30.days.ago.to_date
+    period_end   = Date.current
+  end
+  period_start, period_end = period_end, period_start if period_start > period_end
+  period_range = period_start.beginning_of_day..period_end.end_of_day
+
+  range_days = (period_end - period_start).to_i + 1
+  use_daily  = range_days <= 62
+
+  if use_daily
+    counts_by_bucket = inspections.where(created_at: period_range).group("DATE(created_at)").count
+    buckets       = (period_start..period_end).to_a
+    trend_labels  = buckets.map { |d| d.strftime('%d/%m') }
+    trend_values  = buckets.map { |d| counts_by_bucket[d] || 0 }
+  else
+    counts_by_bucket = inspections.where(created_at: period_range).group("TO_CHAR(created_at, 'YYYY-MM')").count
+    month_cursor = period_start.beginning_of_month
+    buckets = []
+    while month_cursor <= period_end
+      buckets << month_cursor
+      month_cursor = month_cursor.next_month
+    end
+    trend_labels = buckets.map { |m| m.strftime('%m/%Y') }
+    trend_values = buckets.map { |m| counts_by_bucket[m.strftime('%Y-%m')] || 0 }
+  end
+
+  presets = {
+    "ມື້ວານ"    => [Date.yesterday, Date.yesterday],
+    "ມື້ນີ້"     => [Date.current, Date.current],
+    "ເດືອນກ່ອນ" => [1.month.ago.to_date.beginning_of_month, 1.month.ago.to_date.end_of_month],
+    "ເດືອນນີ້"   => [Date.current.beginning_of_month, Date.current.end_of_month],
+    "ປີທີ່ແລ້ວ"  => [1.year.ago.to_date.beginning_of_year, 1.year.ago.to_date.end_of_year],
+    "ປີນີ້"      => [Date.current.beginning_of_year, Date.current.end_of_year],
+  }
+
+  period_counts = inspections.where(created_at: period_range).group(:status).count
+  period_total  = period_counts.values.sum
+%>
+
+<style>
+  .pd-presets { display: flex; gap: 5px; flex-wrap: wrap; }
+  .pd-preset { padding: 5px 12px; border-radius: 20px; font-size: 11.5px; font-weight: 700;
+               text-decoration: none; border: 1px solid #e2e8f0; color: #64748b; background: #fff; }
+  .pd-preset:hover { background: #f4f6f9; }
+  .pd-preset.active { background: #27bc9c; border-color: #27bc9c; color: #fff; }
+  .st { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 11.5px; font-weight: 700; }
+  .st-pending { background: #fef3c7; color: #b45309; }
+  .st-confirmed { background: #dbeafe; color: #1d4ed8; }
+  .st-completed { background: #dcfce7; color: #16a34a; }
+  .st-cancelled { background: #fee2e2; color: #dc2626; }
+  .pd-empty { padding: 40px 20px; text-align: center; color: #94a3b8; font-size: 13px; }
+  .pd-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; border-bottom: 1px solid #f8fafc; }
+  .pd-row:last-child { border-bottom: none; }
+  .pd-row a { text-decoration: none; color: inherit; display: block; }
+
+  .pd-result-row { display: flex; align-items: center; gap: 12px; padding: 12px 20px; }
+  .pd-result-ico { width: 32px; height: 32px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+  .pd-result-label { font-size: 12.5px; font-weight: 700; color: #1f2a37; width: 110px; flex-shrink: 0; }
+  .pd-result-bar-wrap { flex: 1; height: 8px; border-radius: 5px; background: #f1f5f9; overflow: hidden; }
+  .pd-result-bar { height: 100%; border-radius: 5px; }
+  .pd-result-val { font-size: 12.5px; font-weight: 700; color: #1f2a37; width: 70px; text-align: right; flex-shrink: 0; }
+
+  /* Plate badge — same fixed-size component used on the vehicles and
+     bookings lists, so a plate looks identical everywhere in the admin. */
+  .plate-badge { border:2px solid #333; border-radius:8px; padding:6px 8px; display:inline-flex;
+                 flex-direction:column; justify-content:center; align-items:center;
+                 width:76px; height:38px; box-sizing:border-box;
+                 text-align:center; overflow:hidden; box-shadow:0 2px 4px rgba(0,0,0,.1); flex-shrink:0; }
+  .plate-province { font-size:8px; font-weight:700; line-height:1; text-transform:uppercase;
+                     white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+  .plate-number   { font-size:13px; font-weight:900; line-height:1.2; letter-spacing:.5px;
+                     white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+  .plate-badge.plate-yellow        { background:linear-gradient(135deg,#ffcc00,#ffdb4d); border-color:#333; }
+  .plate-badge.plate-yellow        .plate-province, .plate-badge.plate-yellow        .plate-number { color:#000; }
+  .plate-badge.plate-yellow-green  { background:linear-gradient(135deg,#ffcc00,#ffdb4d); border-color:#333; }
+  .plate-badge.plate-yellow-green  .plate-province { color:#000; }
+  .plate-badge.plate-yellow-green  .plate-number   { color:#16a34a; }
+  .plate-badge.plate-yellow-blue   { background:linear-gradient(135deg,#ffcc00,#ffdb4d); border-color:#3b82f6; }
+  .plate-badge.plate-yellow-blue   .plate-province, .plate-badge.plate-yellow-blue .plate-number { color:#3b82f6; }
+  .plate-badge.plate-blue          { background:linear-gradient(135deg,#1e3a8a,#1e3a8a); border-color:#1e3a8a; }
+  .plate-badge.plate-blue          .plate-province, .plate-badge.plate-blue          .plate-number { color:#fff; }
+  .plate-badge.plate-white         { background:linear-gradient(135deg,#fff,#f5f5f5); border-color:#333; }
+  .plate-badge.plate-white         .plate-province, .plate-badge.plate-white         .plate-number { color:#000; }
+  .plate-badge.plate-white-darkblue  { background:linear-gradient(135deg,#fff,#f5f5f5); border-color:#1e3a8a; }
+  .plate-badge.plate-white-darkblue  .plate-province, .plate-badge.plate-white-darkblue .plate-number { color:#1e3a8a; }
+  .plate-badge.plate-white-lightblue { background:linear-gradient(135deg,#fff,#f5f5f5); border-color:#60a5fa; }
+  .plate-badge.plate-white-lightblue .plate-province, .plate-badge.plate-white-lightblue .plate-number { color:#60a5fa; }
+  .plate-badge.plate-red           { background:linear-gradient(135deg,#dc2626,#b91c1c); border-color:#7f1d1d; }
+  .plate-badge.plate-red           .plate-province, .plate-badge.plate-red           .plate-number { color:#fff; }
+  .plate-badge.plate-red-underline { background:linear-gradient(135deg,#dc2626,#b91c1c); border-color:#7f1d1d; }
+  .plate-badge.plate-red-underline .plate-province, .plate-badge.plate-red-underline .plate-number { color:#fff; }
+  .plate-badge.plate-white-1percent { background:linear-gradient(135deg,#fff,#f5f5f5); border:3px solid #2563eb; }
+  .plate-badge.plate-white-1percent .plate-province, .plate-badge.plate-white-1percent .plate-number { color:#2563eb; }
+  .plate-badge.plate-white-foreign { background:linear-gradient(135deg,#fff,#f5f5f5); border-color:#2563eb; }
+  .plate-badge.plate-white-foreign .plate-province, .plate-badge.plate-white-foreign .plate-number { color:#2563eb; }
+  .plate-badge.plate-diplomat      { background:linear-gradient(135deg,#fff,#f5f5f5); border:2px solid #2563eb; }
+  .plate-badge.plate-diplomat      .plate-province, .plate-badge.plate-diplomat .plate-number { color:#2563eb; }
+</style>
+
+<h2 style="font-size:16px;font-weight:800;margin:0 0 4px;"><%= center.name %></h2>
+<p style="font-size:12.5px;color:#64748b;margin:0 0 20px;">ພາບລວມການຈອງກວດສະພາບລົດຂອງສູນທ່ານ</p>
+
+<div class="stat-grid">
+  <div class="stat-card card-blue">
+    <div class="stat-icon-wrap"><i class="fas fa-calendar-check"></i></div>
+    <div class="stat-right"><div class="stat-value"><%= total %></div><div class="stat-label">ການຈອງທັງໝົດ</div></div>
+  </div>
+  <div class="stat-card card-orange">
+    <div class="stat-icon-wrap"><i class="fas fa-hourglass-half"></i></div>
+    <div class="stat-right"><div class="stat-value"><%= pending %></div><div class="stat-label">ລໍຖ້າຢືນຢັນ</div></div>
+  </div>
+  <div class="stat-card card-purple">
+    <div class="stat-icon-wrap"><i class="fas fa-check"></i></div>
+    <div class="stat-right"><div class="stat-value"><%= confirmed %></div><div class="stat-label">ຢືນຢັນແລ້ວ</div></div>
+  </div>
+  <div class="stat-card card-green">
+    <div class="stat-icon-wrap"><i class="fas fa-flag-checkered"></i></div>
+    <div class="stat-right"><div class="stat-value"><%= completed %></div><div class="stat-label">ສຳເລັດແລ້ວ</div></div>
+  </div>
+</div>
+
+<%# ===== QUICK PRESETS (shared by trend chart + results below) ===== %>
+<div class="pd-presets" style="margin-top:16px;">
+  <% presets.each do |label, (pfrom, pto)| %>
+    <%= link_to label, admin_dashboard_path(from: pfrom, to: pto),
+          class: "pd-preset #{'active' if period_start == pfrom && period_end == pto}" %>
+  <% end %>
+</div>
+<p style="font-size:11.5px;color:#94a3b8;margin:8px 0 0;">
+  <%= period_start.strftime('%d/%m/%Y') %> – <%= period_end.strftime('%d/%m/%Y') %>
+</p>
+
+<div class="dash-bottom-row" style="margin-top:16px;align-items:start;">
+
+  <%# ===== ແນວໂນ້ມການກວດກາ (trend) ===== %>
+  <div class="dash-panel" style="flex:2 !important;">
+    <div class="dash-panel-header">
+      <span><i class="fas fa-chart-column"></i> ແນວໂນ້ມການກວດກາ (<%= use_daily ? 'ລາຍວັນ' : 'ລາຍເດືອນ' %>)</span>
+    </div>
+    <div style="padding:16px 20px;">
+      <% if trend_values.sum.zero? %>
+        <div class="pd-empty">ບໍ່ມີຂໍ້ມູນໃນຊ່ວງເວລານີ້</div>
+      <% else %>
+        <div style="height:260px;"><canvas id="trendChart"></canvas></div>
+      <% end %>
+    </div>
+  </div>
+
+  <%# ===== ຜົນການກວດກາ (results) ===== %>
+  <div class="dash-panel">
+    <div class="dash-panel-header">
+      <span><i class="fas fa-chart-simple"></i> ຜົນການກວດກາ</span>
+    </div>
+    <% if period_total.zero? %>
+      <div class="pd-empty">ບໍ່ມີຂໍ້ມູນໃນຊ່ວງເວລານີ້</div>
+    <% else %>
+      <% %w[pending confirmed completed cancelled].each do |s| %>
+        <% count = period_counts[s] || 0 %>
+        <% pct   = period_total.zero? ? 0 : (count.to_f / period_total * 100).round %>
+        <div class="pd-result-row">
+          <div class="pd-result-ico" style="background:<%= status_color[s] %>1a;color:<%= status_color[s] %>;">
+            <i class="fas <%= status_icon[s] %>"></i>
+          </div>
+          <div class="pd-result-label"><%= status_label[s] %></div>
+          <div class="pd-result-bar-wrap">
+            <div class="pd-result-bar" style="width:<%= pct %>%;background:<%= status_color[s] %>;"></div>
+          </div>
+          <div class="pd-result-val"><%= count %> (<%= pct %>%)</div>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+
+</div>
+
+<div class="dash-panel" style="margin-top:20px;">
+  <div class="dash-panel-header">
+    <span><i class="fas fa-calendar-day"></i> ນັດໝາຍໃໝ່</span>
+    <%= link_to "ເບິ່ງທັງໝົດ →", admin_inspections_path, class: "dash-chart-link" %>
+  </div>
+  <% if upcoming.empty? %>
+    <div class="pd-empty">ຍັງບໍ່ມີນັດໝາຍລ່ວງໜ້າ</div>
+  <% else %>
+    <% upcoming.each do |i| %>
+      <% badge = plate_badge_for(i.vehicle) %>
+      <div class="pd-row">
+        <%= link_to admin_inspection_path(i), style: "display:flex;align-items:center;gap:12px;" do %>
+          <div class="plate-badge <%= badge.color_class %>">
+            <% if badge.show_province %>
+              <span class="plate-province"><%= i.vehicle.province %></span>
+            <% end %>
+            <span class="plate-number"><%= badge.type %> <%= badge.number %></span>
+          </div>
+          <div>
+            <div style="font-size:12px;color:#94a3b8;"><%= i.service_name %> · <%= i.appointment_at&.strftime('%d/%m/%Y %H:%M') %></div>
+          </div>
+        <% end %>
+        <span class="st st-<%= i.status %>"><%= status_label[i.status] || i.status %></span>
+      </div>
+    <% end %>
+  <% end %>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+  (function () {
+    var ctx = document.getElementById('trendChart');
+    if (!ctx || typeof Chart === 'undefined') return;
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: <%= raw trend_labels.to_json %>,
+        datasets: [{
+          data: <%= raw trend_values.to_json %>,
+          backgroundColor: '#27bc9c',
+          borderRadius: 4,
+          maxBarThickness: 24,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#e1e0d9' } },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+  })();
+</script>

@@ -1,5 +1,5 @@
 ActiveAdmin.register Insurance do
-  menu label: "ປະກັນໄພ", priority: 5
+  menu label: "ປະກັນໄພ", priority: 5, if: -> { !current_admin_user.partner? }
 
   permit_params :vehicle_id, :company, :package, :amount, :status, :start_date, :end_date
 

@@ -357,6 +357,20 @@ body.active_admin {
     line-height: 1 !important;
   }
 
+  @keyframes bell-ring {
+    0%, 100% { transform: rotate(0); }
+    10%, 30%, 50% { transform: rotate(14deg); }
+    20%, 40%, 60% { transform: rotate(-14deg); }
+    70% { transform: rotate(6deg); }
+    80% { transform: rotate(-6deg); }
+    90% { transform: rotate(0); }
+  }
+  #notif-btn.bell-ring i.fa-bell {
+    display: inline-block !important;
+    transform-origin: top center !important;
+    animation: bell-ring 0.7s ease !important;
+  }
+
   .header-divider {
     width: 1px !important;
     height: 28px !important;

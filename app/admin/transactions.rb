@@ -1,5 +1,5 @@
 ActiveAdmin.register Transaction do
-  menu priority: 4
+  menu priority: 4, if: -> { !current_admin_user.partner? }
 
   actions :index, :show
 

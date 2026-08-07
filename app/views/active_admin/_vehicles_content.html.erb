@@ -294,6 +294,7 @@
             <th>ຂໍ້ມູນລົດ</th>
             <th>ເລກຈັກ / ເລກຖັງ</th>
             <th>ວັນທີ່ລົງທະບຽນ</th>
+            <th>ຄ່າທຳນຽມ</th>
             <th>ກວດສອບຕໍ່ໄປ</th>
             <th>ສະຖານະ</th>
             <th>ຈັດການ</th>
@@ -302,40 +303,8 @@
         <tbody>
           <% vehicles.each do |v| %>
             <% owner = v.user %>
+            <% badge = plate_badge_for(v) %>
             <%
-              raw_plate = v.plate_number.to_s.strip
-              if v.plate_type.present?
-                plate_type = v.plate_type
-                plate_no   = raw_plate
-              else
-                parts      = raw_plate.split(/\s+/, 2)
-                plate_type = parts.length > 1 ? parts[0] : raw_plate.gsub(/[0-9]+/, '').strip
-                plate_no   = parts.length > 1 ? parts[1] : raw_plate.gsub(/[^0-9]/, '').strip
-              end
-
-              pt = PlateType.for_code(plate_type)
-              if pt
-                plate_color   = pt.color_class
-                show_province = v.province.present? && pt.show_province
-              else
-                no_province_types = %w[ປກສ ກທ ຂຕ ສປຊ ສປ ສທ]
-                show_province = v.province.present? && !no_province_types.include?(plate_type)
-                plate_color = case plate_type
-                  when 'ຂ','ຂໍ','ຂ2','ຂ3','ຂ4','ກນ'                      then 'plate-yellow'
-                  when 'ກຄ','ກຍ','ກດ','ກບ','ກປ','ດຂ','ດຄ','ດຍ','ດດ','ດທ' then 'plate-yellow-green'
-                  when 'ກຊ'                                                then 'plate-blue'
-                  when 'ບຈ','ບສ'                                           then 'plate-white'
-                  when 'ກກ'                                                then 'plate-yellow-blue'
-                  when 'ຂຕ'                                                then 'plate-white-darkblue'
-                  when 'ກມ'                                                then 'plate-white-lightblue'
-                  when 'ປກສ'                                               then 'plate-red-underline'
-                  when 'ປກ','ປຕ','ກສ','ກທ'                                then 'plate-red'
-                  when 'ສ1','1ສ'                                           then 'plate-white-1percent'
-                  when 'ສທ','ສປຊ'                                          then 'plate-diplomat'
-                  else 'plate-yellow'
-                end
-              end
-
               latest_tax  = v.road_taxes.reject { |t| t.expired_at.nil? }.max_by(&:expired_at)
               tax_expiry  = latest_tax&.expired_at
               tax_days    = tax_expiry ? (tax_expiry.to_date - Date.today).to_i : nil
@@ -357,12 +326,12 @@
             %>
             <tr>
               <td>
-                <div class="plate-badge <%= plate_color %>">
-                  <% if show_province %>
+                <div class="plate-badge <%= badge.color_class %>">
+                  <% if badge.show_province %>
                     <span class="plate-province"><%= v.province %></span>
                   <% end %>
                   <span class="plate-number">
-                    <span class="plate-type"><%= plate_type %></span> <span class="plate-no"><%= plate_no %></span>
+                    <span class="plate-type"><%= badge.type %></span> <span class="plate-no"><%= badge.number %></span>
                   </span>
                 </div>
               </td>
@@ -386,6 +355,17 @@
                 <% end %>
               </td>
               <td style="font-size:13px;color:var(--muted);"><%= v.created_at.strftime('%d/%m/%Y') %></td>
+              <td style="font-size:13px;color:var(--muted);">
+                <% if latest_tax&.service_fee.present? %>
+                  <div style="font-weight:700;color:var(--ink);"><%= number_to_currency(latest_tax.service_fee, unit: "₭", precision: 0, delimiter: ",") %></div>
+                  <% if tax_expiry %>
+                    <div style="font-size:12px;">ໝົດ: <%= tax_expiry.to_date.strftime('%d/%m/%Y') %></div>
+                    <div style="font-size:12px;" class="<%= tax_class %>"><i class="fas fa-clock" style="margin-right:4px;"></i>ອີກ <%= tax_days %> ວັນ</div>
+                  <% end %>
+                <% else %>
+                  <span style="color:#cbd5e1;">—</span>
+                <% end %>
+              </td>
               <td>
                 <% if insp_date %>
                   <div style="font-size:12.5px;"><%= insp_date.strftime('%d/%m/%Y') %></div>

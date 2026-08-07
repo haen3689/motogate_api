@@ -1,5 +1,5 @@
 ActiveAdmin.register User do
-  menu priority: 2
+  menu priority: 2, if: -> { !current_admin_user.partner? }
   config.batch_actions = false
 
   permit_params :phone_number, :name, :first_name, :last_name, :gender,

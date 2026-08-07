@@ -1,0 +1,236 @@
+<%
+  booking = resource
+  status_label = {
+    'pending' => 'ລໍຖ້າຢືນຢັນ', 'confirmed' => 'ຢືນຢັນແລ້ວ',
+    'completed' => 'ສຳເລັດແລ້ວ', 'cancelled' => 'ຍົກເລີກ'
+  }
+%>
+
+<style>
+  #titlebar { display:none !important; }
+  body.active_admin, #wrapper, #active_admin_content, #main_content,
+  #main, .flashes { background:#f4f6f9 !important; }
+  #main_content > .panel { background:transparent !important; border:none !important; box-shadow:none !important; padding:0 !important; margin:0 !important; }
+  #main_content > .panel > .panel_contents { padding:0 !important; }
+
+  .vef-page {
+    --brand:#27bc9c; --brand-d:#1e9e82; --ink:#1f2a37; --muted:#6b7684; --line:#e9edf2; --soft:#f4f6f9;
+    color:var(--ink); font-family:"Noto Sans Lao","Phetsarath OT",system-ui,sans-serif;
+    max-width:1280px;
+  }
+
+  .vef-bar { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:28px; }
+  .vef-bar-l { display:flex; align-items:center; gap:14px; }
+  .vef-bar-ico { width:50px; height:50px; border-radius:14px; display:grid; place-items:center;
+                 background:linear-gradient(135deg,#27bc9c,#1e9e82); color:#fff; font-size:20px;
+                 box-shadow:0 8px 20px rgba(39,188,156,.35); flex-shrink:0; }
+  .vef-bar h2 { font-size:21px; font-weight:800; margin:0; }
+  .vef-bar p  { font-size:12.5px; color:var(--muted); margin:3px 0 0; }
+  .vef-bar-btns { display:flex; gap:10px; }
+  .vef-btn { display:inline-flex; align-items:center; gap:7px; padding:10px 22px; border-radius:11px;
+             font-size:13.5px; font-weight:700; cursor:pointer; text-decoration:none !important;
+             text-shadow:none !important; border:none; transition:.15s; white-space:nowrap;
+             font-family:inherit; }
+  .vef-btn-save { background:linear-gradient(135deg,#27bc9c,#1e9e82); color:#fff !important;
+                  box-shadow:0 6px 16px rgba(39,188,156,.35); }
+  .vef-btn-save:hover { filter:brightness(1.07); color:#fff !important; transform:translateY(-1px); }
+  .vef-btn-back { background:#fff; border:1.5px solid var(--line); color:var(--muted) !important;
+                  box-shadow:0 2px 8px rgba(0,0,0,.06); }
+  .vef-btn-back:hover { border-color:#27bc9c; color:#27bc9c !important; }
+
+  .vef-card { background:#fff; border-radius:20px; box-shadow:0 4px 20px rgba(16,24,40,.06);
+              padding:28px 32px; margin-bottom:20px; }
+  .vef-card-hd { display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:15px; font-weight:800;
+                 color:var(--ink); margin-bottom:24px; padding-bottom:14px;
+                 border-bottom:2px solid var(--soft); }
+  .vef-card-hd-l { display:flex; align-items:center; gap:10px; }
+  .vef-card-hd i { width:32px; height:32px; border-radius:9px; display:grid; place-items:center;
+                   background:#e6f7f3; color:#27bc9c; font-size:14px; flex-shrink:0; }
+
+  .vef-field { display:flex; flex-direction:column; gap:6px; }
+  .vef-label { font-size:12px; font-weight:700; color:#475569; letter-spacing:.02em; text-transform:uppercase; }
+  .vef-input {
+    border:1.5px solid var(--line) !important; border-radius:10px !important;
+    padding:11px 14px !important; font-size:13.5px !important; background:#fff !important;
+    outline:none !important; font-family:inherit !important; color:var(--ink) !important;
+    transition:.2s; width:100% !important; box-sizing:border-box !important;
+    min-height:44px !important; line-height:1.4 !important; margin:0 !important;
+    box-shadow:none !important; appearance:none; -webkit-appearance:none;
+  }
+  .vef-input:focus { border-color:#27bc9c !important; box-shadow:0 0 0 3px rgba(39,188,156,.13) !important; }
+  textarea.vef-input { min-height:90px !important; resize:vertical; }
+
+  .vef-errors { background:#fff1f2; border:1.5px solid #fca5a5; border-radius:14px;
+                padding:16px 22px; margin-bottom:20px; }
+  .vef-errors strong { color:#dc2626; display:block; margin-bottom:8px; }
+  .vef-errors li { color:#dc2626; font-size:13px; margin-bottom:2px; }
+
+  /* ── Two-column layout ── */
+  .ibf-layout { display:grid; grid-template-columns:5fr 7fr; gap:20px; align-items:start; }
+  @media (max-width:900px) { .ibf-layout { grid-template-columns:1fr; } }
+
+  /* ── Read-only booking summary ── */
+  .ibf-row { display:flex; align-items:flex-start; gap:12px; padding:11px 0; border-bottom:1px solid var(--soft); }
+  .ibf-row:last-child { border-bottom:none; padding-bottom:0; }
+  .ibf-row i { width:30px; height:30px; border-radius:9px; background:var(--soft); color:#64748b;
+               display:grid; place-items:center; font-size:13px; flex-shrink:0; }
+  .ibf-row-label { font-size:11.5px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.3px; margin:0 0 3px; }
+  .ibf-row-val { font-size:14px; font-weight:600; color:var(--ink); margin:0; word-break:break-word; }
+
+  /* ── Status picker ── */
+  .ibf-status-wrap { display:flex; gap:8px; flex-wrap:wrap; }
+  .ibf-sr { display:none; }
+  .ibf-sl { padding:9px 18px; border-radius:9px; border:1.5px solid var(--line);
+            background:#fafafa; color:#94a3b8; font-size:13px; font-weight:700;
+            cursor:pointer; transition:.15s; user-select:none; }
+  .ibf-sl:hover { border-color:#27bc9c; color:#27bc9c; }
+  #ibf_pending:checked   + .ibf-sl { color:#fff; background:#f59e0b; border-color:#f59e0b; }
+  #ibf_confirmed:checked + .ibf-sl { color:#fff; background:#2563eb; border-color:#2563eb; }
+  #ibf_completed:checked + .ibf-sl { color:#fff; background:#16a34a; border-color:#16a34a; }
+  #ibf_cancelled:checked  + .ibf-sl { color:#fff; background:#dc2626; border-color:#dc2626; }
+
+  /* ── Sticker upload ── */
+  .ibf-sticker-wrap { text-align:center; }
+  .ibf-sticker-preview { width:140px; height:140px; margin:10px auto 14px; border-radius:16px;
+                          background:#f8f9fa; border:2px dashed #d8dee6; display:flex;
+                          align-items:center; justify-content:center; overflow:hidden; }
+  .ibf-sticker-preview img { width:100%; height:100%; object-fit:contain; }
+  .ibf-sticker-preview i { font-size:32px; color:#c2cad4; }
+  .ibf-sticker-wrap input[type="file"] { max-width:280px; margin:0 auto; }
+</style>
+
+<div class="vef-page">
+  <%= form_with model: [:admin, booking], local: true, multipart: true, html: { style:"margin:0;" } do |f| %>
+
+    <div class="vef-bar">
+      <div class="vef-bar-l">
+        <div class="vef-bar-ico"><i class="fas fa-clipboard-check"></i></div>
+        <div>
+          <h2>ແກ້ໄຂການຈອງກວດສະພາບລົດ</h2>
+          <p>ອັບເດດສະຖານະ ແລະ ໝາຍເຫດຂອງການຈອງ #<%= booking.id.to_s.rjust(4, '0') %></p>
+        </div>
+      </div>
+      <div class="vef-bar-btns">
+        <%= f.submit 'ບັນທຶກການແກ້ໄຂ', class: 'vef-btn vef-btn-save' %>
+        <%= link_to admin_inspection_path(booking), class: 'vef-btn vef-btn-back' do %>
+          <i class="fas fa-arrow-left"></i>ກັບຄືນ
+        <% end %>
+      </div>
+    </div>
+
+    <% if booking.errors.any? %>
+      <div class="vef-errors">
+        <strong><i class="fas fa-exclamation-circle" style="margin-right:6px;"></i>ກະລຸນາກວດສອບຂໍ້ມູນ</strong>
+        <ul style="margin:0;padding-left:18px;">
+          <% booking.errors.full_messages.each do |msg| %>
+            <li><%= msg %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <div class="ibf-layout">
+      <%# ── Left: read-only booking summary ── %>
+      <div class="vef-card">
+        <div class="vef-card-hd">
+          <div class="vef-card-hd-l"><i class="fas fa-info-circle"></i>ຂໍ້ມູນການຈອງ</div>
+        </div>
+
+        <div class="ibf-row">
+          <i class="fas fa-id-card"></i>
+          <div>
+            <p class="ibf-row-label">ທະບຽນລົດ</p>
+            <p class="ibf-row-val"><%= booking.vehicle.plate_number %></p>
+          </div>
+        </div>
+        <div class="ibf-row">
+          <i class="fas fa-user"></i>
+          <div>
+            <p class="ibf-row-label">ເຈົ້າຂອງລົດ</p>
+            <p class="ibf-row-val"><%= booking.vehicle.user.phone_number %></p>
+          </div>
+        </div>
+        <div class="ibf-row">
+          <i class="fas fa-warehouse"></i>
+          <div>
+            <p class="ibf-row-label">ສູນກວດກາ</p>
+            <p class="ibf-row-val"><%= booking.center_name.presence || '—' %></p>
+          </div>
+        </div>
+        <div class="ibf-row">
+          <i class="fas fa-tools"></i>
+          <div>
+            <p class="ibf-row-label">ບໍລິການ</p>
+            <p class="ibf-row-val"><%= booking.service_name.presence || '—' %></p>
+          </div>
+        </div>
+        <div class="ibf-row">
+          <i class="fas fa-money-bill-wave"></i>
+          <div>
+            <p class="ibf-row-label">ຈຳນວນເງິນ</p>
+            <p class="ibf-row-val"><%= booking.amount.present? ? number_to_currency(booking.amount, unit: "₭", precision: 0, delimiter: ",") : '—' %></p>
+          </div>
+        </div>
+        <div class="ibf-row">
+          <i class="fas fa-calendar-alt"></i>
+          <div>
+            <p class="ibf-row-label">ວັນນັດໝາຍ</p>
+            <p class="ibf-row-val"><%= booking.appointment_at.present? ? booking.appointment_at.strftime('%d/%m/%Y %H:%M') : '—' %></p>
+          </div>
+        </div>
+      </div>
+
+      <%# ── Right: editable status + notes ── %>
+      <div class="vef-card">
+        <div class="vef-card-hd">
+          <div class="vef-card-hd-l"><i class="fas fa-edit"></i>ອັບເດດການຈອງ</div>
+        </div>
+
+        <div class="vef-field" style="margin-bottom:22px;">
+          <label class="vef-label">ສະຖານະການຈອງ</label>
+          <div class="ibf-status-wrap">
+            <% Inspection::STATUSES.each do |s| %>
+              <%= f.radio_button :status, s, id: "ibf_#{s}", class: 'ibf-sr' %>
+              <label class="ibf-sl" for="ibf_<%= s %>"><%= status_label[s] %></label>
+            <% end %>
+          </div>
+        </div>
+
+        <div class="vef-field" style="margin-bottom:22px;">
+          <label class="vef-label">ຮູບສະຕິກເກີ້ (ຫຼັກຖານກວດແລ້ວ)</label>
+          <div class="ibf-sticker-wrap">
+            <div class="ibf-sticker-preview" id="stickerPreview">
+              <% if booking.sticker.present? %>
+                <img src="<%= booking.sticker %>" alt="sticker">
+              <% else %>
+                <i class="fas fa-image"></i>
+              <% end %>
+            </div>
+            <%= f.file_field :sticker_file, class: 'vef-input', accept: 'image/*', id: 'stickerFileInput' %>
+          </div>
+        </div>
+
+        <div class="vef-field">
+          <label class="vef-label">ໝາຍເຫດ</label>
+          <%= f.text_area :notes, class: 'vef-input', placeholder: 'ບັນທຶກເພີ່ມເຕີມກ່ຽວກັບການຈອງນີ້...' %>
+        </div>
+      </div>
+    </div>
+
+  <% end %>
+</div>
+
+<script>
+  var stickerFileInput = document.getElementById('stickerFileInput');
+  if (stickerFileInput) {
+    stickerFileInput.addEventListener('change', function () {
+      var file = this.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        document.getElementById('stickerPreview').innerHTML = '<img src="' + e.target.result + '" alt="sticker">';
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+</script>

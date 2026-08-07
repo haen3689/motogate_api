@@ -1,5 +1,5 @@
 ActiveAdmin.register RoadTaxRate do
-  menu label: "ອັດຕາຄ່າທາງ", priority: 4
+  menu label: "ອັດຕາຄ່າທາງ", priority: 4, if: -> { !current_admin_user.partner? }
 
   permit_params :vehicle_type, :min_cc, :max_cc, :min_seats, :max_seats, :min_weight, :max_weight, :price, :status
 

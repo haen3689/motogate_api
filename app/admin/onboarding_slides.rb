@@ -1,5 +1,5 @@
 ActiveAdmin.register OnboardingSlide do
-  menu label: "Onboarding Slides", priority: 10
+  menu label: "Onboarding Slides", priority: 10, if: -> { !current_admin_user.partner? }
 
   permit_params :title, :subtitle, :image_url, :position, :active
 
