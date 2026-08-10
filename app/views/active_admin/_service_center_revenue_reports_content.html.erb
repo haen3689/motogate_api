@@ -1,0 +1,353 @@
+<%
+  type_label = { 'garage' => 'ສູນສ້ອມແປງລົດ', 'dealer' => 'ສູນຂາຍລົດ', 'towing' => 'ບໍລິການລາກລົດ 24ຊມ' }
+  status_label = { "paid" => "ສຳເລັດ", "pending" => "ລໍຖ້າ" }
+  status_color = { "paid" => "#16a34a", "pending" => "#f59e0b" }
+
+  is_partner   = current_admin_user.service_partner?
+  current_type = is_partner ? current_admin_user.service_center.service_type : (params[:type].presence_in(%w[garage dealer towing]) || "garage")
+
+  begin
+    period_start = params[:from].present? ? Date.parse(params[:from]) : 90.days.ago.to_date
+    period_end   = params[:to].present?   ? Date.parse(params[:to])   : Date.current
+  rescue ArgumentError
+    period_start = 90.days.ago.to_date
+    period_end   = Date.current
+  end
+  period_start, period_end = period_end, period_start if period_start > period_end
+  period_range = period_start..period_end
+  filter_status = params[:status].presence_in(ServiceCenterPayment::STATUSES)
+
+  all_scope = ServiceCenterPayment.for_type(current_type)
+  all_scope = all_scope.where(service_centers: { id: current_admin_user.service_center_id }) if is_partner
+
+  base = all_scope.where(paid_at: period_range)
+  base = base.where(status: filter_status) if filter_status.present?
+  total_revenue  = base.paid.sum(:amount)
+  total_payments = base.count
+
+  all_time_revenue  = all_scope.paid.sum(:amount)
+  revenue_this_month = all_scope.paid.where(paid_at: Date.current.beginning_of_month..Date.current.end_of_month).sum(:amount)
+  total_pending       = all_scope.pending.sum(:amount)
+
+  range_days = (period_end - period_start).to_i + 1
+  use_daily  = range_days <= 62
+
+  if use_daily
+    rev_by_bucket = base.paid.group(:paid_at).sum(:amount)
+    buckets       = (period_start..period_end).to_a
+    chart_labels  = buckets.map { |d| d.strftime('%d/%m') }
+    chart_values  = buckets.map { |d| rev_by_bucket[d] || 0 }
+  else
+    rev_by_bucket = base.paid.group("TO_CHAR(paid_at, 'YYYY-MM')").sum(:amount)
+    month_cursor  = period_start.beginning_of_month
+    buckets       = []
+    while month_cursor <= period_end
+      buckets << month_cursor
+      month_cursor = month_cursor.next_month
+    end
+    chart_labels  = buckets.map { |m| m.strftime('%m/%Y') }
+    chart_values  = buckets.map { |m| rev_by_bucket[m.strftime('%Y-%m')] || 0 }
+  end
+
+  status_counts = { "paid" => base.paid.count, "pending" => base.pending.count }
+
+  payments = base.includes(service_center_contract: :service_center).order(paid_at: :desc)
+
+  presets = {
+    "ມື້ວານ"    => [Date.yesterday, Date.yesterday],
+    "ມື້ນີ້"     => [Date.current, Date.current],
+    "ເດືອນກ່ອນ" => [1.month.ago.to_date.beginning_of_month, 1.month.ago.to_date.end_of_month],
+    "ເດືອນນີ້"   => [Date.current.beginning_of_month, Date.current.end_of_month],
+    "ປີທີ່ແລ້ວ"  => [1.year.ago.to_date.beginning_of_year, 1.year.ago.to_date.end_of_year],
+    "ປີນີ້"      => [Date.current.beginning_of_year, Date.current.end_of_year],
+  }
+%>
+
+<style>
+  .pr-presets { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+  .pr-preset { padding: 6px 14px; border-radius: 20px; font-size: 12.5px; font-weight: 700;
+               text-decoration: none; border: 1px solid #e2e8f0; color: #64748b; background: #fff; }
+  .pr-preset:hover { background: #f4f6f9; }
+  .pr-preset.active { background: #27bc9c; border-color: #27bc9c; color: #fff; }
+  .pr-svc-row { display: flex; align-items: center; gap: 12px; padding: 12px 20px; }
+
+  .pr-head { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:16px; }
+  .pr-head h2 { font-size:16px; font-weight:800; margin:0 0 4px; }
+  .pr-head p  { font-size:12.5px; color:#64748b; margin:0; }
+  .pr-head-btns { display:flex; gap:8px; }
+  .pr-btn { display:inline-flex; align-items:center; gap:7px; border-radius:20px; padding:9px 18px; font-size:12.5px;
+            font-weight:700; cursor:pointer; text-decoration:none !important; border:none; white-space:nowrap; font-family:inherit; }
+  .pr-btn-outline { background:#fff; border:1px solid #e2e8f0; color:#64748b !important; }
+  .pr-btn-outline:hover { background:#f8fafc; }
+  .pr-btn-solid { background:linear-gradient(135deg,#27bc9c,#1e9e82); color:#fff !important; box-shadow:0 6px 14px rgba(39,188,156,.3); }
+  .pr-btn-solid:hover { filter:brightness(1.06); color:#fff !important; }
+
+  .pr-status-legend { display:flex; justify-content:center; gap:8px; flex-wrap:wrap; margin-top:14px; }
+  .pr-status-pill { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:20px; font-size:11.5px; font-weight:700; }
+  .pr-dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
+
+  .pr-table { width:100%; border-collapse:collapse; font-size:13px; }
+  .pr-table th { text-align:left; padding:10px 14px; color:#64748b; font-weight:700; font-size:11px;
+                 text-transform:uppercase; border-bottom:1.5px solid #f4f6f9; white-space:nowrap; background:#f8fafc; }
+  .pr-table td { padding:10px 14px; border-bottom:1px solid #f4f6f9; vertical-align:middle; white-space:nowrap; }
+  .pr-table tfoot td { font-weight:800; border-top:2px solid #e2e8f0; border-bottom:none; background:#f8fafc; }
+  .pr-status-badge { display:inline-block; padding:4px 12px; border-radius:20px; font-size:11.5px; font-weight:700; }
+
+  .stat-card.card-red .stat-icon-wrap { background:#fef2f2 !important; }
+  .stat-card.card-red .stat-value { color:#dc2626 !important; }
+
+  .ic-table-card { background:#fff; border-radius:20px; overflow:hidden; box-shadow:0 4px 20px rgba(16,24,40,.06); }
+  .ic-btn-view { border:1px solid #0ea5e9; background:#f0f9ff; color:#0369a1 !important; border-radius:7px;
+                 padding:5px 10px; font-size:12px; font-weight:700; text-decoration:none !important;
+                 display:inline-flex; align-items:center; gap:4px; transition:.15s; }
+  .ic-btn-view:hover { background:#0ea5e9; color:#fff !important; }
+
+  @media print {
+    .pr-head-btns, .pr-presets, .report-filter-bar, .ic-noprint,
+    .admin-sidebar, .admin-header, #admin-sidebar, #admin-header { display:none !important; }
+  }
+</style>
+
+<div class="pr-head">
+  <div>
+    <h2>ຄຸ້ມຄອງລາຍຮັບຄ່າເຊົ່າ — <%= type_label[current_type] %></h2>
+    <p>ກວດສອບປະຫວັດການຮັບເງິນ ແລະ ສະຫຼຸບບັນຊີລາຍຮັບ<%= is_partner ? "ຂອງທ່ານ" : "ຂອງພາດເນີ" %></p>
+  </div>
+  <div class="pr-head-btns">
+    <button type="button" class="pr-btn pr-btn-outline" onclick="window.print()">
+      <i class="fas fa-print"></i>ພິມລາຍງານ
+    </button>
+    <button type="button" class="pr-btn pr-btn-solid" onclick="scExportCSV()">
+      <i class="fas fa-file-csv"></i>Export CSV
+    </button>
+  </div>
+</div>
+
+<div class="pr-presets">
+  <% presets.each do |label, (pfrom, pto)| %>
+    <%= link_to label, admin_service_center_revenue_reports_path(type: current_type, from: pfrom, to: pto, status: filter_status),
+          class: "pr-preset #{'active' if period_start == pfrom && period_end == pto}" %>
+  <% end %>
+</div>
+
+<div class="report-filter-bar">
+  <form method="GET" class="rf-filter-form">
+    <input type="hidden" name="type" value="<%= current_type %>">
+    <div class="rf-field">
+      <label>ຈາກວັນທີ</label>
+      <input type="date" name="from" value="<%= period_start %>" class="report-date-input">
+    </div>
+    <div class="rf-field">
+      <label>ຫາວັນທີ</label>
+      <input type="date" name="to" value="<%= period_end %>" class="report-date-input">
+    </div>
+    <div class="rf-field">
+      <label>ສະຖານະທຸລະກຳ</label>
+      <select name="status" class="report-date-input">
+        <option value="">-- ທັງໝົດ --</option>
+        <option value="paid"    <%= 'selected' if filter_status == 'paid'    %>>ສຳເລັດ (ເຂົ້າບັນຊີ)</option>
+        <option value="pending" <%= 'selected' if filter_status == 'pending' %>>ລໍຖ້າກວດສອບ</option>
+      </select>
+    </div>
+    <div class="rf-field rf-field-btn">
+      <button type="submit" class="report-filter-btn"><i class="fas fa-filter"></i> ກັ່ນຕອງ</button>
+    </div>
+  </form>
+</div>
+
+<div class="stat-grid" style="margin-top:16px;">
+  <div class="stat-card card-green">
+    <div class="stat-icon-wrap"><i class="fas fa-coins"></i></div>
+    <div class="stat-right"><div class="stat-value"><%= number_to_currency(all_time_revenue, unit: "₭", precision: 0, delimiter: ",") %></div><div class="stat-label">ລາຍຮັບສະສົມ (ທຸກໄລຍະ)</div></div>
+  </div>
+  <div class="stat-card card-blue">
+    <div class="stat-icon-wrap"><i class="fas fa-calendar-check"></i></div>
+    <div class="stat-right"><div class="stat-value"><%= number_to_currency(revenue_this_month, unit: "₭", precision: 0, delimiter: ",") %></div><div class="stat-label">ລາຍຮັບເດືອນນີ້</div></div>
+  </div>
+  <div class="stat-card card-red">
+    <div class="stat-icon-wrap"><i class="fas fa-clock"></i></div>
+    <div class="stat-right"><div class="stat-value"><%= number_to_currency(total_pending, unit: "₭", precision: 0, delimiter: ",") %></div><div class="stat-label">ຄ້າງ / ລໍຖ້າ</div></div>
+  </div>
+  <div class="stat-card card-orange">
+    <div class="stat-icon-wrap"><i class="fas fa-receipt"></i></div>
+    <div class="stat-right"><div class="stat-value"><%= total_payments %></div><div class="stat-label">ຈຳນວນໃບບິນ (ໄລຍະທີ່ເລືອກ)</div></div>
+  </div>
+</div>
+
+<div class="dash-bottom-row" style="margin-top:20px;">
+  <div class="dash-panel" style="flex:2;">
+    <div class="dash-panel-header">
+      <span><i class="fas fa-chart-bar"></i> ລາຍຮັບຕາມໄລຍະເວລາ (<%= use_daily ? 'ລາຍວັນ' : 'ລາຍເດືອນ' %>)</span>
+    </div>
+    <div style="padding:16px 20px;">
+      <% if chart_values.sum.zero? %>
+        <div style="text-align:center;color:#94a3b8;font-size:13px;padding:40px 0;">ຍັງບໍ່ມີຂໍ້ມູນລາຍຮັບໃນຊ່ວງເວລານີ້</div>
+      <% else %>
+        <div style="height:240px;"><canvas id="scRevenueChart"></canvas></div>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="dash-panel">
+    <div class="dash-panel-header">
+      <span><i class="fas fa-chart-pie"></i> ສັດສ່ວນສະຖານະ</span>
+    </div>
+    <div style="padding:16px 20px;">
+      <% if status_counts.values.sum.zero? %>
+        <div style="text-align:center;color:#94a3b8;font-size:13px;padding:40px 0;">ຍັງບໍ່ມີຂໍ້ມູນ</div>
+      <% else %>
+        <div style="height:190px;"><canvas id="scStatusChart"></canvas></div>
+        <div class="pr-status-legend">
+          <span class="pr-status-pill" style="background:#dcfce7;color:#065f46;"><span class="pr-dot" style="background:#16a34a;"></span>ສຳເລັດ <%= status_counts["paid"] %></span>
+          <span class="pr-status-pill" style="background:#fef3c7;color:#92400e;"><span class="pr-dot" style="background:#f59e0b;"></span>ລໍຖ້າ <%= status_counts["pending"] %></span>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<div class="ic-table-card" style="margin-top:20px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px 0;">
+    <div style="font-size:14px;font-weight:800;"><i class="fas fa-list-alt" style="color:#27bc9c;margin-right:6px;"></i>ລາຍການໃບບິນທັງໝົດ</div>
+    <div style="font-size:12px;color:#94a3b8;"><%= payments.size %> ລາຍການ</div>
+  </div>
+  <div style="overflow-x:auto;padding:16px 0 0;">
+    <table class="pr-table" id="scReportTable">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>ເລກທີໃບບິນ</th>
+          <th>ຊື່ສູນ</th>
+          <th>ເລກທີສັນຍາ</th>
+          <th>ຮອບເວລາ</th>
+          <th>ວັນທີຊຳລະ</th>
+          <th>ຊ່ອງທາງ</th>
+          <th style="text-align:right;">ຈຳນວນເງິນ (₭)</th>
+          <th>ສະຖານະ</th>
+          <th class="ic-noprint">ຈັດການ</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if payments.empty? %>
+          <tr><td colspan="10" style="text-align:center;color:#94a3b8;padding:30px;">ບໍ່ມີຂໍ້ມູນລາຍງານໃນລະບົບ</td></tr>
+        <% else %>
+          <% payments.each_with_index do |p, i| %>
+            <tr>
+              <td style="color:#94a3b8;"><%= i + 1 %></td>
+              <td><code style="font-size:11.5px;"><%= p.invoice_no %></code></td>
+              <td style="font-weight:700;"><%= p.service_center_contract.service_center.name %></td>
+              <td style="color:#94a3b8;font-size:12px;"><%= p.service_center_contract.contract_number %></td>
+              <td style="font-size:12px;"><%= p.period_label.presence || "—" %></td>
+              <td style="font-size:12px;color:#64748b;"><%= p.paid_at.strftime('%d/%m/%Y') %></td>
+              <td style="font-size:12px;color:#64748b;"><%= p.payment_method.presence || "—" %></td>
+              <td style="text-align:right;font-weight:700;"><%= number_to_currency(p.amount, unit: "", precision: 0, delimiter: ",") %></td>
+              <td>
+                <span class="pr-status-badge" style="background:<%= status_color[p.status] %>1a;color:<%= status_color[p.status] %>;">
+                  <%= status_label[p.status] %>
+                </span>
+              </td>
+              <td class="ic-noprint">
+                <%= link_to admin_service_center_contract_path(p.service_center_contract), class: 'ic-btn-view', title: "ເບິ່ງລາຍລະອຽດ" do %>
+                  <i class="fas fa-eye"></i>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        <% end %>
+      </tbody>
+      <% unless payments.empty? %>
+        <tfoot>
+          <tr>
+            <td colspan="7" style="text-align:right;color:#64748b;">ຍອດຮວມທັງໝົດໃນຕາຕະລາງ:</td>
+            <td style="text-align:right;color:#27bc9c;font-size:14.5px;"><%= number_to_currency(payments.sum(&:amount), unit: "", precision: 0, delimiter: ",") %> ₭</td>
+            <td colspan="2"></td>
+          </tr>
+        </tfoot>
+      <% end %>
+    </table>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+  (function () {
+    var ctx = document.getElementById('scRevenueChart');
+    if (ctx && typeof Chart !== 'undefined') {
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: <%= raw chart_labels.to_json %>,
+          datasets: [{
+            data: <%= raw chart_values.to_json %>,
+            backgroundColor: 'rgba(39,188,156,0.75)',
+            borderColor: '#27bc9c',
+            borderWidth: 1,
+            borderRadius: 6,
+            borderSkipped: false,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: function (item) { return item.parsed.y.toLocaleString() + ' ₭'; } } }
+          },
+          scales: {
+            y: { beginAtZero: true, ticks: { precision: 0, callback: function (v) { return v.toLocaleString(); } }, grid: { color: '#e1e0d9' } },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+    }
+
+    var doCtx = document.getElementById('scStatusChart');
+    if (doCtx && typeof Chart !== 'undefined') {
+      new Chart(doCtx, {
+        type: 'doughnut',
+        data: {
+          labels: ['ສຳເລັດ', 'ລໍຖ້າ'],
+          datasets: [{
+            data: [<%= status_counts["paid"] %>, <%= status_counts["pending"] %>],
+            backgroundColor: ['#16a34a', '#f59e0b'],
+            borderWidth: 3,
+            borderColor: '#fff',
+            hoverOffset: 8,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '68%',
+          plugins: { legend: { display: false } }
+        }
+      });
+    }
+  })();
+
+  function scExportCSV() {
+    var table = document.getElementById('scReportTable');
+    if (!table) return;
+    var rows = [];
+    var heads = table.querySelectorAll('thead th');
+    var hRow = [];
+    heads.forEach(function (th) { if (!th.classList.contains('ic-noprint')) hRow.push('"' + th.innerText.trim() + '"'); });
+    rows.push(hRow.join(','));
+    table.querySelectorAll('tbody tr').forEach(function (tr) {
+      var row = [];
+      tr.querySelectorAll('td').forEach(function (td) {
+        if (!td.classList.contains('ic-noprint')) row.push('"' + td.innerText.trim().replace(/"/g, '""') + '"');
+      });
+      if (row.length) rows.push(row.join(','));
+    });
+    var blob = new Blob(['﻿' + rows.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'service_center_revenue_report.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+</script>

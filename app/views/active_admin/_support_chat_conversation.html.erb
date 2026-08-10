@@ -1,0 +1,127 @@
+<%
+  messages = user.chat_messages.order(created_at: :asc)
+  status_label = { "open" => "ລໍຖ້າຕອບ", "pending" => "ລໍຖ້າລູກຄ້າ", "resolved" => "ປິດແລ້ວ" }
+  status_color = { "open" => "#dc2626", "pending" => "#f59e0b", "resolved" => "#16a34a" }
+  templates = SupportTemplate.ordered
+%>
+
+<style>
+  .sc-back { display: inline-flex; align-items: center; gap: 6px; color: #6b7684; text-decoration: none;
+             font-size: 12.5px; font-weight: 700; margin-bottom: 14px; }
+  .sc-back:hover { color: #1f2a37; }
+  .sc-case-bar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+                 padding: 12px 20px; border-bottom: 1px solid #f1f5f9; }
+  .sc-case-status { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 20px; font-size: 11.5px; font-weight: 700; }
+  .sc-case-agent { font-size: 11.5px; color: #94a3b8; margin-left: 8px; }
+  .sc-case-actions { display: flex; gap: 8px; }
+  .sc-case-btn { border: 1px solid #e2e8f0; background: #fff; color: #64748b; border-radius: 10px; padding: 6px 12px;
+                 font-size: 11.5px; font-weight: 700; cursor: pointer; }
+  .sc-case-btn.primary { background: #27bc9c; border-color: #27bc9c; color: #fff; }
+  .sc-case-btn.danger { background: #fff; border-color: #fca5a5; color: #dc2626; }
+  .sc-thread { height: 420px; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+  .sc-bubble { max-width: 70%; padding: 10px 14px; border-radius: 14px; font-size: 13.5px; line-height: 1.4; }
+  .sc-bubble.user { align-self: flex-start; background: #f1f5f9; color: #1f2a37; border-bottom-left-radius: 4px; }
+  .sc-bubble.agent { align-self: flex-end; background: #27bc9c; color: #fff; border-bottom-right-radius: 4px; }
+  .sc-bubble-time { font-size: 10.5px; opacity: .65; margin-top: 4px; display: block; }
+  .sc-reply-bar { display: flex; gap: 8px; padding: 16px 20px; border-top: 1px solid #f1f5f9; align-items: center; }
+  .sc-tpl-select { border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 10px 10px; font-size: 12.5px;
+                   font-family: inherit; outline: none; max-width: 130px; color: #64748b; background: #fff; }
+  .sc-reply-input { flex: 1; border: 1.5px solid #e2e8f0; border-radius: 22px; padding: 11px 18px;
+                     font-size: 13.5px; font-family: inherit; outline: none; }
+  .sc-reply-input:focus { border-color: #27bc9c; box-shadow: 0 0 0 3px rgba(39,188,156,.13); }
+  .sc-reply-btn { border: none; border-radius: 50%; width: 44px; height: 44px; background: linear-gradient(135deg,#27bc9c,#1e9e82);
+                  color: #fff; cursor: pointer; flex-shrink: 0; }
+  .sc-empty { text-align: center; padding: 60px 20px; color: #94a3b8; font-size: 13px; }
+</style>
+
+<%= link_to admin_support_chat_path, class: "sc-back" do %>
+  <i class="fas fa-arrow-left"></i> ກັບຄືນ
+<% end %>
+
+<div class="dash-panel" style="padding:0;overflow:hidden;">
+  <div class="dash-panel-header">
+    <span><i class="fas fa-user"></i> <%= [user.first_name, user.last_name].compact.join(" ").presence || user.name.presence || user.phone_number %> · <%= user.phone_number %></span>
+  </div>
+
+  <div class="sc-case-bar">
+    <div>
+      <span class="sc-case-status" style="background:<%= status_color[kase.status] %>1a;color:<%= status_color[kase.status] %>;">
+        <i class="fas fa-circle" style="font-size:6px;"></i> <%= status_label[kase.status] %>
+      </span>
+      <span class="sc-case-agent">
+        <i class="fas fa-user-headset"></i> <%= kase.admin_user&.email || "ຍັງບໍ່ມີຜູ້ຮັບຜິດຊອບ" %>
+      </span>
+    </div>
+    <div class="sc-case-actions">
+      <% if kase.admin_user_id != current_admin_user.id %>
+        <%= button_to "ຮັບເປັນຂອງຂ້ອຍ", admin_support_chat_assign_to_me_path(user_id: user.id), method: :post, class: "sc-case-btn", form: { style: "display:inline;" } %>
+      <% end %>
+      <% if kase.status == "resolved" %>
+        <%= button_to "ເປີດຄືນ", admin_support_chat_reopen_path(user_id: user.id), method: :post, class: "sc-case-btn primary", form: { style: "display:inline;" } %>
+      <% else %>
+        <%= button_to "ປິດເຄສ", admin_support_chat_resolve_path(user_id: user.id), method: :post, class: "sc-case-btn danger", form: { style: "display:inline;" } %>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="sc-thread" id="sc-thread">
+    <% if messages.empty? %>
+      <div class="sc-empty">ຍັງບໍ່ມີຂໍ້ຄວາມ</div>
+    <% else %>
+      <% messages.each do |m| %>
+        <div class="sc-bubble <%= m.sender %>" data-id="<%= m.id %>">
+          <%= m.body %>
+          <span class="sc-bubble-time"><%= m.created_at.strftime("%d/%m/%Y %H:%M") %></span>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+
+  <%= form_with url: admin_support_chat_reply_path(user_id: user.id), method: :post, local: true, html: { class: "sc-reply-bar", id: "sc-reply-form" } do |f| %>
+    <% if templates.any? %>
+      <select class="sc-tpl-select" id="sc-tpl-select">
+        <option value="">ຄຳຕອບດ່ວນ...</option>
+        <% templates.each do |t| %>
+          <option value="<%= t.body %>"><%= t.title %></option>
+        <% end %>
+      </select>
+    <% end %>
+    <%= f.text_field :body, name: "body", id: "sc-reply-input", class: "sc-reply-input", placeholder: "ພິມຂໍ້ຄວາມ...", autocomplete: "off", required: true %>
+    <button type="submit" class="sc-reply-btn"><i class="fas fa-paper-plane"></i></button>
+  <% end %>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@rails/actioncable@8.0.501/app/assets/javascripts/actioncable.min.js"></script>
+<script>
+  (function () {
+    var tplSelect = document.getElementById('sc-tpl-select');
+    var replyInput = document.getElementById('sc-reply-input');
+    if (tplSelect && replyInput) {
+      tplSelect.addEventListener('change', function () {
+        if (tplSelect.value) { replyInput.value = tplSelect.value; replyInput.focus(); }
+      });
+    }
+
+    if (typeof ActionCable === 'undefined') return;
+    var thread = document.getElementById('sc-thread');
+    var cable = ActionCable.createConsumer('/cable');
+    cable.subscriptions.create({ channel: 'ChatMessagesChannel', user_id: <%= user.id %> }, {
+      received: function (data) {
+        var m = data.message;
+        if (!m || m.sender !== 'user') return;
+        var empty = thread.querySelector('.sc-empty');
+        if (empty) empty.remove();
+        var div = document.createElement('div');
+        div.className = 'sc-bubble user';
+        div.textContent = m.body;
+        var time = document.createElement('span');
+        time.className = 'sc-bubble-time';
+        time.textContent = new Date(m.created_at).toLocaleString();
+        div.appendChild(time);
+        thread.appendChild(div);
+        thread.scrollTop = thread.scrollHeight;
+      }
+    });
+    thread.scrollTop = thread.scrollHeight;
+  })();
+</script>

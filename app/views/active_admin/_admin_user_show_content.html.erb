@@ -1,0 +1,218 @@
+<%
+  u = resource
+  role_label = { "admin" => "Admin", "superadmin" => "Superadmin", "partner" => "Partner", "insurance" => "Insurance", "staff" => "Staff" }
+  role_icon  = { "admin" => "fa-user-shield", "superadmin" => "fa-crown", "partner" => "fa-warehouse", "insurance" => "fa-building-shield", "staff" => "fa-id-badge" }
+  role_color = { "admin" => "#2563eb", "superadmin" => "#7c3aed", "partner" => "#f59e0b", "insurance" => "#0ea5e9", "staff" => "#16a34a" }
+%>
+
+<style>
+  #titlebar { display:none !important; }
+  body.active_admin, #wrapper, #active_admin_content, #main_content,
+  #main, .flashes { background:#f4f6f9 !important; }
+  #main_content > .panel { background:transparent !important; border:none !important; box-shadow:none !important; padding:0 !important; margin:0 !important; }
+  #main_content > .panel > .panel_contents { padding:0 !important; }
+
+  .ics-page {
+    --brand:#27bc9c; --brand-d:#1e9e82; --ink:#1f2a37; --muted:#6b7684; --line:#e9edf2; --soft:#f4f6f9;
+    color:var(--ink); font-family:"Noto Sans Lao","Phetsarath OT",system-ui,sans-serif;
+    max-width:900px;
+  }
+
+  .ics-bar { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:22px; }
+  .ics-bar-l { display:flex; align-items:center; gap:14px; }
+  .ics-bar-ico { width:50px; height:50px; border-radius:14px; display:grid; place-items:center;
+                 background:linear-gradient(135deg,#27bc9c,#1e9e82); color:#fff; font-size:20px;
+                 box-shadow:0 8px 20px rgba(39,188,156,.35); flex-shrink:0; }
+  .ics-bar h2 { font-size:21px; font-weight:800; margin:0; }
+  .ics-bar p  { font-size:12.5px; color:var(--muted); margin:3px 0 0; }
+  .ics-bar-btns { display:flex; gap:10px; }
+  .ics-btn { display:inline-flex; align-items:center; gap:7px; padding:10px 20px; border-radius:11px;
+             font-size:13.5px; font-weight:700; cursor:pointer; text-decoration:none !important;
+             text-shadow:none !important; border:none; transition:.15s; white-space:nowrap;
+             font-family:inherit; }
+  .ics-btn-edit { background:linear-gradient(135deg,#27bc9c,#1e9e82); color:#fff !important;
+                  box-shadow:0 6px 16px rgba(39,188,156,.35); }
+  .ics-btn-edit:hover { filter:brightness(1.07); color:#fff !important; transform:translateY(-1px); }
+  .ics-btn-back { background:#fff; border:1.5px solid var(--line); color:var(--muted) !important;
+                  box-shadow:0 2px 8px rgba(0,0,0,.06); }
+  .ics-btn-back:hover { border-color:#27bc9c; color:#27bc9c !important; }
+
+  .ics-hero { background:#fff; border-radius:20px; box-shadow:0 4px 20px rgba(16,24,40,.06);
+              padding:26px 28px; margin-bottom:20px; display:flex; align-items:center; gap:24px; flex-wrap:wrap; }
+  .ics-avatar { width:76px; height:76px; border-radius:20px; background:#e6f7f3; color:#27bc9c;
+                display:flex; align-items:center; justify-content:center; font-size:28px; font-weight:800; flex-shrink:0; }
+  .ics-hero-info { flex:1; min-width:200px; }
+  .ics-hero-info h3 { font-size:19px; font-weight:800; margin:0 0 8px; }
+  .ics-hero-meta { display:flex; align-items:center; gap:14px; flex-wrap:wrap; font-size:12.5px; color:var(--muted); }
+  .ics-hero-meta span { display:inline-flex; align-items:center; gap:6px; }
+  .ics-role-badge { display:inline-flex; align-items:center; gap:6px; padding:5px 14px; border-radius:20px; font-size:12.5px; font-weight:700; }
+  .ics-hero-stats { display:flex; gap:12px; flex-shrink:0; }
+  .ics-stat-box { text-align:center; background:var(--soft); border-radius:14px; padding:12px 20px; min-width:84px; }
+  .ics-stat-box .val { font-size:22px; font-weight:800; color:var(--brand-d); letter-spacing:-.5px; }
+  .ics-stat-box .lbl { font-size:11px; color:var(--muted); font-weight:600; margin-top:2px; }
+
+  .ics-card { background:#fff; border-radius:20px; box-shadow:0 4px 20px rgba(16,24,40,.06);
+              padding:24px 26px; margin-bottom:20px; }
+  .ics-card-hd { display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:15px; font-weight:800;
+                 color:var(--ink); margin-bottom:18px; padding-bottom:14px; border-bottom:2px solid var(--soft); }
+  .ics-card-hd-l { display:flex; align-items:center; gap:10px; }
+  .ics-card-hd i { width:32px; height:32px; border-radius:9px; display:grid; place-items:center;
+                   background:#e6f7f3; color:#27bc9c; font-size:14px; flex-shrink:0; }
+
+  .ics-g2 { display:grid; grid-template-columns:repeat(2,1fr); gap:20px; }
+  .ics-field { margin-bottom:16px; }
+  .ics-field:last-child { margin-bottom:0; }
+  .ics-lbl { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; margin-bottom:4px; }
+  .ics-val { font-size:14px; color:var(--ink); }
+  .ics-val.muted { color:#b0bac5; font-style:italic; }
+
+  .ics-online-row { display:flex; align-items:center; justify-content:space-between; border:1.5px solid var(--line);
+                     border-radius:12px; padding:14px 18px; }
+  .ics-online-dot { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:6px; }
+
+  .ics-perm-table { width:100%; border-collapse:collapse; font-size:12.5px; }
+  .ics-perm-table th { text-align:left; padding:8px 10px; color:var(--muted); font-weight:700; border-bottom:1.5px solid var(--soft); }
+  .ics-perm-table td { padding:8px 10px; border-bottom:1px solid var(--soft); }
+</style>
+
+<div class="ics-page">
+  <div class="ics-bar">
+    <div class="ics-bar-l">
+      <div class="ics-bar-ico"><i class="fas fa-user-shield"></i></div>
+      <div>
+        <h2>ລາຍລະອຽດຜູ້ດູແລລະບົບ</h2>
+        <p>ຂໍ້ມູນບັນຊີ ແລະ ຂອບເຂດການເຂົ້າເຖິງ</p>
+      </div>
+    </div>
+    <div class="ics-bar-btns">
+      <%= link_to edit_admin_admin_user_path(u), class: 'ics-btn ics-btn-edit' do %>
+        <i class="fas fa-edit"></i>ແກ້ໄຂ
+      <% end %>
+      <%= link_to admin_admin_users_path, class: 'ics-btn ics-btn-back' do %>
+        <i class="fas fa-arrow-left"></i>ກັບຄືນ
+      <% end %>
+    </div>
+  </div>
+
+  <div class="ics-hero">
+    <div class="ics-avatar"><%= (u.email || "?")[0].upcase %></div>
+    <div class="ics-hero-info">
+      <h3><%= u.email %></h3>
+      <div class="ics-hero-meta">
+        <span class="ics-role-badge" style="background:<%= role_color[u.role] %>1a;color:<%= role_color[u.role] %>;">
+          <i class="fas <%= role_icon[u.role] %>"></i> <%= role_label[u.role] || u.role %>
+        </span>
+        <span><i class="fas fa-calendar"></i> ສ້າງເມື່ອ <%= u.created_at.strftime('%d/%m/%Y') %></span>
+      </div>
+    </div>
+    <div class="ics-hero-stats">
+      <div class="ics-stat-box">
+        <div class="val"><%= u.sign_in_count %></div>
+        <div class="lbl">ເຂົ້າສູ່ລະບົບ</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ics-card">
+    <div class="ics-card-hd">
+      <div class="ics-card-hd-l"><i class="fas fa-info-circle"></i>ຂໍ້ມູນທົ່ວໄປ</div>
+    </div>
+    <div class="ics-g2">
+      <div class="ics-field">
+        <div class="ics-lbl">ອີເມວ</div>
+        <div class="ics-val"><%= u.email %></div>
+      </div>
+      <div class="ics-field">
+        <div class="ics-lbl">ເຂົ້າສູ່ລະບົບຫຼ້າສຸດ</div>
+        <div class="ics-val <%= 'muted' unless u.current_sign_in_at %>">
+          <%= u.current_sign_in_at&.strftime('%d/%m/%Y %H:%M') || 'ຍັງບໍ່ເຄີຍເຂົ້າສູ່ລະບົບ' %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <% if u.inspection_center %>
+    <div class="ics-card">
+      <div class="ics-card-hd">
+        <div class="ics-card-hd-l"><i class="fas fa-warehouse"></i>ສູນກວດກາເຕັກນິກ</div>
+      </div>
+      <div class="ics-field">
+        <div class="ics-val">
+          <%= link_to u.inspection_center.name, admin_inspection_center_path(u.inspection_center), style: "color:#27bc9c;font-weight:700;" %>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <% if u.insurance_company %>
+    <div class="ics-card">
+      <div class="ics-card-hd">
+        <div class="ics-card-hd-l"><i class="fas fa-building-shield"></i>ບໍລິສັດປະກັນໄພ</div>
+      </div>
+      <div class="ics-field">
+        <div class="ics-val">
+          <%= link_to u.insurance_company.name, admin_insurance_company_path(u.insurance_company), style: "color:#27bc9c;font-weight:700;" %>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <% if u.service_center %>
+    <div class="ics-card">
+      <div class="ics-card-hd">
+        <div class="ics-card-hd-l"><i class="fas fa-store"></i>ສູນບໍລິການ</div>
+      </div>
+      <div class="ics-field">
+        <div class="ics-val">
+          <%= link_to u.service_center.name, admin_service_center_path(u.service_center), style: "color:#27bc9c;font-weight:700;" %>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <% if u.custom_role %>
+    <div class="ics-card">
+      <div class="ics-card-hd">
+        <div class="ics-card-hd-l"><i class="fas fa-id-badge"></i>Role: <%= u.custom_role.name %></div>
+        <%= link_to "ແກ້ໄຂ Role →", edit_admin_role_path(u.custom_role), style: "font-size:12px;color:#27bc9c;font-weight:700;" %>
+      </div>
+      <table class="ics-perm-table">
+        <thead>
+          <tr><th>ຊັບພະຍາກອນ</th><th>ອ່ານ</th><th>ເພີ່ມ</th><th>ແກ້ໄຂ</th><th>ລຶບ</th></tr>
+        </thead>
+        <tbody>
+          <% u.custom_role.permissions.where(can_read: true).order(:resource).each do |p| %>
+            <tr>
+              <td><%= Permission::CATALOG.dig(p.resource, :label) || p.resource %></td>
+              <td><%= p.can_read   ? '✓' : '—' %></td>
+              <td><%= p.can_create ? '✓' : '—' %></td>
+              <td><%= p.can_update ? '✓' : '—' %></td>
+              <td><%= p.can_delete ? '✓' : '—' %></td>
+            </tr>
+          <% end %>
+          <% if u.custom_role.permissions.where(can_read: true).empty? %>
+            <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:16px;">ຍັງບໍ່ໄດ້ຮັບອະນຸຍາດເຂົ້າເຖິງໜ້າໃດ</td></tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% end %>
+
+  <% if u.role.in?(%w[admin superadmin]) %>
+    <div class="ics-card">
+      <div class="ics-card-hd">
+        <div class="ics-card-hd-l"><i class="fas fa-headset"></i>Support Agent</div>
+      </div>
+      <div class="ics-online-row">
+        <span>
+          <% if u.is_support_agent? %>
+            <span class="ics-online-dot" style="background:<%= u.support_online? ? '#16a34a' : '#94a3b8' %>;"></span>
+            <%= u.support_online? ? "ອອນລາຍ — ຮັບເຄສຢູ່" : "ອອບລາຍ — ບໍ່ຮັບເຄສ" %>
+          <% else %>
+            <span style="color:var(--muted);">ບໍ່ໄດ້ເປີດໃຊ້ Support Agent</span>
+          <% end %>
+        </span>
+      </div>
+    </div>
+  <% end %>
+</div>

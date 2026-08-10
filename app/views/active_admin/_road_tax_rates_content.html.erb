@@ -1,0 +1,252 @@
+<%
+  vt_label = { "motorcycle" => "ລົດຈັກ", "car" => "ລົດເກັ່ງ", "pickup" => "ລົດກະບະ", "suv" => "ລົດຈິບ",
+               "van" => "ລົດຕູ້", "bus" => "ລົດເມ", "towtruck" => "ລົດລາກ", "trailer" => "ລົດພ່ວງ" }
+
+  filter_type   = params.dig(:q, :type)
+  filter_status = params.dig(:q, :status)
+
+  scope = RoadTaxRate.order(vehicle_type: :asc)
+  scope = scope.where(vehicle_type: filter_type) if filter_type.present?
+  scope = scope.where(status: filter_status) if filter_status.present?
+
+  page     = (params[:page] || 1).to_i
+  per_page = 30
+  rates = scope.page(page).per(per_page)
+
+  total        = RoadTaxRate.count
+  active_count = RoadTaxRate.where(status: 'active').count
+  has_filter   = filter_type.present? || filter_status.present?
+%>
+
+<style>
+  .index_content .scopes, #titlebar { display:none !important; }
+  body.active_admin, #wrapper, #active_admin_content, #main_content,
+  .index_content, #main, .flashes { background:#f4f6f9 !important; }
+  .index_content > .panel,
+  .index_as_table,
+  #main_content .panel:first-child { background:transparent !important; border:none !important; box-shadow:none !important; padding:0 !important; margin:0 !important; }
+  .index_content > .panel > .panel_contents,
+  .index_as_table > .panel_contents { padding:0 !important; background:transparent !important; }
+
+  .ic-page { --brand:#27bc9c; --brand-d:#1e9e82; --ink:#1f2a37; --muted:#6b7684; --line:#e9edf2;
+             color:var(--ink); font-family:"Noto Sans Lao","Phetsarath OT",system-ui,sans-serif; }
+
+  .ic-head { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:24px; }
+  .ic-head-l { display:flex; align-items:center; gap:14px; }
+  .ic-head-ico { width:48px; height:48px; border-radius:14px; display:grid; place-items:center;
+                 color:#fff; font-size:20px; background:linear-gradient(135deg,#27bc9c,#1e9e82);
+                 box-shadow:0 8px 18px rgba(39,188,156,.35); flex-shrink:0; }
+  .ic-head h2 { font-size:20px; font-weight:800; margin:0; letter-spacing:-.2px; }
+  .ic-head p  { font-size:12.5px; color:var(--muted); margin:3px 0 0; }
+  .ic-btn-add { border:none; border-radius:11px; padding:10px 20px; font-size:13.5px; font-weight:700;
+                background:linear-gradient(135deg,#27bc9c,#1e9e82); color:#fff !important;
+                box-shadow:0 6px 14px rgba(39,188,156,.32); cursor:pointer; display:inline-flex;
+                align-items:center; gap:8px; text-decoration:none !important; transition:.15s; }
+  .ic-btn-add:hover { filter:brightness(1.06); color:#fff !important; transform:translateY(-1px); }
+
+  .ic-stats { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; margin-bottom:22px; }
+  .ic-stat { background:#fff; border-radius:16px; padding:18px 20px;
+             box-shadow:0 4px 16px rgba(16,24,40,.05); display:flex; align-items:center; gap:16px;
+             border-left:4px solid transparent; }
+  .ic-stat.teal  { border-left-color:#27bc9c; }
+  .ic-stat.green { border-left-color:#16a34a; }
+  .ic-stat-ico { width:44px; height:44px; border-radius:12px; display:grid; place-items:center; font-size:18px; flex-shrink:0; }
+  .ic-stat.teal  .ic-stat-ico { background:#e6f7f3; color:#27bc9c; }
+  .ic-stat.green .ic-stat-ico { background:#dcfce7; color:#16a34a; }
+  .ic-stat-label { font-size:12px; color:var(--muted); font-weight:600; margin:0 0 4px; }
+  .ic-stat-val   { font-size:24px; font-weight:800; margin:0; letter-spacing:-.5px; }
+
+  .ic-filter { background:#fff; border-radius:16px; padding:18px 20px; margin-bottom:20px;
+               box-shadow:0 4px 16px rgba(16,24,40,.05); }
+  .ic-filter-label { display:block; font-size:12.5px; font-weight:700; color:#334155; margin-bottom:6px; }
+  .ic-filter-input { width:100%; border:1px solid var(--line); border-radius:10px; padding:10px 14px;
+                     font-size:13.5px; background:#fff; outline:none;
+                     font-family:inherit; color:var(--ink); }
+  .ic-filter-input:focus { border-color:#27bc9c; box-shadow:0 0 0 3px rgba(39,188,156,.12); }
+  .ic-filter-row { display:flex !important; flex-direction:row !important; gap:12px; align-items:flex-end; flex-wrap:nowrap; }
+  .ic-filter-sel    { flex:1; min-width:0; }
+  .ic-filter-btns   { flex-shrink:0; display:flex; flex-direction:column; gap:6px; }
+  .ic-btn-filter { border:none; border-radius:10px; padding:10px 18px; font-size:13.5px; font-weight:700;
+                   background:#1f2a37; color:#fff; cursor:pointer; display:inline-flex; align-items:center; gap:6px;
+                   white-space:nowrap; width:100%; justify-content:center; min-height:44px; box-sizing:border-box; }
+  .ic-btn-filter:hover { background:#374151; }
+  .ic-btn-clear { border:1px solid var(--line); border-radius:10px; padding:10px 18px; font-size:13.5px;
+                  font-weight:600; background:#fff; text-decoration:none !important;
+                  display:inline-flex; align-items:center; gap:6px; white-space:nowrap;
+                  width:100%; justify-content:center; color:var(--muted) !important;
+                  min-height:44px; box-sizing:border-box; }
+  .ic-btn-clear:hover { background:#f8fafc; color:var(--ink) !important; }
+
+  .ic-table-card { background:#fff; border-radius:20px; overflow:hidden; box-shadow:0 4px 20px rgba(16,24,40,.06); }
+  .ic-table { width:100%; border-collapse:collapse; }
+  .ic-table thead th { background:#f8fafc; padding:12px 14px; font-size:12px; font-weight:700;
+                       color:var(--muted); text-transform:uppercase; letter-spacing:.5px;
+                       border-bottom:1px solid var(--line); white-space:nowrap; }
+  .ic-table thead th:first-child { padding-left:20px; }
+  .ic-table thead th:last-child  { padding-right:20px; text-align:center; }
+  .ic-table tbody td { padding:12px 14px; font-size:13.5px; border-bottom:1px solid var(--line); vertical-align:middle; }
+  .ic-table tbody td:first-child { padding-left:20px; }
+  .ic-table tbody td:last-child  { padding-right:20px; text-align:center; }
+  .ic-table tbody tr:last-child td { border-bottom:none; }
+  .ic-table tbody tr:hover td { background:#fafcfb; }
+
+  .ic-status { display:inline-block; padding:5px 12px; border-radius:20px; font-size:12px; font-weight:600; white-space:nowrap; }
+  .ic-status-active   { background:#dcfce7; color:#16a34a; }
+  .ic-status-inactive { background:#fee2e2; color:#dc2626; }
+
+  .ic-actions { display:flex; gap:5px; justify-content:center; }
+  .ic-btn-view { border:1px solid #0ea5e9; background:#f0f9ff; color:#0369a1 !important; border-radius:7px;
+                 padding:5px 10px; font-size:12px; font-weight:700; text-decoration:none !important;
+                 display:inline-flex; align-items:center; gap:4px; transition:.15s; }
+  .ic-btn-view:hover { background:#0ea5e9; color:#fff !important; }
+  .ic-btn-edit { border:1px solid #16a34a; background:#f0fdf4; color:#15803d !important; border-radius:7px;
+                 padding:5px 10px; font-size:12px; font-weight:700; text-decoration:none !important;
+                 display:inline-flex; align-items:center; gap:4px; transition:.15s; }
+  .ic-btn-edit:hover { background:#16a34a; color:#fff !important; }
+  .ic-btn-del { border:1px solid #f87171; background:#fff1f2; color:#991b1b; border-radius:7px;
+                padding:5px 10px; font-size:12px; font-weight:700; cursor:pointer;
+                display:inline-flex; align-items:center; gap:4px; transition:.15s; }
+  .ic-btn-del:hover { background:#dc2626; color:#fff; border-color:#dc2626; }
+  .ic-btn-del form { margin:0; }
+
+  .ic-empty { text-align:center; padding:60px 20px; }
+  .ic-empty i { font-size:3rem; color:#cbd5e1; display:block; margin-bottom:12px; }
+  .ic-empty p { color:var(--muted); font-size:14px; margin:0; }
+
+  .ic-page-wrap .pagination .page.current a,
+  .ic-page-wrap .pagination .page.current span { background:#27bc9c; border-color:#27bc9c; color:#fff; border-radius:8px; }
+  .ic-page-wrap .pagination a, .ic-page-wrap .pagination span { border-radius:8px; }
+</style>
+
+<div class="ic-page">
+
+  <div class="ic-head">
+    <div class="ic-head-l">
+      <div class="ic-head-ico"><i class="fas fa-percent"></i></div>
+      <div>
+        <h2>ອັດຕາຄ່າທາງ</h2>
+        <p>ກຳນົດລາຄາຄ່າທາງຕາມປະເພດ ແລະ ຂະໜາດລົດ</p>
+      </div>
+    </div>
+    <%= link_to new_admin_road_tax_rate_path, class: 'ic-btn-add' do %>
+      <i class="fas fa-plus"></i>ເພີ່ມອັດຕາໃໝ່
+    <% end %>
+  </div>
+
+  <div class="ic-stats">
+    <div class="ic-stat teal">
+      <div class="ic-stat-ico"><i class="fas fa-list"></i></div>
+      <div><p class="ic-stat-label">ອັດຕາທັງໝົດ</p><p class="ic-stat-val"><%= total %></p></div>
+    </div>
+    <div class="ic-stat green">
+      <div class="ic-stat-ico"><i class="fas fa-check-circle"></i></div>
+      <div><p class="ic-stat-label">ເປີດໃຊ້</p><p class="ic-stat-val"><%= active_count %></p></div>
+    </div>
+  </div>
+
+  <div class="ic-filter">
+    <form method="GET" action="<%= admin_road_tax_rates_path %>">
+      <div class="ic-filter-row">
+        <div class="ic-filter-sel">
+          <label class="ic-filter-label">ປະເພດລົດ</label>
+          <select name="q[type]" class="ic-filter-input">
+            <option value="">ທັງໝົດ</option>
+            <% RoadTaxRate::VEHICLE_TYPES.each do |t| %>
+              <option value="<%= t %>" <%= 'selected' if filter_type == t %>><%= vt_label[t] %></option>
+            <% end %>
+          </select>
+        </div>
+        <div class="ic-filter-sel">
+          <label class="ic-filter-label">ສະຖານະ</label>
+          <select name="q[status]" class="ic-filter-input">
+            <option value="">ທັງໝົດ</option>
+            <option value="active"   <%= 'selected' if filter_status == 'active'   %>>ເປີດໃຊ້</option>
+            <option value="inactive" <%= 'selected' if filter_status == 'inactive' %>>ປິດໃຊ້</option>
+          </select>
+        </div>
+        <div class="ic-filter-btns">
+          <button type="submit" class="ic-btn-filter">
+            <i class="fas fa-filter"></i>ກອງຂໍ້ມູນ
+          </button>
+          <% if has_filter %>
+            <a href="<%= admin_road_tax_rates_path %>" class="ic-btn-clear">
+              <i class="fas fa-times"></i>ລ້າງ
+            </a>
+          <% end %>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div class="ic-table-card">
+    <div style="overflow-x:auto;">
+      <table class="ic-table">
+        <thead>
+          <tr>
+            <th>ປະເພດລົດ</th>
+            <th>ຂອບເຂດ</th>
+            <th>ລາຄາ</th>
+            <th>ສະຖານະ</th>
+            <th>ຈັດການ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% rates.each do |r| %>
+            <tr>
+              <td style="font-weight:700;"><%= vt_label[r.vehicle_type] || r.vehicle_type %></td>
+              <td style="font-size:12.5px;color:var(--muted);">
+                <% if RoadTaxRate::SEAT_BASED_TYPES.include?(r.vehicle_type) %>
+                  <%= r.min_seats %> - <%= r.max_seats %> ບ່ອນນັ່ງ
+                <% elsif RoadTaxRate::WEIGHT_BASED_TYPES.include?(r.vehicle_type) %>
+                  <%= r.min_weight %> - <%= r.max_weight %> ຕັນ
+                <% else %>
+                  <%= r.min_cc %> - <%= r.max_cc %> CC
+                <% end %>
+              </td>
+              <td style="font-weight:700;"><%= number_to_currency(r.price, unit: "₭", precision: 0, delimiter: ",") %></td>
+              <td>
+                <span class="ic-status <%= r.status == 'active' ? 'ic-status-active' : 'ic-status-inactive' %>">
+                  <%= r.status == 'active' ? 'ເປີດໃຊ້' : 'ປິດ' %>
+                </span>
+              </td>
+              <td>
+                <div class="ic-actions">
+                  <%= link_to admin_road_tax_rate_path(r), class: 'ic-btn-view' do %>
+                    <i class="fas fa-eye"></i>
+                  <% end %>
+                  <%= link_to edit_admin_road_tax_rate_path(r), class: 'ic-btn-edit' do %>
+                    <i class="fas fa-edit"></i>
+                  <% end %>
+                  <%= button_to admin_road_tax_rate_path(r), method: :delete,
+                        class: 'ic-btn-del',
+                        form: { style: 'margin:0;' },
+                        data: { confirm: "ຢືນຢັນການລົບອັດຕານີ້?" } do %>
+                    <i class="fas fa-trash"></i>
+                  <% end %>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+
+          <% if rates.empty? %>
+            <tr>
+              <td colspan="5">
+                <div class="ic-empty">
+                  <i class="fas fa-percent"></i>
+                  <p>ບໍ່ພົບອັດຕາຄ່າທາງ</p>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <% if rates.respond_to?(:total_pages) && rates.total_pages > 1 %>
+    <div class="ic-page-wrap" style="display:flex;justify-content:center;margin-top:20px;">
+      <%= paginate rates %>
+    </div>
+  <% end %>
+
+</div>

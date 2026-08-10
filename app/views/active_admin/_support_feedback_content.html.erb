@@ -1,0 +1,49 @@
+<%
+  rated = SupportCase.where.not(rating: nil).includes(:user, :admin_user).order(resolved_at: :desc)
+  avg_rating = rated.average(:rating)&.round(2)
+%>
+
+<style>
+  .fb-row { padding: 14px 20px; border-bottom: 1px solid #f8fafc; }
+  .fb-row:last-child { border-bottom: none; }
+  .fb-stars { color: #f59e0b; font-size: 13px; }
+  .fb-star-off { color: #e2e8f0; }
+  .fb-comment { font-size: 12.5px; color: #64748b; margin-top: 6px; }
+  .fb-meta { font-size: 11px; color: #94a3b8; margin-top: 6px; }
+</style>
+
+<div class="stat-grid">
+  <div class="stat-card card-blue">
+    <div class="stat-icon-wrap"><i class="fas fa-star"></i></div>
+    <div class="stat-right"><div class="stat-value"><%= avg_rating || "—" %></div><div class="stat-label">ຄະແນນສະເລ່ຍ</div></div>
+  </div>
+  <div class="stat-card card-green">
+    <div class="stat-icon-wrap"><i class="fas fa-comment-dots"></i></div>
+    <div class="stat-right"><div class="stat-value"><%= rated.count %></div><div class="stat-label">ຈຳນວນລີວິວ</div></div>
+  </div>
+</div>
+
+<div class="dash-panel" style="margin-top:16px;">
+  <div class="dash-panel-header">
+    <span><i class="fas fa-comment-dots"></i> ຄວາມຄິດເຫັນລ່າສຸດ</span>
+  </div>
+  <% if rated.empty? %>
+    <div style="text-align:center;color:#94a3b8;font-size:13px;padding:40px 0;">ຍັງບໍ່ມີການໃຫ້ຄະແນນ</div>
+  <% else %>
+    <% rated.each do |kase| %>
+      <div class="fb-row">
+        <div class="fb-stars">
+          <% 5.times do |i| %><i class="fas fa-star <%= 'fb-star-off' unless i < kase.rating %>"></i><% end %>
+        </div>
+        <% if kase.feedback_comment.present? %>
+          <div class="fb-comment">"<%= kase.feedback_comment %>"</div>
+        <% end %>
+        <div class="fb-meta">
+          <%= [kase.user.first_name, kase.user.last_name].compact.join(" ").presence || kase.user.phone_number %>
+          · ຮັບຜິດຊອບໂດຍ <%= kase.admin_user&.email || "—" %>
+          · <%= kase.resolved_at&.strftime("%d/%m/%Y") %>
+        </div>
+      </div>
+    <% end %>
+  <% end %>
+</div>

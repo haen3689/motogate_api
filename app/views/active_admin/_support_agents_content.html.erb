@@ -1,0 +1,65 @@
+<%
+  agents = AdminUser.where(role: "admin").order(is_support_agent: :desc, email: :asc)
+%>
+
+<style>
+  .sa-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+  .sa-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 10.5px; font-weight: 700; }
+</style>
+
+<div class="dash-panel">
+  <div class="dash-panel-header">
+    <span><i class="fas fa-users"></i> Agent ທັງໝົດ (<%= agents.count %>)</span>
+  </div>
+  <table class="index_table">
+    <thead>
+      <tr>
+        <th>Agent</th>
+        <th>ໃນລະບົບໝູນວຽນ</th>
+        <th>ສະຖານະ</th>
+        <th style="text-align:right;">ກຳລັງດຳເນີນ</th>
+        <th style="text-align:right;">ປິດແລ້ວ (ທັງໝົດ)</th>
+        <th style="text-align:right;">ຄະແນນສະເລ່ຍ</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% if agents.empty? %>
+        <tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:24px;">ຍັງບໍ່ມີ admin</td></tr>
+      <% else %>
+        <% agents.each do |a| %>
+          <% active_count = SupportCase.where(admin_user_id: a.id, status: %w[open pending]).count %>
+          <% resolved_count = SupportCase.where(admin_user_id: a.id, status: "resolved").count %>
+          <% avg_r = SupportCase.where(admin_user_id: a.id).where.not(rating: nil).average(:rating)&.round(2) %>
+          <tr>
+            <td><%= link_to a.email, admin_admin_user_path(a) %></td>
+            <td>
+              <% if a.is_support_agent? %>
+                <span class="sa-badge" style="background:#dbeafe;color:#1d4ed8;">ຢູ່ໃນລະບົບ</span>
+              <% else %>
+                <span class="sa-badge" style="background:#f1f5f9;color:#94a3b8;">ບໍ່ໄດ້ເປີດໃຊ້</span>
+              <% end %>
+            </td>
+            <td>
+              <span class="sa-dot" style="background:<%= a.support_online? ? '#16a34a' : '#94a3b8' %>;"></span>
+              <%= a.support_online? ? "ອອນລາຍ" : "ອອບລາຍ" %>
+            </td>
+            <td style="text-align:right;font-weight:700;"><%= active_count %></td>
+            <td style="text-align:right;"><%= resolved_count %></td>
+            <td style="text-align:right;">
+              <% if avg_r %>
+                <i class="fas fa-star" style="color:#f59e0b;font-size:11px;"></i> <%= avg_r %>
+              <% else %>
+                —
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      <% end %>
+    </tbody>
+  </table>
+</div>
+
+<p style="font-size:11.5px;color:#94a3b8;margin-top:12px;">
+  ເປີດ/ປິດ "ໃນລະບົບໝູນວຽນ" ໄດ້ທີ່ໜ້າແກ້ໄຂຜູ້ດູແລລະບົບ (<%= link_to "ຜູ້ດູແລລະບົບ →", admin_admin_users_path %>) —
+  ມີແຕ່ agent ທີ່ເປີດໄວ້ ແລະ ອອນລາຍຢູ່ເທົ່ານັ້ນທີ່ຈະຖືກໝູນວຽນຮັບເຄສໃໝ່ອັດຕະໂນມັດ.
+</p>

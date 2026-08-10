@@ -1,0 +1,124 @@
+<% b = resource %>
+
+<style>
+  #titlebar { display:none !important; }
+  body.active_admin, #wrapper, #active_admin_content, #main_content,
+  #main, .flashes { background:#f4f6f9 !important; }
+  #main_content > .panel { background:transparent !important; border:none !important; box-shadow:none !important; padding:0 !important; margin:0 !important; }
+  #main_content > .panel > .panel_contents { padding:0 !important; }
+
+  .vef-page {
+    --brand:#27bc9c; --brand-d:#1e9e82; --ink:#1f2a37; --muted:#6b7684; --line:#e9edf2; --soft:#f4f6f9;
+    color:var(--ink); font-family:"Noto Sans Lao","Phetsarath OT",system-ui,sans-serif;
+    max-width:640px;
+  }
+
+  .vef-bar { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:28px; }
+  .vef-bar-l { display:flex; align-items:center; gap:14px; }
+  .vef-bar-ico { width:50px; height:50px; border-radius:14px; display:grid; place-items:center;
+                 background:linear-gradient(135deg,#27bc9c,#1e9e82); color:#fff; font-size:20px;
+                 box-shadow:0 8px 20px rgba(39,188,156,.35); flex-shrink:0; }
+  .vef-bar h2 { font-size:21px; font-weight:800; margin:0; }
+  .vef-bar p  { font-size:12.5px; color:var(--muted); margin:3px 0 0; }
+  .vef-bar-btns { display:flex; gap:10px; }
+  .vef-btn { display:inline-flex; align-items:center; gap:7px; padding:10px 22px; border-radius:11px;
+             font-size:13.5px; font-weight:700; cursor:pointer; text-decoration:none !important;
+             text-shadow:none !important; border:none; transition:.15s; white-space:nowrap;
+             font-family:inherit; }
+  .vef-btn-save { background:linear-gradient(135deg,#27bc9c,#1e9e82); color:#fff !important;
+                  box-shadow:0 6px 16px rgba(39,188,156,.35); }
+  .vef-btn-save:hover { filter:brightness(1.07); color:#fff !important; transform:translateY(-1px); }
+  .vef-btn-back { background:#fff; border:1.5px solid var(--line); color:var(--muted) !important;
+                  box-shadow:0 2px 8px rgba(0,0,0,.06); }
+  .vef-btn-back:hover { border-color:#27bc9c; color:#27bc9c !important; }
+
+  .vef-card { background:#fff; border-radius:20px; box-shadow:0 4px 20px rgba(16,24,40,.06);
+              padding:28px 32px; margin-bottom:20px; }
+  .vef-card-hd { display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:15px; font-weight:800;
+                 color:var(--ink); margin-bottom:24px; padding-bottom:14px;
+                 border-bottom:2px solid var(--soft); }
+  .vef-card-hd-l { display:flex; align-items:center; gap:10px; }
+  .vef-card-hd i { width:32px; height:32px; border-radius:9px; display:grid; place-items:center;
+                   background:#e6f7f3; color:#27bc9c; font-size:14px; flex-shrink:0; }
+
+  .vef-field { display:flex; flex-direction:column; gap:6px; }
+  .vef-label { font-size:12px; font-weight:700; color:#475569; letter-spacing:.02em; text-transform:uppercase; }
+  .vef-label span { color:#ef4444; }
+  .vef-input {
+    border:1.5px solid var(--line) !important; border-radius:10px !important;
+    padding:11px 14px !important; font-size:13.5px !important; background:#fff !important;
+    outline:none !important; font-family:inherit !important; color:var(--ink) !important;
+    transition:.2s; width:100% !important; box-sizing:border-box !important;
+    min-height:44px !important; line-height:1.4 !important; margin:0 !important;
+    box-shadow:none !important; appearance:none; -webkit-appearance:none;
+  }
+  .vef-input:focus { border-color:#27bc9c !important; box-shadow:0 0 0 3px rgba(39,188,156,.13) !important; }
+
+  .vef-status-wrap { display:flex; gap:8px; flex-wrap:wrap; }
+  .vef-sr { display:none; }
+  .vef-sl { padding:8px 18px; border-radius:9px; border:1.5px solid var(--line);
+            background:#fafafa; color:#94a3b8; font-size:13px; font-weight:700;
+            cursor:pointer; transition:.15s; user-select:none; }
+  .vef-sl:hover { border-color:#27bc9c; color:#27bc9c; }
+  #vb_active:checked   + .vef-sl { color:#fff;    background:#16a34a; border-color:#16a34a; }
+  #vb_inactive:checked + .vef-sl { color:#dc2626; background:#fff1f2; border-color:#f87171; }
+
+  .vef-errors { background:#fff1f2; border:1.5px solid #fca5a5; border-radius:14px;
+                padding:16px 22px; margin-bottom:20px; }
+  .vef-errors strong { color:#dc2626; display:block; margin-bottom:8px; }
+  .vef-errors li { color:#dc2626; font-size:13px; margin-bottom:2px; }
+</style>
+
+<div class="vef-page">
+  <%= form_with model: [:admin, b], local: true, html: { style:"margin:0;" } do |f| %>
+
+    <div class="vef-bar">
+      <div class="vef-bar-l">
+        <div class="vef-bar-ico"><i class="fas fa-trademark"></i></div>
+        <div>
+          <h2><%= b.persisted? ? 'ແກ້ໄຂຍີ່ຫໍ້ລົດ' : 'ເພີ່ມຍີ່ຫໍ້ລົດໃໝ່' %></h2>
+          <p>ຍີ່ຫໍ້ພາຫະນະ ໃຊ້ໃນຟອມລົງທະບຽນລົດ</p>
+        </div>
+      </div>
+      <div class="vef-bar-btns">
+        <%= f.submit(b.persisted? ? 'ບັນທຶກການແກ້ໄຂ' : 'ບັນທຶກທັງໝົດ', class: 'vef-btn vef-btn-save') %>
+        <%= link_to admin_vehicle_brands_path, class: 'vef-btn vef-btn-back' do %>
+          <i class="fas fa-arrow-left"></i>ກັບຄືນ
+        <% end %>
+      </div>
+    </div>
+
+    <% if b.errors.any? %>
+      <div class="vef-errors">
+        <strong><i class="fas fa-exclamation-circle" style="margin-right:6px;"></i>ກະລຸນາກວດສອບຂໍ້ມູນ</strong>
+        <ul style="margin:0;padding-left:18px;">
+          <% b.errors.full_messages.each do |msg| %>
+            <li><%= msg %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <div class="vef-card">
+      <div class="vef-card-hd">
+        <div class="vef-card-hd-l"><i class="fas fa-info-circle"></i>ຂໍ້ມູນຍີ່ຫໍ້</div>
+      </div>
+
+      <div class="vef-field" style="margin-bottom:20px;">
+        <label class="vef-label">ຊື່ຍີ່ຫໍ້ <span>*</span></label>
+        <%= f.text_field :name, class: 'vef-input', placeholder: 'ຕົວຢ່າງ: Toyota, Honda...' %>
+      </div>
+
+      <div class="vef-field">
+        <label class="vef-label">ສະຖານະ</label>
+        <div class="vef-status-wrap">
+          <%= f.radio_button :status, 'active', id: 'vb_active', class: 'vef-sr', checked: b.status != 'inactive' %>
+          <label class="vef-sl" for="vb_active">ເປີດໃຊ້ງານ</label>
+          <%= f.radio_button :status, 'inactive', id: 'vb_inactive', class: 'vef-sr' %>
+          <label class="vef-sl" for="vb_inactive">ປິດໃຊ້ງານ</label>
+        </div>
+      </div>
+    </div>
+
+  <% end %>
+</div>

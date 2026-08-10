@@ -1263,15 +1263,52 @@ body.dashboard #titlebar {
   background: white !important;
   border: 1px solid #e2e8f0 !important;
   border-radius: 12px !important;
-  padding: 14px 18px !important;
+  padding: 16px 18px !important;
+
+  .rf-filter-form {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)) !important;
+    gap: 14px !important;
+    align-items: end !important;
+  }
+
+  .rf-field {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+    min-width: 0 !important;
+  }
+
+  .rf-field label {
+    font-size: 0.74rem !important;
+    font-weight: 700 !important;
+    color: #64748b !important;
+    margin: 0 !important;
+    text-transform: uppercase !important;
+    letter-spacing: .02em !important;
+  }
+
+  .rf-field-btn { justify-content: flex-end !important; }
 }
 
 .report-date-input {
   border: 1px solid #e2e8f0 !important;
   border-radius: 8px !important;
-  padding: 6px 10px !important;
+  padding: 0 12px !important;
+  height: 40px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
   font-size: 0.85rem !important;
   font-family: $font !important;
+  background: white !important;
+  color: #334155 !important;
+  transition: border-color .15s, box-shadow .15s !important;
+
+  &:focus {
+    outline: none !important;
+    border-color: $primary !important;
+    box-shadow: 0 0 0 3px rgba($primary, .12) !important;
+  }
 }
 
 .report-filter-btn {
@@ -1279,11 +1316,20 @@ body.dashboard #titlebar {
   color: white !important;
   border: none !important;
   border-radius: 8px !important;
-  padding: 7px 16px !important;
+  height: 40px !important;
+  width: 100% !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
   font-size: 0.85rem !important;
-  font-weight: 600 !important;
+  font-weight: 700 !important;
   cursor: pointer !important;
   font-family: $font !important;
+  box-shadow: 0 4px 10px rgba($primary, .25) !important;
+  transition: filter .15s !important;
+
+  &:hover { filter: brightness(1.06) !important; }
 }
 
 .report-row {

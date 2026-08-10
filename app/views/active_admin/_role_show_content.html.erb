@@ -1,0 +1,150 @@
+<% r = resource %>
+
+<style>
+  #titlebar { display:none !important; }
+  body.active_admin, #wrapper, #active_admin_content, #main_content,
+  #main, .flashes { background:#f4f6f9 !important; }
+  #main_content > .panel { background:transparent !important; border:none !important; box-shadow:none !important; padding:0 !important; margin:0 !important; }
+  #main_content > .panel > .panel_contents { padding:0 !important; }
+
+  .ics-page {
+    --brand:#27bc9c; --brand-d:#1e9e82; --ink:#1f2a37; --muted:#6b7684; --line:#e9edf2; --soft:#f4f6f9;
+    color:var(--ink); font-family:"Noto Sans Lao","Phetsarath OT",system-ui,sans-serif;
+    max-width:900px;
+  }
+
+  .ics-bar { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:22px; }
+  .ics-bar-l { display:flex; align-items:center; gap:14px; }
+  .ics-bar-ico { width:50px; height:50px; border-radius:14px; display:grid; place-items:center;
+                 background:linear-gradient(135deg,#7c3aed,#6d28d9); color:#fff; font-size:20px;
+                 box-shadow:0 8px 20px rgba(124,58,237,.35); flex-shrink:0; }
+  .ics-bar h2 { font-size:21px; font-weight:800; margin:0; }
+  .ics-bar p  { font-size:12.5px; color:var(--muted); margin:3px 0 0; }
+  .ics-bar-btns { display:flex; gap:10px; }
+  .ics-btn { display:inline-flex; align-items:center; gap:7px; padding:10px 20px; border-radius:11px;
+             font-size:13.5px; font-weight:700; cursor:pointer; text-decoration:none !important;
+             text-shadow:none !important; border:none; transition:.15s; white-space:nowrap;
+             font-family:inherit; }
+  .ics-btn-edit { background:linear-gradient(135deg,#27bc9c,#1e9e82); color:#fff !important;
+                  box-shadow:0 6px 16px rgba(39,188,156,.35); }
+  .ics-btn-edit:hover { filter:brightness(1.07); color:#fff !important; transform:translateY(-1px); }
+  .ics-btn-back { background:#fff; border:1.5px solid var(--line); color:var(--muted) !important;
+                  box-shadow:0 2px 8px rgba(0,0,0,.06); }
+  .ics-btn-back:hover { border-color:#27bc9c; color:#27bc9c !important; }
+
+  .ics-hero { background:#fff; border-radius:20px; box-shadow:0 4px 20px rgba(16,24,40,.06);
+              padding:26px 28px; margin-bottom:20px; display:flex; align-items:center; gap:24px; flex-wrap:wrap; }
+  .ics-avatar { width:76px; height:76px; border-radius:20px; background:#ede9fe; color:#7c3aed;
+                display:flex; align-items:center; justify-content:center; font-size:28px; flex-shrink:0; }
+  .ics-hero-info { flex:1; min-width:200px; }
+  .ics-hero-info h3 { font-size:19px; font-weight:800; margin:0 0 8px; }
+  .ics-hero-meta { display:flex; align-items:center; gap:14px; flex-wrap:wrap; font-size:12.5px; color:var(--muted); }
+  .ics-hero-meta span { display:inline-flex; align-items:center; gap:6px; }
+  .ics-hero-meta code { background:var(--soft); padding:2px 8px; border-radius:6px; font-size:11.5px; }
+  .ics-hero-stats { display:flex; gap:12px; flex-shrink:0; }
+  .ics-stat-box { text-align:center; background:var(--soft); border-radius:14px; padding:12px 20px; min-width:84px; }
+  .ics-stat-box .val { font-size:22px; font-weight:800; color:var(--brand-d); letter-spacing:-.5px; }
+  .ics-stat-box .lbl { font-size:11px; color:var(--muted); font-weight:600; margin-top:2px; }
+
+  .ics-card { background:#fff; border-radius:20px; box-shadow:0 4px 20px rgba(16,24,40,.06);
+              padding:24px 26px; margin-bottom:20px; }
+  .ics-card-hd { display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:15px; font-weight:800;
+                 color:var(--ink); margin-bottom:18px; padding-bottom:14px; border-bottom:2px solid var(--soft); }
+  .ics-card-hd-l { display:flex; align-items:center; gap:10px; }
+  .ics-card-hd i { width:32px; height:32px; border-radius:9px; display:grid; place-items:center;
+                   background:#e6f7f3; color:#27bc9c; font-size:14px; flex-shrink:0; }
+
+  .ics-perm-table { width:100%; border-collapse:collapse; font-size:13px; }
+  .ics-perm-table th { text-align:left; padding:10px; color:var(--muted); font-weight:700; border-bottom:1.5px solid var(--soft); font-size:11.5px; text-transform:uppercase; }
+  .ics-perm-table th.c, .ics-perm-table td.c { text-align:center; }
+  .ics-perm-table td { padding:10px; border-bottom:1px solid var(--soft); }
+  .ics-perm-table tr.no-access td { color:#cbd5e1; }
+  .ics-perm-yes { color:#16a34a; font-weight:800; }
+  .ics-perm-no  { color:#e2e8f0; }
+
+  .ics-user-chip { display:inline-flex; align-items:center; gap:6px; background:var(--soft); border-radius:20px;
+                   padding:5px 12px; font-size:12px; font-weight:600; margin:0 6px 6px 0; }
+</style>
+
+<div class="ics-page">
+  <div class="ics-bar">
+    <div class="ics-bar-l">
+      <div class="ics-bar-ico"><i class="fas fa-user-shield"></i></div>
+      <div>
+        <h2><%= r.name %></h2>
+        <p>ລາຍລະອຽດ Role ແລະ ສິດທິ໌ການເຂົ້າເຖິງ</p>
+      </div>
+    </div>
+    <div class="ics-bar-btns">
+      <%= link_to edit_admin_role_path(r), class: 'ics-btn ics-btn-edit' do %>
+        <i class="fas fa-edit"></i>ແກ້ໄຂ
+      <% end %>
+      <%= link_to admin_roles_path, class: 'ics-btn ics-btn-back' do %>
+        <i class="fas fa-arrow-left"></i>ກັບຄືນ
+      <% end %>
+    </div>
+  </div>
+
+  <div class="ics-hero">
+    <div class="ics-avatar"><i class="fas fa-user-shield"></i></div>
+    <div class="ics-hero-info">
+      <h3><%= r.name %></h3>
+      <div class="ics-hero-meta">
+        <span><code><%= r.key %></code></span>
+        <span><i class="fas fa-calendar"></i> ສ້າງເມື່ອ <%= r.created_at.strftime('%d/%m/%Y') %></span>
+      </div>
+    </div>
+    <div class="ics-hero-stats">
+      <div class="ics-stat-box">
+        <div class="val"><%= r.admin_users.count %></div>
+        <div class="lbl">ຜູ້ໃຊ້</div>
+      </div>
+      <div class="ics-stat-box">
+        <div class="val"><%= r.permissions.where(can_read: true).count %></div>
+        <div class="lbl">ໜ້າທີ່ອະນຸຍາດ</div>
+      </div>
+    </div>
+  </div>
+
+  <% if r.admin_users.any? %>
+    <div class="ics-card">
+      <div class="ics-card-hd">
+        <div class="ics-card-hd-l"><i class="fas fa-users"></i>ຜູ້ໃຊ້ທີ່ໃຊ້ Role ນີ້</div>
+      </div>
+      <% r.admin_users.each do |u| %>
+        <%= link_to admin_admin_user_path(u), class: 'ics-user-chip', style: 'color:inherit;text-decoration:none;' do %>
+          <i class="fas fa-user"></i> <%= u.email %>
+        <% end %>
+      <% end %>
+    </div>
+  <% end %>
+
+  <div class="ics-card">
+    <div class="ics-card-hd">
+      <div class="ics-card-hd-l"><i class="fas fa-shield-halved"></i>ສິດທິ໌ການເຂົ້າເຖິງ</div>
+    </div>
+    <table class="ics-perm-table">
+      <thead>
+        <tr>
+          <th>ໜ້າທີ່</th>
+          <th class="c">ອ່ານ</th>
+          <th class="c">ເພີ່ມ</th>
+          <th class="c">ແກ້ໄຂ</th>
+          <th class="c">ລຶບ</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% Permission::CATALOG.each do |key, entry| %>
+          <% p = r.permissions.find { |pp| pp.resource == key } %>
+          <tr class="<%= 'no-access' if p.nil? || !p.can_read %>">
+            <td><i class="fas <%= entry[:icon] %>" style="width:16px;color:#94a3b8;margin-right:6px;"></i><%= entry[:label] %></td>
+            <td class="c"><span class="<%= p&.can_read ? 'ics-perm-yes' : 'ics-perm-no' %>">●</span></td>
+            <td class="c"><span class="<%= p&.can_create ? 'ics-perm-yes' : 'ics-perm-no' %>">●</span></td>
+            <td class="c"><span class="<%= p&.can_update ? 'ics-perm-yes' : 'ics-perm-no' %>">●</span></td>
+            <td class="c"><span class="<%= p&.can_delete ? 'ics-perm-yes' : 'ics-perm-no' %>">●</span></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>

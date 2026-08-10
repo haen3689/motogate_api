@@ -1,0 +1,158 @@
+<% r = resource %>
+
+<style>
+  #titlebar { display:none !important; }
+  body.active_admin, #wrapper, #active_admin_content, #main_content,
+  #main, .flashes { background:#f4f6f9 !important; }
+  #main_content > .panel { background:transparent !important; border:none !important; box-shadow:none !important; padding:0 !important; margin:0 !important; }
+  #main_content > .panel > .panel_contents { padding:0 !important; }
+
+  .vef-page {
+    --brand:#27bc9c; --brand-d:#1e9e82; --ink:#1f2a37; --muted:#6b7684; --line:#e9edf2; --soft:#f4f6f9;
+    color:var(--ink); font-family:"Noto Sans Lao","Phetsarath OT",system-ui,sans-serif;
+    max-width:820px;
+  }
+
+  .vef-bar { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:28px; }
+  .vef-bar-l { display:flex; align-items:center; gap:14px; }
+  .vef-bar-ico { width:50px; height:50px; border-radius:14px; display:grid; place-items:center;
+                 background:linear-gradient(135deg,#7c3aed,#6d28d9); color:#fff; font-size:20px;
+                 box-shadow:0 8px 20px rgba(124,58,237,.35); flex-shrink:0; }
+  .vef-bar h2 { font-size:21px; font-weight:800; margin:0; }
+  .vef-bar p  { font-size:12.5px; color:var(--muted); margin:3px 0 0; }
+  .vef-bar-btns { display:flex; gap:10px; }
+  .vef-btn { display:inline-flex; align-items:center; gap:7px; padding:10px 22px; border-radius:11px;
+             font-size:13.5px; font-weight:700; cursor:pointer; text-decoration:none !important;
+             text-shadow:none !important; border:none; transition:.15s; white-space:nowrap;
+             font-family:inherit; }
+  .vef-btn-save { background:linear-gradient(135deg,#27bc9c,#1e9e82); color:#fff !important;
+                  box-shadow:0 6px 16px rgba(39,188,156,.35); }
+  .vef-btn-save:hover { filter:brightness(1.07); color:#fff !important; transform:translateY(-1px); }
+  .vef-btn-back { background:#fff; border:1.5px solid var(--line); color:var(--muted) !important;
+                  box-shadow:0 2px 8px rgba(0,0,0,.06); }
+  .vef-btn-back:hover { border-color:#27bc9c; color:#27bc9c !important; }
+
+  .vef-card { background:#fff; border-radius:20px; box-shadow:0 4px 20px rgba(16,24,40,.06);
+              padding:28px 32px; margin-bottom:20px; }
+  .vef-card-hd { display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:15px; font-weight:800;
+                 color:var(--ink); margin-bottom:24px; padding-bottom:14px;
+                 border-bottom:2px solid var(--soft); }
+  .vef-card-hd-l { display:flex; align-items:center; gap:10px; }
+  .vef-card-hd i { width:32px; height:32px; border-radius:9px; display:grid; place-items:center;
+                   background:#e6f7f3; color:#27bc9c; font-size:14px; flex-shrink:0; }
+
+  .vef-g2 { display:grid; grid-template-columns:repeat(2,1fr); gap:20px; }
+  .vef-field { display:flex; flex-direction:column; gap:6px; }
+  .vef-label { font-size:12px; font-weight:700; color:#475569; letter-spacing:.02em; text-transform:uppercase; }
+  .vef-label span { color:#ef4444; }
+  .vef-input {
+    border:1.5px solid var(--line) !important; border-radius:10px !important;
+    padding:11px 14px !important; font-size:13.5px !important; background:#fff !important;
+    outline:none !important; font-family:inherit !important; color:var(--ink) !important;
+    transition:.2s; width:100% !important; box-sizing:border-box !important;
+    min-height:44px !important; line-height:1.4 !important; margin:0 !important;
+    box-shadow:none !important; appearance:none; -webkit-appearance:none;
+  }
+  .vef-input:focus { border-color:#27bc9c !important; box-shadow:0 0 0 3px rgba(39,188,156,.13) !important; }
+  .vef-hint { font-size:11.5px; color:var(--muted); margin-top:2px; }
+
+  .vef-errors { background:#fff1f2; border:1.5px solid #fca5a5; border-radius:14px;
+                padding:16px 22px; margin-bottom:20px; }
+  .vef-errors strong { color:#dc2626; display:block; margin-bottom:8px; }
+  .vef-errors li { color:#dc2626; font-size:13px; margin-bottom:2px; }
+
+  /* ── Permission matrix rows (plain Rails fields_for, not Formtastic —
+     this template uses form_with which gives a real ActionView
+     FormBuilder, so the checkboxes below are standard f.check_box calls,
+     each auto-paired with its own hidden "0" fallback by Rails). ── */
+  .rf-perm-row { display:grid; grid-template-columns:1fr repeat(4, 64px); align-items:center; gap:2px 10px;
+                 padding:9px 4px; border-bottom:1px solid var(--soft); }
+  .rf-perm-row:last-child { border-bottom:none; }
+  .rf-perm-row .rf-perm-name { font-size:12.5px; font-weight:700; color:#1f2a37; display:flex; align-items:center; gap:8px; }
+  .rf-perm-row .rf-perm-name i { color:#94a3b8; width:14px; }
+  .rf-perm-cb { display:flex; justify-content:center; }
+  .rf-perm-cb input[type="checkbox"] { width:18px; height:18px; accent-color:#27bc9c; margin:0; cursor:pointer; }
+
+  .rf-perm-head { display:grid; grid-template-columns:1fr repeat(4, 64px); gap:4px 10px; padding:0 4px 8px;
+                  border-bottom:2px solid var(--soft); margin-bottom:4px; }
+  .rf-perm-head span { text-align:center; font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; }
+  .rf-perm-head span:first-child { text-align:left; }
+</style>
+
+<div class="vef-page">
+  <%= form_with model: [:admin, r], local: true, html: { style:"margin:0;" } do |f| %>
+
+    <div class="vef-bar">
+      <div class="vef-bar-l">
+        <div class="vef-bar-ico"><i class="fas fa-user-shield"></i></div>
+        <div>
+          <h2><%= r.persisted? ? 'ແກ້ໄຂ Role' : 'ເພີ່ມ Role ໃໝ່' %></h2>
+          <p>ກຳນົດຊື່ ແລະ ສິດທິ໌ການເຂົ້າເຖິງແຕ່ລະໜ້າ</p>
+        </div>
+      </div>
+      <div class="vef-bar-btns">
+        <%= f.submit(r.persisted? ? 'ບັນທຶກການແກ້ໄຂ' : 'ບັນທຶກທັງໝົດ', class: 'vef-btn vef-btn-save') %>
+        <%= link_to admin_roles_path, class: 'vef-btn vef-btn-back' do %>
+          <i class="fas fa-arrow-left"></i>ກັບຄືນ
+        <% end %>
+      </div>
+    </div>
+
+    <% if r.errors.any? %>
+      <div class="vef-errors">
+        <strong><i class="fas fa-exclamation-circle" style="margin-right:6px;"></i>ກະລຸນາກວດສອບຂໍ້ມູນ</strong>
+        <ul style="margin:0;padding-left:18px;">
+          <% r.errors.full_messages.each do |msg| %>
+            <li><%= msg %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <div class="vef-card">
+      <div class="vef-card-hd">
+        <div class="vef-card-hd-l"><i class="fas fa-info-circle"></i>ຂໍ້ມູນ Role</div>
+      </div>
+
+      <div class="vef-g2">
+        <div class="vef-field">
+          <label class="vef-label">ຊື່ Role <span>*</span></label>
+          <%= f.text_field :name, class: 'vef-input', placeholder: 'ເຊັ່ນ: ທະນາຄານ, ອາກອນຄ່າທາງ' %>
+        </div>
+        <div class="vef-field">
+          <label class="vef-label">Key</label>
+          <%= f.text_field :key, class: 'vef-input', placeholder: 'ຈະສ້າງໃຫ້ອັດຕະໂນມັດຈາກຊື່' %>
+          <p class="vef-hint">ໃຊ້ໄດ້ສະເພາະ a-z 0-9 _ — ຫ້າມແກ້ໄຂຫຼັງຈາກມີຄົນໃຊ້ Role ນີ້ຢູ່</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="vef-card">
+      <div class="vef-card-hd">
+        <div class="vef-card-hd-l"><i class="fas fa-shield-halved"></i>ສິດທິ໌ການເຂົ້າເຖິງ</div>
+      </div>
+
+      <div class="rf-perm-head">
+        <span>ໜ້າທີ່</span><span>ອ່ານ</span><span>ເພີ່ມ</span><span>ແກ້ໄຂ</span><span>ລຶບ</span>
+      </div>
+
+      <div class="rf-perm-list">
+        <%= f.fields_for :permissions do |pf| %>
+          <% entry = Permission::CATALOG[pf.object.resource] %>
+          <div class="rf-perm-row">
+            <%= pf.hidden_field :resource %>
+            <div class="rf-perm-name">
+              <% if entry %><i class="fas <%= entry[:icon] %>"></i><% end %>
+              <%= entry ? entry[:label] : pf.object.resource %>
+            </div>
+            <div class="rf-perm-cb"><%= pf.check_box :can_read %></div>
+            <div class="rf-perm-cb"><%= pf.check_box :can_create %></div>
+            <div class="rf-perm-cb"><%= pf.check_box :can_update %></div>
+            <div class="rf-perm-cb"><%= pf.check_box :can_delete %></div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+  <% end %>
+</div>

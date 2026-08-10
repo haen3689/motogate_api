@@ -7,6 +7,7 @@ class Vehicle < ApplicationRecord
 
   has_one_attached :registration_front
   has_one_attached :registration_back
+  has_one_attached :front_photo
 
   validates :plate_number, presence: true
 

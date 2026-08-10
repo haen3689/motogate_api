@@ -30,6 +30,12 @@ class Api::V1::RoadTaxesController < ApiController
     if tax.nil?
       render_error("ບໍ່ພົບອັດຕາຄ່າທາງສຳລັບລົດຄັນນີ້ ກະລຸນາຕິດຕໍ່ບໍລິຫານ")
     elsif tax.save
+      log_transaction!(
+        type: "road_tax",
+        amount: tax.amount.to_f + tax.service_fee.to_f,
+        reference: vehicle.plate_number,
+        description: "ຄ່າທາງ ປີ #{tax.tax_year} - #{vehicle.plate_number}"
+      )
       render_success(tax_json(tax), status: :created)
     else
       render_error(tax.errors.full_messages.join(", "))

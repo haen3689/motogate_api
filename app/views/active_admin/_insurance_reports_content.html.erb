@@ -1,0 +1,224 @@
+<%
+  company = current_admin_user.insurance_company
+
+  begin
+    period_start = params[:from].present? ? Date.parse(params[:from]) : 30.days.ago.to_date
+    period_end   = params[:to].present?   ? Date.parse(params[:to])   : Date.current
+  rescue ArgumentError
+    period_start = 30.days.ago.to_date
+    period_end   = Date.current
+  end
+  period_start, period_end = period_end, period_start if period_start > period_end
+
+  base   = company.insurances.where(created_at: period_start.beginning_of_day..period_end.end_of_day)
+  paid   = base.where(status: %w[active expired])
+
+  total_orders     = base.count
+  active_count     = base.where(status: 'active').count
+  cancelled_count  = base.where(status: 'cancelled').count
+  total_revenue    = paid.sum(:amount).to_f
+
+  by_package = paid.group(:package).sum(:amount)
+
+  range_days = (period_end - period_start).to_i + 1
+  use_daily  = range_days <= 62
+
+  if use_daily
+    revenue_by_bucket = paid.group("DATE(created_at)").sum(:amount)
+    count_by_bucket   = base.group("DATE(created_at)").count
+    buckets       = (period_start..period_end).to_a
+    chart_labels  = buckets.map { |d| d.strftime('%d/%m') }
+    chart_values  = buckets.map { |d| revenue_by_bucket[d] || 0 }
+    table_rows    = buckets.reverse.map { |d| [d.strftime('%d/%m/%Y'), count_by_bucket[d] || 0, revenue_by_bucket[d] || 0] }
+    table_col_label = "ວັນທີ"
+  else
+    revenue_by_bucket = paid.group("TO_CHAR(created_at, 'YYYY-MM')").sum(:amount)
+    count_by_bucket   = base.group("TO_CHAR(created_at, 'YYYY-MM')").count
+    month_cursor  = period_start.beginning_of_month
+    buckets       = []
+    while month_cursor <= period_end
+      buckets << month_cursor
+      month_cursor = month_cursor.next_month
+    end
+    chart_labels  = buckets.map { |m| m.strftime('%m/%Y') }
+    chart_values  = buckets.map { |m| revenue_by_bucket[m.strftime('%Y-%m')] || 0 }
+    table_rows    = buckets.reverse.map { |m| [m.strftime('%m/%Y'), count_by_bucket[m.strftime('%Y-%m')] || 0, revenue_by_bucket[m.strftime('%Y-%m')] || 0] }
+    table_col_label = "ເດືອນ"
+  end
+
+  presets = {
+    "ມື້ວານ"    => [Date.yesterday, Date.yesterday],
+    "ມື້ນີ້"     => [Date.current, Date.current],
+    "ເດືອນກ່ອນ" => [1.month.ago.to_date.beginning_of_month, 1.month.ago.to_date.end_of_month],
+    "ເດືອນນີ້"   => [Date.current.beginning_of_month, Date.current.end_of_month],
+    "ປີທີ່ແລ້ວ"  => [1.year.ago.to_date.beginning_of_year, 1.year.ago.to_date.end_of_year],
+    "ປີນີ້"      => [Date.current.beginning_of_year, Date.current.end_of_year],
+  }
+%>
+
+<style>
+  .pr-presets { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .pr-preset { padding: 6px 14px; border-radius: 20px; font-size: 12.5px; font-weight: 700;
+               text-decoration: none; border: 1px solid #e2e8f0; color: #64748b; background: #fff; }
+  .pr-preset:hover { background: #f4f6f9; }
+  .pr-preset.active { background: #27bc9c; border-color: #27bc9c; color: #fff; }
+
+  .pr-svc-row { display: flex; align-items: center; gap: 12px; padding: 12px 20px; }
+  .pr-svc-label { font-size: 12.5px; font-weight: 700; color: #1f2a37; width: 130px; flex-shrink: 0;
+                  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pr-svc-bar-wrap { flex: 1; height: 8px; border-radius: 5px; background: #f1f5f9; overflow: hidden; }
+  .pr-svc-bar { height: 100%; border-radius: 5px; background: #27bc9c; }
+  .pr-svc-val { font-size: 12px; font-weight: 700; color: #27bc9c; width: 110px; text-align: right; flex-shrink: 0; }
+</style>
+
+<%# ===== QUICK PRESETS ===== %>
+<div class="pr-presets">
+  <% presets.each do |label, (pfrom, pto)| %>
+    <%= link_to label, admin_reports_path(from: pfrom, to: pto),
+          class: "pr-preset #{'active' if period_start == pfrom && period_end == pto}" %>
+  <% end %>
+</div>
+
+<%# ===== DATE FILTER ===== %>
+<div class="report-filter-bar">
+  <form method="GET" class="rf-filter-form">
+    <div class="rf-field">
+      <label>ຈາກວັນທີ</label>
+      <input type="date" name="from" value="<%= period_start %>" class="report-date-input">
+    </div>
+    <div class="rf-field">
+      <label>ຫາວັນທີ</label>
+      <input type="date" name="to" value="<%= period_end %>" class="report-date-input">
+    </div>
+    <div class="rf-field rf-field-btn">
+      <button type="submit" class="report-filter-btn"><i class="fas fa-search"></i> ຄົ້ນຫາ</button>
+    </div>
+  </form>
+</div>
+
+<%# ===== SUMMARY CARDS ===== %>
+<div class="stat-grid" style="margin-top:16px;">
+  <% [
+    { icon: "fas fa-file-invoice", label: "ອໍເດີ້ທັງໝົດ", value: total_orders,    color: "blue"   },
+    { icon: "fas fa-check",        label: "ໃຊ້ງານຢູ່",    value: active_count,    color: "green"  },
+    { icon: "fas fa-ban",          label: "ຍົກເລີກ",       value: cancelled_count, color: "orange" },
+    { icon: "fas fa-coins",        label: "ລາຍຮັບລວມ",     value: number_to_currency(total_revenue, unit: "₭", precision: 0, delimiter: ","), color: "purple" },
+  ].each do |s| %>
+  <div class="stat-card card-<%= s[:color] %>">
+    <div class="stat-icon-wrap"><i class="<%= s[:icon] %>"></i></div>
+    <div class="stat-right">
+      <div class="stat-value"><%= s[:value] %></div>
+      <div class="stat-label"><%= s[:label] %></div>
+    </div>
+  </div>
+  <% end %>
+</div>
+
+<%# ===== REVENUE TREND CHART ===== %>
+<div class="dash-panel" style="margin-top:20px;">
+  <div class="dash-panel-header">
+    <span><i class="fas fa-chart-line"></i> ລາຍຮັບຕາມໄລຍະເວລາ (<%= use_daily ? 'ລາຍວັນ' : 'ລາຍເດືອນ' %>)</span>
+  </div>
+  <div style="padding:16px 20px;">
+    <% if chart_values.sum.zero? %>
+      <div style="text-align:center;color:#94a3b8;font-size:13px;padding:40px 0;">ຍັງບໍ່ມີຂໍ້ມູນລາຍຮັບໃນຊ່ວງເວລານີ້</div>
+    <% else %>
+      <div style="height:240px;"><canvas id="revenueTrendChart"></canvas></div>
+    <% end %>
+  </div>
+</div>
+
+<div class="dash-bottom-row" style="margin-top:20px;">
+
+  <div class="dash-panel">
+    <div class="dash-panel-header">
+      <span><i class="fas fa-box"></i> ລາຍຮັບຕາມແພັກເກດ</span>
+    </div>
+    <% if by_package.empty? %>
+      <div style="text-align:center;color:#94a3b8;font-size:13px;padding:30px 0;">ຍັງບໍ່ມີຂໍ້ມູນ</div>
+    <% else %>
+      <% max_amt = by_package.values.max.to_f %>
+      <% by_package.sort_by { |_, v| -v }.each do |pkg, amt| %>
+        <div class="pr-svc-row">
+          <div class="pr-svc-label" title="<%= pkg.presence || '—' %>"><%= pkg.presence || "—" %></div>
+          <div class="pr-svc-bar-wrap">
+            <div class="pr-svc-bar" style="width:<%= max_amt.zero? ? 0 : (amt / max_amt * 100).round %>%;"></div>
+          </div>
+          <div class="pr-svc-val"><%= number_to_currency(amt, unit: "₭", precision: 0, delimiter: ",") %></div>
+        </div>
+      <% end %>
+      <div class="pr-svc-row" style="border-top:1px solid #f1f5f9;font-weight:800;">
+        <div class="pr-svc-label">ລວມ</div>
+        <div class="pr-svc-bar-wrap"></div>
+        <div class="pr-svc-val" style="color:#1f2a37;"><%= number_to_currency(total_revenue, unit: "₭", precision: 0, delimiter: ",") %></div>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="dash-panel">
+    <div class="dash-panel-header">
+      <span><i class="fas fa-table"></i> ລາຍລະອຽດ<%= use_daily ? 'ລາຍວັນ' : 'ລາຍເດືອນ' %></span>
+    </div>
+    <table class="index_table">
+      <thead>
+        <tr><th><%= table_col_label %></th><th style="text-align:right;">ຈຳນວນ</th><th style="text-align:right;">ລາຍຮັບ (₭)</th></tr>
+      </thead>
+      <tbody>
+        <% if table_rows.all? { |_, count, _| count.zero? } %>
+        <tr><td colspan="3" style="text-align:center;color:#94a3b8;padding:20px;">ຍັງບໍ່ມີຂໍ້ມູນ</td></tr>
+        <% else %>
+        <% table_rows.each do |label, count, amt| %>
+        <tr>
+          <td><%= label %></td>
+          <td style="text-align:right;"><%= count %></td>
+          <td style="text-align:right;font-weight:700;color:#27bc9c;"><%= number_to_currency(amt, unit: "₭", precision: 0, delimiter: ",") %></td>
+        </tr>
+        <% end %>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+  (function () {
+    var ctx = document.getElementById('revenueTrendChart');
+    if (!ctx || typeof Chart === 'undefined') return;
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: <%= raw chart_labels.to_json %>,
+        datasets: [{
+          data: <%= raw chart_values.to_json %>,
+          borderColor: '#27bc9c',
+          backgroundColor: 'rgba(39,188,156,0.10)',
+          borderWidth: 2,
+          pointRadius: 3,
+          pointBackgroundColor: '#27bc9c',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          tension: 0.25,
+          fill: true,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: function (item) { return item.parsed.y.toLocaleString() + ' ₭'; }
+            }
+          }
+        },
+        scales: {
+          y: { beginAtZero: true, ticks: { precision: 0, callback: function (v) { return v.toLocaleString(); } }, grid: { color: '#e1e0d9' } },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+  })();
+</script>

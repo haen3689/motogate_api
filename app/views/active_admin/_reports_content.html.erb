@@ -31,12 +31,18 @@
 
 <%# ===== DATE FILTER ===== %>
 <div class="report-filter-bar">
-  <form method="GET" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
-    <label style="font-size:.85rem;font-weight:600;color:#64748b;">ໄລຍະ:</label>
-    <input type="date" name="from" value="<%= period_start %>" class="report-date-input">
-    <span style="color:#94a3b8;">ຫາ</span>
-    <input type="date" name="to"   value="<%= period_end %>" class="report-date-input">
-    <button type="submit" class="report-filter-btn"><i class="fas fa-search"></i> ຄົ້ນຫາ</button>
+  <form method="GET" class="rf-filter-form">
+    <div class="rf-field">
+      <label>ຈາກວັນທີ</label>
+      <input type="date" name="from" value="<%= period_start %>" class="report-date-input">
+    </div>
+    <div class="rf-field">
+      <label>ຫາວັນທີ</label>
+      <input type="date" name="to" value="<%= period_end %>" class="report-date-input">
+    </div>
+    <div class="rf-field rf-field-btn">
+      <button type="submit" class="report-filter-btn"><i class="fas fa-search"></i> ຄົ້ນຫາ</button>
+    </div>
   </form>
 </div>
 

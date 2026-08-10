@@ -1,0 +1,146 @@
+<%
+  type_label = { 'garage' => 'ສູນສ້ອມແປງລົດ', 'dealer' => 'ສູນຂາຍລົດ', 'towing' => 'ບໍລິການລາກລົດ 24ຊມ' }
+  status_label = { "pending" => "ລໍຖ້າກວດສອບ", "approved" => "ອະນຸມັດແລ້ວ", "rejected" => "ປະຕິເສດ" }
+  status_color = { "pending" => "#f59e0b", "approved" => "#16a34a", "rejected" => "#dc2626" }
+
+  current_type  = params[:type].presence_in(%w[garage dealer towing]) || "garage"
+  filter_status = params.dig(:q, :status).presence || "pending"
+
+  scope = PartnerApplication.for_type(current_type).order(created_at: :desc)
+  scope = scope.where(status: filter_status) if filter_status.present?
+  applications = scope.to_a
+
+  all = PartnerApplication.for_type(current_type)
+  pending_count  = all.pending.count
+  approved_count = all.where(status: "approved").count
+  rejected_count = all.where(status: "rejected").count
+%>
+
+<style>
+  .index_content .scopes, #titlebar { display:none !important; }
+  body.active_admin, #wrapper, #active_admin_content, #main_content,
+  .index_content, #main, .flashes { background:#f4f6f9 !important; }
+  .index_content > .panel,
+  .index_as_table,
+  #main_content .panel:first-child { background:transparent !important; border:none !important; box-shadow:none !important; padding:0 !important; margin:0 !important; }
+  .index_content > .panel > .panel_contents,
+  .index_as_table > .panel_contents { padding:0 !important; background:transparent !important; }
+
+  .ic-page { --brand:#27bc9c; --brand-d:#1e9e82; --ink:#1f2a37; --muted:#6b7684; --line:#e9edf2;
+             color:var(--ink); font-family:"Noto Sans Lao","Phetsarath OT",system-ui,sans-serif; }
+
+  .ic-head { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:24px; }
+  .ic-head-l { display:flex; align-items:center; gap:14px; }
+  .ic-head-ico { width:48px; height:48px; border-radius:14px; display:grid; place-items:center;
+                 color:#fff; font-size:20px; background:linear-gradient(135deg,#27bc9c,#1e9e82);
+                 box-shadow:0 8px 18px rgba(39,188,156,.35); flex-shrink:0; }
+  .ic-head h2 { font-size:20px; font-weight:800; margin:0; letter-spacing:-.2px; }
+  .ic-head p  { font-size:12.5px; color:var(--muted); margin:3px 0 0; }
+
+  .ic-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:22px; }
+  .ic-stat { background:#fff; border-radius:16px; padding:18px 20px;
+             box-shadow:0 4px 16px rgba(16,24,40,.05); display:flex; align-items:center; gap:16px;
+             border-left:4px solid transparent; }
+  .ic-stat.orange { border-left-color:#f59e0b; }
+  .ic-stat.green  { border-left-color:#16a34a; }
+  .ic-stat.red    { border-left-color:#dc2626; }
+  .ic-stat-ico { width:44px; height:44px; border-radius:12px; display:grid; place-items:center; font-size:18px; flex-shrink:0; }
+  .ic-stat.orange .ic-stat-ico { background:#fef3c7; color:#f59e0b; }
+  .ic-stat.green  .ic-stat-ico { background:#dcfce7; color:#16a34a; }
+  .ic-stat.red    .ic-stat-ico { background:#fee2e2; color:#dc2626; }
+  .ic-stat-label { font-size:12px; color:var(--muted); font-weight:600; margin:0 0 4px; }
+  .ic-stat-val   { font-size:24px; font-weight:800; margin:0; letter-spacing:-.5px; }
+
+  .pa-tabs { display: flex; gap: 6px; margin-bottom: 20px; }
+  .pa-tab { padding: 7px 16px; border-radius: 20px; font-size: 12.5px; font-weight: 700;
+            text-decoration: none; border: 1px solid #e2e8f0; color: #64748b; background: #fff; }
+  .pa-tab.active { background: #27bc9c; border-color: #27bc9c; color: #fff; }
+
+  .pa-card { background:#fff; border-radius:16px; padding:16px 20px; margin-bottom:12px;
+             box-shadow:0 4px 16px rgba(16,24,40,.05); display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+  .pa-info h4 { font-size:14px; font-weight:800; margin:0 0 4px; }
+  .pa-info p { font-size:12px; color:var(--muted); margin:0; }
+  .pa-status { display:inline-block; padding:4px 12px; border-radius:20px; font-size:11px; font-weight:700; margin-bottom:6px; }
+  .pa-actions { display:flex; gap:8px; }
+  .pa-btn { border:none; border-radius:8px; padding:8px 16px; font-size:12.5px; font-weight:700; cursor:pointer; }
+  .pa-btn-approve { background:#dcfce7; color:#16a34a; }
+  .pa-btn-approve:hover { background:#16a34a; color:#fff; }
+  .pa-btn-reject { background:#fee2e2; color:#dc2626; }
+  .pa-btn-reject:hover { background:#dc2626; color:#fff; }
+  .pa-btn-view { background:#e0f2fe; color:#0369a1; text-decoration:none; }
+  .pa-btn-view:hover { background:#0ea5e9; color:#fff; }
+
+  .ic-empty { text-align:center; padding:60px 20px; }
+  .ic-empty i { font-size:3rem; color:#cbd5e1; display:block; margin-bottom:12px; }
+  .ic-empty p { color:var(--muted); font-size:14px; margin:0; }
+</style>
+
+<div class="ic-page">
+
+  <div class="ic-head">
+    <div class="ic-head-l">
+      <div class="ic-head-ico"><i class="fas fa-user-plus"></i></div>
+      <div>
+        <h2>ພາດເນີສະໝັກເຂົ້າມາໃໝ່ — <%= type_label[current_type] %></h2>
+        <p>ກວດສອບ ແລະ ອະນຸມັດຄຳສະໝັກເປັນພາດເນີ</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="ic-stats">
+    <div class="ic-stat orange">
+      <div class="ic-stat-ico"><i class="fas fa-hourglass-half"></i></div>
+      <div><p class="ic-stat-label">ລໍຖ້າກວດສອບ</p><p class="ic-stat-val"><%= pending_count %></p></div>
+    </div>
+    <div class="ic-stat green">
+      <div class="ic-stat-ico"><i class="fas fa-check-circle"></i></div>
+      <div><p class="ic-stat-label">ອະນຸມັດແລ້ວ</p><p class="ic-stat-val"><%= approved_count %></p></div>
+    </div>
+    <div class="ic-stat red">
+      <div class="ic-stat-ico"><i class="fas fa-times-circle"></i></div>
+      <div><p class="ic-stat-label">ປະຕິເສດ</p><p class="ic-stat-val"><%= rejected_count %></p></div>
+    </div>
+  </div>
+
+  <div class="pa-tabs">
+    <% %w[pending approved rejected].each do |s| %>
+      <%= link_to status_label[s], admin_partner_applications_path(type: current_type, q: { status: s }), class: "pa-tab #{'active' if filter_status == s}" %>
+    <% end %>
+  </div>
+
+  <% if applications.empty? %>
+    <div class="pa-card" style="justify-content:center;">
+      <div class="ic-empty" style="padding:20px;">
+        <i class="fas fa-user-plus"></i>
+        <p>ບໍ່ພົບຄຳສະໝັກ</p>
+      </div>
+    </div>
+  <% else %>
+    <% applications.each do |a| %>
+      <div class="pa-card">
+        <div class="pa-info">
+          <span class="pa-status" style="background:<%= status_color[a.status] %>1a;color:<%= status_color[a.status] %>;">
+            <%= status_label[a.status] %>
+          </span>
+          <h4><%= a.business_name %></h4>
+          <p><i class="fas fa-user"></i> <%= a.owner_name.presence || "—" %> · <i class="fas fa-phone"></i> <%= a.phone.presence || "—" %></p>
+          <p style="margin-top:4px;">ສົ່ງຂໍ້ມູນ: <%= a.created_at.strftime('%d/%m/%Y') %></p>
+        </div>
+        <div class="pa-actions">
+          <%= link_to admin_partner_application_path(a), class: 'pa-btn pa-btn-view' do %>
+            <i class="fas fa-eye"></i> ເບິ່ງ
+          <% end %>
+          <% if a.status == "pending" %>
+            <%= button_to approve_admin_partner_application_path(a), method: :post, class: 'pa-btn pa-btn-approve', form: { style: 'display:inline;' } do %>
+              <i class="fas fa-check"></i> ອະນຸມັດ
+            <% end %>
+            <%= button_to reject_admin_partner_application_path(a), method: :post, class: 'pa-btn pa-btn-reject', form: { style: 'display:inline;' }, data: { confirm: "ຢືນຢັນການປະຕິເສດ?" } do %>
+              <i class="fas fa-times"></i> ປະຕິເສດ
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  <% end %>
+
+</div>

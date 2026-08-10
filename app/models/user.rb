@@ -3,6 +3,7 @@ class User < ApplicationRecord
   has_many :transactions, dependent: :destroy
   has_many :notifications, dependent: :destroy
   has_many :chat_messages, dependent: :destroy
+  has_one :support_case, dependent: :destroy
 
   has_one_attached :id_card_image
   has_one_attached :license_image

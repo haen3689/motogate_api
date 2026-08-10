@@ -1,0 +1,205 @@
+<%
+  type_label = { 'garage' => 'ສູນສ້ອມແປງລົດ', 'dealer' => 'ສູນຂາຍລົດ', 'towing' => 'ບໍລິການລາກລົດ 24ຊມ' }
+  type_title = { 'garage' => 'ພາບລວມສູນສ້ອມແປງລົດ', 'dealer' => 'ພາບລວມສູນຂາຍລົດ', 'towing' => 'ພາບລວມການບໍລິການ' }
+  type_icon  = { 'garage' => 'fa-screwdriver-wrench', 'dealer' => 'fa-store', 'towing' => 'fa-truck-pickup' }
+
+  is_partner   = current_admin_user.service_partner?
+  current_type = is_partner ? current_admin_user.service_center.service_type : (params[:type].presence_in(%w[garage dealer towing]) || "garage")
+
+  begin
+    period_start = params[:from].present? ? Date.parse(params[:from]) : 30.days.ago.to_date
+    period_end   = params[:to].present?   ? Date.parse(params[:to])   : Date.current
+  rescue ArgumentError
+    period_start = 30.days.ago.to_date
+    period_end   = Date.current
+  end
+  period_start, period_end = period_end, period_start if period_start > period_end
+
+  centers = ServiceCenter.where(service_type: current_type).includes(service_center_contracts: :service_center_payments)
+  centers = centers.where(id: current_admin_user.service_center_id) if is_partner
+  total_registered = centers.count
+  showing_in_app   = centers.to_a.count(&:visible_in_app?)
+
+  contracts = ServiceCenterContract.for_type(current_type).includes(:service_center)
+  contracts = contracts.where(service_center_id: current_admin_user.service_center_id) if is_partner
+  near_expiry = contracts.to_a.select do |c|
+    c.effective_status == "active" && c.end_date.present? && c.end_date <= 30.days.from_now.to_date
+  end.sort_by(&:end_date)
+  expired_hidden = contracts.to_a.count { |c| %w[expired terminated].include?(c.effective_status) }
+
+  revenue_scope = ServiceCenterPayment.for_type(current_type)
+  revenue_scope = revenue_scope.where(service_centers: { id: current_admin_user.service_center_id }) if is_partner
+  monthly_revenue = revenue_scope.paid
+                       .where(paid_at: Date.current.beginning_of_month..Date.current.end_of_month)
+                       .sum(:amount)
+  pending_revenue = revenue_scope.pending.sum(:amount)
+
+  new_applications = is_partner ? PartnerApplication.none : PartnerApplication.for_type(current_type).pending.order(created_at: :desc).limit(5)
+%>
+
+<style>
+  .ov-empty { padding: 24px; text-align: center; color: #94a3b8; font-size: 13px; }
+  .ov-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .ov-table th { text-align: left; padding: 10px 14px; color: #64748b; font-weight: 700; font-size: 11px;
+                 text-transform: uppercase; border-bottom: 1.5px solid #f4f6f9; white-space: nowrap; }
+  .ov-table td { padding: 10px 14px; border-bottom: 1px solid #f4f6f9; vertical-align: middle; }
+  .ov-days-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11.5px; font-weight: 700; }
+  .ov-app-card { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px;
+                 border-bottom: 1px solid #f8fafc; gap: 12px; flex-wrap: wrap; }
+  .ov-app-card:last-child { border-bottom: none; }
+  .ov-app-pill { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700;
+                 background: #fef3c7; color: #b45309; }
+  .stat-card.card-red .stat-icon-wrap { background: #fef2f2 !important; }
+  .stat-card.card-red .stat-value { color: #dc2626 !important; }
+</style>
+
+<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:4px;">
+  <div>
+    <h2 style="font-size:16px;font-weight:800;margin:0 0 4px;"><%= is_partner ? centers.first&.name : type_title[current_type] %></h2>
+    <p style="font-size:12.5px;color:#64748b;margin:0;">
+      <%= is_partner ? "ພາບລວມສະຖານະ, ສັນຍາເຊົ່າ ແລະ ຍອດລາຍຮັບຂອງທ່ານ" : "ຕິດຕາມສະຖານະພາດເນີ, ສັນຍາເຊົ່າ ແລະ ຍອດລາຍຮັບລະບົບ MotoGate" %>
+    </p>
+  </div>
+  <% unless is_partner %>
+    <%= link_to new_admin_service_center_path(type: current_type), style: "background:linear-gradient(135deg,#27bc9c,#1e9e82);color:#fff;border-radius:20px;padding:10px 22px;font-size:13px;font-weight:700;text-decoration:none;box-shadow:0 6px 14px rgba(39,188,156,.35);white-space:nowrap;" do %>
+      <i class="fas fa-plus" style="margin-right:6px;"></i>ເພີ່ມພາດເນີໃໝ່
+    <% end %>
+  <% end %>
+</div>
+<div style="margin-bottom:16px;"></div>
+
+<div class="report-filter-bar">
+  <form method="GET" class="rf-filter-form">
+    <input type="hidden" name="type" value="<%= current_type %>">
+    <div class="rf-field">
+      <label>ຈາກວັນທີ</label>
+      <input type="date" name="from" value="<%= period_start %>" class="report-date-input">
+    </div>
+    <div class="rf-field">
+      <label>ຫາວັນທີ</label>
+      <input type="date" name="to" value="<%= period_end %>" class="report-date-input">
+    </div>
+    <div class="rf-field rf-field-btn">
+      <button type="submit" class="report-filter-btn"><i class="fas fa-search"></i> ຄົ້ນຫາ</button>
+    </div>
+  </form>
+</div>
+
+<div class="stat-grid" style="margin-top:16px;">
+  <div class="stat-card card-blue">
+    <div class="stat-icon-wrap"><i class="fas <%= type_icon[current_type] %>"></i></div>
+    <% if is_partner %>
+      <div class="stat-right"><div class="stat-value" style="font-size:16px;"><%= (contracts.to_a.max_by(&:created_at)&.effective_status || "—").then { |s| { "active" => "ໃຊ້ງານຢູ່", "pending" => "ລໍຖ້າ", "expired" => "ໝົດອາຍຸ", "terminated" => "ຍົກເລີກ" }[s] || s } %></div><div class="stat-label">ສະຖານະສັນຍາ</div></div>
+    <% else %>
+      <div class="stat-right"><div class="stat-value"><%= total_registered %> <span style="font-size:13px;font-weight:600;color:#94a3b8;">ສູນ</span></div><div class="stat-label">ລົງທະບຽນໃນລະບົບ</div></div>
+    <% end %>
+  </div>
+  <div class="stat-card card-green">
+    <div class="stat-icon-wrap"><i class="fas fa-eye"></i></div>
+    <% if is_partner %>
+      <div class="stat-right"><div class="stat-value" style="font-size:16px;"><%= showing_in_app > 0 ? "ສະແດງຢູ່" : "ຖືກເຊື່ອງ" %></div><div class="stat-label">ສະຖານະໃນແອັບ</div></div>
+    <% else %>
+      <div class="stat-right"><div class="stat-value"><%= showing_in_app %> <span style="font-size:13px;font-weight:600;color:#94a3b8;">ສູນ</span></div><div class="stat-label">ກຳລັງສະແດງຜົນໃນແອັບ</div></div>
+    <% end %>
+  </div>
+  <div class="stat-card card-orange">
+    <div class="stat-icon-wrap"><i class="fas fa-hourglass-half"></i></div>
+    <div class="stat-right"><div class="stat-value"><%= near_expiry.size %> <span style="font-size:13px;font-weight:600;color:#94a3b8;">ສູນ</span></div><div class="stat-label">ໃກ້ໝົດສັນຍາເຊົ່າ</div></div>
+  </div>
+  <div class="stat-card card-red">
+    <div class="stat-icon-wrap"><i class="fas fa-eye-slash"></i></div>
+    <div class="stat-right"><div class="stat-value"><%= expired_hidden %> <span style="font-size:13px;font-weight:600;color:#94a3b8;">ສູນ</span></div><div class="stat-label">ໝົດສັນຍາ/ປິດການມອງເຫັນ</div></div>
+  </div>
+</div>
+
+<div class="dash-bottom-row" style="margin-top:16px;">
+  <div class="dash-panel">
+    <div class="dash-panel-header">
+      <span><i class="fas fa-coins"></i> ລາຍຮັບຄ່າເຊົ່າພື້ນທີ່ (ເດືອນນີ້)</span>
+    </div>
+    <div style="padding:20px;">
+      <div style="font-size:26px;font-weight:800;color:#27bc9c;"><%= number_to_currency(monthly_revenue, unit: "₭", precision: 0, delimiter: ",") %></div>
+      <div style="font-size:11.5px;color:#94a3b8;margin-top:4px;">ອັບເດດຫຼ້າສຸດມື້ນີ້</div>
+    </div>
+  </div>
+  <div class="dash-panel">
+    <div class="dash-panel-header">
+      <span><i class="fas fa-hourglass-half"></i> ຍອດຄ້າງຊຳລະຄ່າເຊົ່າ (Pending)</span>
+    </div>
+    <div style="padding:20px;">
+      <div style="font-size:26px;font-weight:800;color:#f59e0b;"><%= number_to_currency(pending_revenue, unit: "₭", precision: 0, delimiter: ",") %></div>
+      <div style="font-size:11.5px;color:#94a3b8;margin-top:4px;">ລໍຖ້າການໂອນເງິນ ແລະ ແນບໃບບິນ</div>
+    </div>
+  </div>
+</div>
+
+<div class="dash-panel" style="margin-top:20px;">
+  <div class="dash-panel-header">
+    <span><i class="fas fa-triangle-exclamation"></i> ລາຍຊື່ສູນທີ່ໃກ້ໝົດສັນຍາເຊົ່າ (ຕ້ອງຕິດຕໍ່ດ່ວນ)</span>
+  </div>
+  <% if near_expiry.empty? %>
+    <div class="ov-empty">ບໍ່ມີສູນທີ່ໃກ້ໝົດສັນຍາໃນຕອນນີ້</div>
+  <% else %>
+    <div style="overflow-x:auto;">
+      <table class="ov-table">
+        <thead>
+          <tr>
+            <th>ຊື່ສູນ</th><th>ຜູ້ຕາງໜ້າ</th><th>ວັນໝົດສັນຍາ</th><th>ເຫຼືອ (ວັນ)</th><th>ຄ່າເຊົ່າ/ເດືອນ</th><th>ຈັດການ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% near_expiry.each do |c| %>
+            <% days_left = (c.end_date - Date.current).to_i %>
+            <tr>
+              <td style="font-weight:700;"><%= c.service_center.name %></td>
+              <td style="color:#64748b;"><%= c.service_center.owner_name.presence || "—" %></td>
+              <td><%= c.end_date.strftime('%d/%m/%Y') %></td>
+              <td>
+                <span class="ov-days-badge" style="background:<%= days_left <= 7 ? '#fee2e2' : '#fef3c7' %>;color:<%= days_left <= 7 ? '#dc2626' : '#b45309' %>;">
+                  <%= days_left %> ວັນ
+                </span>
+              </td>
+              <td style="font-weight:700;"><%= number_to_currency(c.rent_amount, unit: "₭", precision: 0, delimiter: ",") %></td>
+              <td>
+                <%= link_to edit_admin_service_center_contract_path(c),
+                      style: "display:inline-flex;align-items:center;gap:5px;border:1px solid #0ea5e9;background:#f0f9ff;color:#0369a1;border-radius:20px;padding:5px 14px;font-size:12px;font-weight:700;text-decoration:none;" do %>
+                  <i class="fas fa-sync-alt"></i>ຕໍ່ສັນຍາ
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% end %>
+</div>
+
+<% unless is_partner %>
+  <div class="dash-panel" style="margin-top:20px;">
+    <div class="dash-panel-header">
+      <span><i class="fas fa-user-plus"></i> ພາດເນີສະໝັກເຂົ້າມາໃໝ່</span>
+      <%= link_to "ເບິ່ງທັງໝົດ →", admin_partner_applications_path(type: current_type), class: "dash-chart-link" %>
+    </div>
+    <% if new_applications.empty? %>
+      <div class="ov-empty">ຍັງບໍ່ມີຄຳສະໝັກໃໝ່</div>
+    <% else %>
+      <% new_applications.each do |a| %>
+        <div class="ov-app-card" style="flex-direction:column;align-items:stretch;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+            <div>
+              <div style="font-size:13.5px;font-weight:700;color:#1f2a37;"><%= a.business_name %></div>
+              <div style="font-size:12px;color:#94a3b8;">ສົ່ງຂໍ້ມູນ: <%= a.created_at.strftime('%d/%m/%Y') %></div>
+            </div>
+            <span class="ov-app-pill">ລໍຖ້າກວດສອບ</span>
+          </div>
+          <div style="margin-top:10px;">
+            <%= link_to admin_partner_application_path(a),
+                  style: "display:inline-flex;align-items:center;gap:6px;background:#27bc9c;color:#fff;border-radius:20px;padding:6px 16px;font-size:12px;font-weight:700;text-decoration:none;" do %>
+              <i class="fas fa-search"></i>ກວດສອບໂປຣໄຟລ໌
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+<% end %>

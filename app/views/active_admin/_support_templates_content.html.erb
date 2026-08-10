@@ -1,0 +1,197 @@
+<%
+  filter_search = params.dig(:q, :search)
+  scope = SupportTemplate.order(position: :asc)
+  scope = scope.where("title ILIKE :q OR body ILIKE :q", q: "%#{filter_search.strip}%") if filter_search.present?
+
+  page     = (params[:page] || 1).to_i
+  per_page = 30
+  templates = scope.page(page).per(per_page)
+  total = SupportTemplate.count
+%>
+
+<style>
+  .index_content .scopes, #titlebar { display:none !important; }
+  body.active_admin, #wrapper, #active_admin_content, #main_content,
+  .index_content, #main, .flashes { background:#f4f6f9 !important; }
+  .index_content > .panel,
+  .index_as_table,
+  #main_content .panel:first-child { background:transparent !important; border:none !important; box-shadow:none !important; padding:0 !important; margin:0 !important; }
+  .index_content > .panel > .panel_contents,
+  .index_as_table > .panel_contents { padding:0 !important; background:transparent !important; }
+
+  .ic-page { --brand:#27bc9c; --brand-d:#1e9e82; --ink:#1f2a37; --muted:#6b7684; --line:#e9edf2;
+             color:var(--ink); font-family:"Noto Sans Lao","Phetsarath OT",system-ui,sans-serif; }
+
+  .ic-head { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:24px; }
+  .ic-head-l { display:flex; align-items:center; gap:14px; }
+  .ic-head-ico { width:48px; height:48px; border-radius:14px; display:grid; place-items:center;
+                 color:#fff; font-size:20px; background:linear-gradient(135deg,#27bc9c,#1e9e82);
+                 box-shadow:0 8px 18px rgba(39,188,156,.35); flex-shrink:0; }
+  .ic-head h2 { font-size:20px; font-weight:800; margin:0; letter-spacing:-.2px; }
+  .ic-head p  { font-size:12.5px; color:var(--muted); margin:3px 0 0; }
+  .ic-btn-add { border:none; border-radius:11px; padding:10px 20px; font-size:13.5px; font-weight:700;
+                background:linear-gradient(135deg,#27bc9c,#1e9e82); color:#fff !important;
+                box-shadow:0 6px 14px rgba(39,188,156,.32); cursor:pointer; display:inline-flex;
+                align-items:center; gap:8px; text-decoration:none !important; transition:.15s; }
+  .ic-btn-add:hover { filter:brightness(1.06); color:#fff !important; transform:translateY(-1px); }
+
+  .ic-stats { display:grid; grid-template-columns:1fr; gap:16px; margin-bottom:22px; max-width:260px; }
+  .ic-stat { background:#fff; border-radius:16px; padding:18px 20px;
+             box-shadow:0 4px 16px rgba(16,24,40,.05); display:flex; align-items:center; gap:16px;
+             border-left:4px solid #27bc9c; }
+  .ic-stat-ico { width:44px; height:44px; border-radius:12px; display:grid; place-items:center; font-size:18px; flex-shrink:0; background:#e6f7f3; color:#27bc9c; }
+  .ic-stat-label { font-size:12px; color:var(--muted); font-weight:600; margin:0 0 4px; }
+  .ic-stat-val   { font-size:24px; font-weight:800; margin:0; letter-spacing:-.5px; }
+
+  .ic-filter { background:#fff; border-radius:16px; padding:18px 20px; margin-bottom:20px;
+               box-shadow:0 4px 16px rgba(16,24,40,.05); }
+  .ic-filter-label { display:block; font-size:12.5px; font-weight:700; color:#334155; margin-bottom:6px; }
+  .ic-filter-input { width:100%; border:1px solid var(--line); border-radius:10px; padding:10px 14px;
+                     font-size:13.5px; background:#fff; outline:none;
+                     font-family:inherit; color:var(--ink); }
+  .ic-filter-input:focus { border-color:#27bc9c; box-shadow:0 0 0 3px rgba(39,188,156,.12); }
+  .ic-filter-row { display:flex !important; flex-direction:row !important; gap:12px; align-items:flex-end; flex-wrap:nowrap; }
+  .ic-filter-search { flex:1; min-width:0; }
+  .ic-filter-btns   { flex-shrink:0; }
+  .ic-btn-filter { border:none; border-radius:10px; padding:10px 18px; font-size:13.5px; font-weight:700;
+                   background:#1f2a37; color:#fff; cursor:pointer; display:inline-flex; align-items:center; gap:6px;
+                   white-space:nowrap; height:44px; box-sizing:border-box; }
+  .ic-btn-filter:hover { background:#374151; }
+
+  .ic-table-card { background:#fff; border-radius:20px; overflow:hidden; box-shadow:0 4px 20px rgba(16,24,40,.06); }
+  .ic-table { width:100%; border-collapse:collapse; }
+  .ic-table thead th { background:#f8fafc; padding:12px 14px; font-size:12px; font-weight:700;
+                       color:var(--muted); text-transform:uppercase; letter-spacing:.5px;
+                       border-bottom:1px solid var(--line); white-space:nowrap; }
+  .ic-table thead th:first-child { padding-left:20px; }
+  .ic-table thead th:last-child  { padding-right:20px; text-align:center; }
+  .ic-table tbody td { padding:12px 14px; font-size:13.5px; border-bottom:1px solid var(--line); vertical-align:middle; }
+  .ic-table tbody td:first-child { padding-left:20px; }
+  .ic-table tbody td:last-child  { padding-right:20px; text-align:center; }
+  .ic-table tbody tr:last-child td { border-bottom:none; }
+  .ic-table tbody tr:hover td { background:#fafcfb; }
+
+  .ic-pos-badge { display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px;
+                  border-radius:8px; background:#f1f5f9; color:#475569; font-size:12.5px; font-weight:800; }
+
+  .ic-actions { display:flex; gap:5px; justify-content:center; }
+  .ic-btn-view { border:1px solid #0ea5e9; background:#f0f9ff; color:#0369a1 !important; border-radius:7px;
+                 padding:5px 10px; font-size:12px; font-weight:700; text-decoration:none !important;
+                 display:inline-flex; align-items:center; gap:4px; transition:.15s; }
+  .ic-btn-view:hover { background:#0ea5e9; color:#fff !important; }
+  .ic-btn-edit { border:1px solid #16a34a; background:#f0fdf4; color:#15803d !important; border-radius:7px;
+                 padding:5px 10px; font-size:12px; font-weight:700; text-decoration:none !important;
+                 display:inline-flex; align-items:center; gap:4px; transition:.15s; }
+  .ic-btn-edit:hover { background:#16a34a; color:#fff !important; }
+  .ic-btn-del { border:1px solid #f87171; background:#fff1f2; color:#991b1b; border-radius:7px;
+                padding:5px 10px; font-size:12px; font-weight:700; cursor:pointer;
+                display:inline-flex; align-items:center; gap:4px; transition:.15s; }
+  .ic-btn-del:hover { background:#dc2626; color:#fff; border-color:#dc2626; }
+  .ic-btn-del form { margin:0; }
+
+  .ic-empty { text-align:center; padding:60px 20px; }
+  .ic-empty i { font-size:3rem; color:#cbd5e1; display:block; margin-bottom:12px; }
+  .ic-empty p { color:var(--muted); font-size:14px; margin:0; }
+
+  .ic-page-wrap .pagination .page.current a,
+  .ic-page-wrap .pagination .page.current span { background:#27bc9c; border-color:#27bc9c; color:#fff; border-radius:8px; }
+  .ic-page-wrap .pagination a, .ic-page-wrap .pagination span { border-radius:8px; }
+</style>
+
+<div class="ic-page">
+
+  <div class="ic-head">
+    <div class="ic-head-l">
+      <div class="ic-head-ico"><i class="fas fa-bolt"></i></div>
+      <div>
+        <h2>ຄຳຕອບດ່ວນ</h2>
+        <p>ຂໍ້ຄວາມສຳເລັດຮູບໃຫ້ Agent ໃຊ້ຕອບລູກຄ້າໄວຂຶ້ນ</p>
+      </div>
+    </div>
+    <%= link_to new_admin_support_template_path, class: 'ic-btn-add' do %>
+      <i class="fas fa-plus"></i>ເພີ່ມຄຳຕອບດ່ວນ
+    <% end %>
+  </div>
+
+  <div class="ic-stats">
+    <div class="ic-stat">
+      <div class="ic-stat-ico"><i class="fas fa-bolt"></i></div>
+      <div><p class="ic-stat-label">ທັງໝົດ</p><p class="ic-stat-val"><%= total %></p></div>
+    </div>
+  </div>
+
+  <div class="ic-filter">
+    <form method="GET" action="<%= admin_support_templates_path %>">
+      <div class="ic-filter-row">
+        <div class="ic-filter-search">
+          <label class="ic-filter-label">ຄົ້ນຫາ</label>
+          <input type="text" name="q[search]" class="ic-filter-input"
+                 value="<%= filter_search %>" placeholder="ຫົວຂໍ້, ຂໍ້ຄວາມ...">
+        </div>
+        <div class="ic-filter-btns">
+          <button type="submit" class="ic-btn-filter">
+            <i class="fas fa-filter"></i>ຄົ້ນຫາ
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div class="ic-table-card">
+    <div style="overflow-x:auto;">
+      <table class="ic-table">
+        <thead>
+          <tr>
+            <th>ລຳດັບ</th>
+            <th>ຫົວຂໍ້</th>
+            <th>ຂໍ້ຄວາມ</th>
+            <th>ຈັດການ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% templates.each do |t| %>
+            <tr>
+              <td><span class="ic-pos-badge"><%= t.position %></span></td>
+              <td style="font-weight:700;"><%= t.title %></td>
+              <td style="font-size:12.5px;color:var(--muted);"><%= truncate(t.body.to_s, length: 70) %></td>
+              <td>
+                <div class="ic-actions">
+                  <%= link_to admin_support_template_path(t), class: 'ic-btn-view' do %>
+                    <i class="fas fa-eye"></i>
+                  <% end %>
+                  <%= link_to edit_admin_support_template_path(t), class: 'ic-btn-edit' do %>
+                    <i class="fas fa-edit"></i>
+                  <% end %>
+                  <%= button_to admin_support_template_path(t), method: :delete,
+                        class: 'ic-btn-del',
+                        form: { style: 'margin:0;' },
+                        data: { confirm: "ຢືນຢັນການລົບ #{t.title}?" } do %>
+                    <i class="fas fa-trash"></i>
+                  <% end %>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+
+          <% if templates.empty? %>
+            <tr>
+              <td colspan="4">
+                <div class="ic-empty">
+                  <i class="fas fa-bolt"></i>
+                  <p>ຍັງບໍ່ມີຄຳຕອບດ່ວນ</p>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <% if templates.respond_to?(:total_pages) && templates.total_pages > 1 %>
+    <div class="ic-page-wrap" style="display:flex;justify-content:center;margin-top:20px;">
+      <%= paginate templates %>
+    </div>
+  <% end %>
+
+</div>

@@ -1,0 +1,254 @@
+<%
+  category_label = { "maintenance" => "ປິດປັບປຸງ", "promotion" => "ໂປຣໂມຊັ່ນ", "feature" => "ຟີເຈີໃໝ່", "event" => "ກິດຈະກຳ" }
+  category_color = { "maintenance" => "#dc2626", "promotion" => "#7c3aed", "feature" => "#0ea5e9", "event" => "#f59e0b" }
+
+  filter_search   = params.dig(:q, :search)
+  filter_category = params.dig(:q, :category)
+  filter_status   = params.dig(:q, :status)
+
+  scope = Announcement.order(position: :desc, created_at: :desc)
+  scope = scope.where("title ILIKE :q OR body ILIKE :q", q: "%#{filter_search.strip}%") if filter_search.present?
+  scope = scope.where(category: filter_category) if filter_category.present?
+  scope = scope.where(active: filter_status == 'active') if filter_status.present?
+
+  page     = (params[:page] || 1).to_i
+  per_page = 20
+  announcements = scope.page(page).per(per_page)
+
+  total          = Announcement.count
+  active_count   = Announcement.where(active: true).count
+  total_views    = Announcement.sum(:view_count)
+  has_filter     = filter_search.present? || filter_category.present? || filter_status.present?
+%>
+
+<style>
+  .index_content .scopes, #titlebar { display:none !important; }
+  body.active_admin, #wrapper, #active_admin_content, #main_content,
+  .index_content, #main, .flashes { background:#f4f6f9 !important; }
+  .index_content > .panel,
+  .index_as_table,
+  #main_content .panel:first-child { background:transparent !important; border:none !important; box-shadow:none !important; padding:0 !important; margin:0 !important; }
+  .index_content > .panel > .panel_contents,
+  .index_as_table > .panel_contents { padding:0 !important; background:transparent !important; }
+
+  .ic-page { --brand:#27bc9c; --brand-d:#1e9e82; --ink:#1f2a37; --muted:#6b7684; --line:#e9edf2;
+             color:var(--ink); font-family:"Noto Sans Lao","Phetsarath OT",system-ui,sans-serif; }
+
+  .ic-head { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:24px; }
+  .ic-head-l { display:flex; align-items:center; gap:14px; }
+  .ic-head-ico { width:48px; height:48px; border-radius:14px; display:grid; place-items:center;
+                 color:#fff; font-size:20px; background:linear-gradient(135deg,#27bc9c,#1e9e82);
+                 box-shadow:0 8px 18px rgba(39,188,156,.35); flex-shrink:0; }
+  .ic-head h2 { font-size:20px; font-weight:800; margin:0; letter-spacing:-.2px; }
+  .ic-head p  { font-size:12.5px; color:var(--muted); margin:3px 0 0; }
+  .ic-btn-add { border:none; border-radius:11px; padding:10px 20px; font-size:13.5px; font-weight:700;
+                background:linear-gradient(135deg,#27bc9c,#1e9e82); color:#fff !important;
+                box-shadow:0 6px 14px rgba(39,188,156,.32); cursor:pointer; display:inline-flex;
+                align-items:center; gap:8px; text-decoration:none !important; transition:.15s; }
+  .ic-btn-add:hover { filter:brightness(1.06); color:#fff !important; transform:translateY(-1px); }
+
+  .ic-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:22px; }
+  .ic-stat { background:#fff; border-radius:16px; padding:18px 20px;
+             box-shadow:0 4px 16px rgba(16,24,40,.05); display:flex; align-items:center; gap:16px;
+             border-left:4px solid transparent; }
+  .ic-stat.teal   { border-left-color:#27bc9c; }
+  .ic-stat.green  { border-left-color:#16a34a; }
+  .ic-stat.purple { border-left-color:#7c3aed; }
+  .ic-stat-ico { width:44px; height:44px; border-radius:12px; display:grid; place-items:center; font-size:18px; flex-shrink:0; }
+  .ic-stat.teal   .ic-stat-ico { background:#e6f7f3; color:#27bc9c; }
+  .ic-stat.green  .ic-stat-ico { background:#dcfce7; color:#16a34a; }
+  .ic-stat.purple .ic-stat-ico { background:#ede9fe; color:#7c3aed; }
+  .ic-stat-label { font-size:12px; color:var(--muted); font-weight:600; margin:0 0 4px; }
+  .ic-stat-val   { font-size:24px; font-weight:800; margin:0; letter-spacing:-.5px; }
+
+  .ic-filter { background:#fff; border-radius:16px; padding:18px 20px; margin-bottom:20px;
+               box-shadow:0 4px 16px rgba(16,24,40,.05); }
+  .ic-filter-label { display:block; font-size:12.5px; font-weight:700; color:#334155; margin-bottom:6px; }
+  .ic-filter-input { width:100%; border:1px solid var(--line); border-radius:10px; padding:10px 14px;
+                     font-size:13.5px; background:#fff; outline:none;
+                     font-family:inherit; color:var(--ink); }
+  .ic-filter-input:focus { border-color:#27bc9c; box-shadow:0 0 0 3px rgba(39,188,156,.12); }
+  .ic-filter-row { display:flex !important; flex-direction:row !important; gap:12px; align-items:flex-end; flex-wrap:nowrap; }
+  .ic-filter-search { flex:2; min-width:0; }
+  .ic-filter-sel    { flex:1.2; min-width:0; }
+  .ic-filter-btns   { flex-shrink:0; display:flex; flex-direction:column; gap:6px; }
+  .ic-btn-filter { border:none; border-radius:10px; padding:10px 18px; font-size:13.5px; font-weight:700;
+                   background:#1f2a37; color:#fff; cursor:pointer; display:inline-flex; align-items:center; gap:6px;
+                   white-space:nowrap; width:100%; justify-content:center; min-height:44px; box-sizing:border-box; }
+  .ic-btn-filter:hover { background:#374151; }
+  .ic-btn-clear { border:1px solid var(--line); border-radius:10px; padding:10px 18px; font-size:13.5px;
+                  font-weight:600; background:#fff; text-decoration:none !important;
+                  display:inline-flex; align-items:center; gap:6px; white-space:nowrap;
+                  width:100%; justify-content:center; color:var(--muted) !important;
+                  min-height:44px; box-sizing:border-box; }
+  .ic-btn-clear:hover { background:#f8fafc; color:var(--ink) !important; }
+
+  .an-card { background:#fff; border-radius:16px; padding:18px 20px; margin-bottom:14px;
+             box-shadow:0 4px 16px rgba(16,24,40,.05); display:flex; gap:16px; align-items:flex-start; }
+  .an-card:last-child { margin-bottom:0; }
+  .an-thumb { width:64px; height:64px; border-radius:12px; background:#f1f5f9; display:flex;
+              align-items:center; justify-content:center; overflow:hidden; border:1px solid var(--line); flex-shrink:0; }
+  .an-thumb img { width:100%; height:100%; object-fit:cover; }
+  .an-thumb i { color:#94a3b8; font-size:20px; }
+  .an-body { flex:1; min-width:0; }
+  .an-badges { display:flex; align-items:center; gap:8px; margin-bottom:8px; flex-wrap:wrap; }
+  .an-cat-badge { display:inline-flex; align-items:center; padding:3px 11px; border-radius:20px; font-size:11px; font-weight:700; }
+  .an-status { display:inline-flex; align-items:center; padding:3px 11px; border-radius:20px; font-size:11px; font-weight:700; }
+  .an-status-active   { background:#dcfce7; color:#16a34a; }
+  .an-status-inactive { background:#f1f5f9; color:#64748b; }
+  .an-title { font-size:14.5px; font-weight:800; margin:0 0 4px; }
+  .an-desc { font-size:12.5px; color:var(--muted); margin:0 0 10px; line-height:1.5; }
+  .an-meta { display:flex; align-items:center; gap:14px; flex-wrap:wrap; font-size:11.5px; color:var(--muted); }
+  .an-meta span { display:inline-flex; align-items:center; gap:5px; }
+  .an-actions { display:flex; gap:5px; flex-shrink:0; }
+  .ic-btn-view { border:1px solid #0ea5e9; background:#f0f9ff; color:#0369a1 !important; border-radius:7px;
+                 padding:6px 11px; font-size:12px; font-weight:700; text-decoration:none !important;
+                 display:inline-flex; align-items:center; gap:4px; transition:.15s; }
+  .ic-btn-view:hover { background:#0ea5e9; color:#fff !important; }
+  .ic-btn-edit { border:1px solid #16a34a; background:#f0fdf4; color:#15803d !important; border-radius:7px;
+                 padding:6px 11px; font-size:12px; font-weight:700; text-decoration:none !important;
+                 display:inline-flex; align-items:center; gap:4px; transition:.15s; }
+  .ic-btn-edit:hover { background:#16a34a; color:#fff !important; }
+  .ic-btn-del { border:1px solid #f87171; background:#fff1f2; color:#991b1b; border-radius:7px;
+                padding:6px 11px; font-size:12px; font-weight:700; cursor:pointer;
+                display:inline-flex; align-items:center; gap:4px; transition:.15s; }
+  .ic-btn-del:hover { background:#dc2626; color:#fff; border-color:#dc2626; }
+  .ic-btn-del form { margin:0; }
+
+  .ic-empty { text-align:center; padding:60px 20px; }
+  .ic-empty i { font-size:3rem; color:#cbd5e1; display:block; margin-bottom:12px; }
+  .ic-empty p { color:var(--muted); font-size:14px; margin:0; }
+
+  .ic-page-wrap .pagination .page.current a,
+  .ic-page-wrap .pagination .page.current span { background:#27bc9c; border-color:#27bc9c; color:#fff; border-radius:8px; }
+  .ic-page-wrap .pagination a, .ic-page-wrap .pagination span { border-radius:8px; }
+</style>
+
+<div class="ic-page">
+
+  <div class="ic-head">
+    <div class="ic-head-l">
+      <div class="ic-head-ico"><i class="fas fa-bullhorn"></i></div>
+      <div>
+        <h2>ປະກາດ</h2>
+        <p>ຈັດການປະກາດ ແລະ ຂ່າວສານທີ່ສະແດງໃນແອັບພລິເຄຊັນ</p>
+      </div>
+    </div>
+    <%= link_to new_admin_announcement_path, class: 'ic-btn-add' do %>
+      <i class="fas fa-plus"></i>ເພີ່ມປະກາດໃໝ່
+    <% end %>
+  </div>
+
+  <div class="ic-stats">
+    <div class="ic-stat teal">
+      <div class="ic-stat-ico"><i class="fas fa-bullhorn"></i></div>
+      <div><p class="ic-stat-label">ປະກາດທັງໝົດ</p><p class="ic-stat-val"><%= total %></p></div>
+    </div>
+    <div class="ic-stat green">
+      <div class="ic-stat-ico"><i class="fas fa-bolt"></i></div>
+      <div><p class="ic-stat-label">ກຳລັງແລ່ນ</p><p class="ic-stat-val"><%= active_count %></p></div>
+    </div>
+    <div class="ic-stat purple">
+      <div class="ic-stat-ico"><i class="fas fa-eye"></i></div>
+      <div><p class="ic-stat-label">ຍອດເບິ່ງທັງໝົດ</p><p class="ic-stat-val"><%= number_with_delimiter(total_views) %></p></div>
+    </div>
+  </div>
+
+  <div class="ic-filter">
+    <form method="GET" action="<%= admin_announcements_path %>">
+      <div class="ic-filter-row">
+        <div class="ic-filter-search">
+          <label class="ic-filter-label">ຄົ້ນຫາ</label>
+          <input type="text" name="q[search]" class="ic-filter-input"
+                 value="<%= filter_search %>" placeholder="ຄົ້ນຫາຫົວຂໍ້ປະກາດ...">
+        </div>
+        <div class="ic-filter-sel">
+          <label class="ic-filter-label">ປະເພດ</label>
+          <select name="q[category]" class="ic-filter-input">
+            <option value="">ປະເພດທັງໝົດ</option>
+            <% Announcement::CATEGORIES.each do |c| %>
+              <option value="<%= c %>" <%= 'selected' if filter_category == c %>><%= category_label[c] %></option>
+            <% end %>
+          </select>
+        </div>
+        <div class="ic-filter-sel">
+          <label class="ic-filter-label">ສະຖານະ</label>
+          <select name="q[status]" class="ic-filter-input">
+            <option value="">ສະຖານະທັງໝົດ</option>
+            <option value="active"   <%= 'selected' if filter_status == 'active'   %>>ເຜີຍແຜ່</option>
+            <option value="inactive" <%= 'selected' if filter_status == 'inactive' %>>ເກັບຖານ</option>
+          </select>
+        </div>
+        <div class="ic-filter-btns">
+          <button type="submit" class="ic-btn-filter">
+            <i class="fas fa-filter"></i>ກອງຂໍ້ມູນ
+          </button>
+          <% if has_filter %>
+            <a href="<%= admin_announcements_path %>" class="ic-btn-clear">
+              <i class="fas fa-times"></i>ລ້າງ
+            </a>
+          <% end %>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <% if announcements.empty? %>
+    <div class="an-card" style="justify-content:center;">
+      <div class="ic-empty" style="padding:20px;">
+        <i class="fas fa-bullhorn"></i>
+        <p>ບໍ່ພົບປະກາດ</p>
+      </div>
+    </div>
+  <% else %>
+    <% announcements.each do |a| %>
+      <div class="an-card">
+        <div class="an-thumb">
+          <% if a.image.present? %>
+            <img src="<%= a.image %>" alt="">
+          <% else %>
+            <i class="fas fa-image"></i>
+          <% end %>
+        </div>
+        <div class="an-body">
+          <div class="an-badges">
+            <span class="an-cat-badge" style="background:<%= category_color[a.category] %>1a;color:<%= category_color[a.category] %>;">
+              <%= category_label[a.category] || a.category %>
+            </span>
+            <span class="an-status <%= a.active ? 'an-status-active' : 'an-status-inactive' %>">
+              <%= a.active ? 'ເຜີຍແຜ່' : 'ເກັບຖານ' %>
+            </span>
+          </div>
+          <p class="an-title"><%= a.title %></p>
+          <% if a.body.present? %><p class="an-desc"><%= truncate(a.body, length: 100) %></p><% end %>
+          <div class="an-meta">
+            <span><i class="fas fa-user"></i> <%= a.author.presence || "—" %></span>
+            <span><i class="fas fa-eye"></i> <%= number_with_delimiter(a.view_count) %> ຄັ້ງ</span>
+            <span><i class="fas fa-calendar"></i> <%= a.created_at.strftime('%Y-%m-%d') %></span>
+          </div>
+        </div>
+        <div class="an-actions">
+          <%= link_to admin_announcement_path(a), class: 'ic-btn-view' do %>
+            <i class="fas fa-eye"></i>
+          <% end %>
+          <%= link_to edit_admin_announcement_path(a), class: 'ic-btn-edit' do %>
+            <i class="fas fa-edit"></i>
+          <% end %>
+          <%= button_to admin_announcement_path(a), method: :delete,
+                class: 'ic-btn-del',
+                form: { style: 'margin:0;' },
+                data: { confirm: "ຢືນຢັນການລົບ #{a.title}?" } do %>
+            <i class="fas fa-trash"></i>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  <% end %>
+
+  <% if announcements.respond_to?(:total_pages) && announcements.total_pages > 1 %>
+    <div class="ic-page-wrap" style="display:flex;justify-content:center;margin-top:20px;">
+      <%= paginate announcements %>
+    </div>
+  <% end %>
+
+</div>

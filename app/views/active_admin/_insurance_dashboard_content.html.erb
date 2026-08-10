@@ -1,0 +1,219 @@
+<%
+  status_label = {
+    'pending' => 'ລໍຖ້າຢືນຢັນ', 'active' => 'ໃຊ້ງານຢູ່',
+    'expired' => 'ໝົດອາຍຸ', 'cancelled' => 'ຍົກເລີກ'
+  }
+  status_icon = {
+    'pending' => 'fa-hourglass-half', 'active' => 'fa-check',
+    'expired' => 'fa-calendar-times', 'cancelled' => 'fa-ban'
+  }
+  status_color = {
+    'pending' => '#f59e0b', 'active' => '#16a34a',
+    'expired' => '#64748b', 'cancelled' => '#dc2626'
+  }
+
+  company = current_admin_user.insurance_company
+  orders  = company.insurances
+  total     = orders.count
+  pending   = orders.where(status: 'pending').count
+  active    = orders.where(status: 'active').count
+  expired   = orders.where(status: 'expired').count
+
+  recent = orders.includes(vehicle: :user).order(created_at: :desc).limit(5)
+
+  begin
+    period_start = params[:from].present? ? Date.parse(params[:from]) : 30.days.ago.to_date
+    period_end   = params[:to].present?   ? Date.parse(params[:to])   : Date.current
+  rescue ArgumentError
+    period_start = 30.days.ago.to_date
+    period_end   = Date.current
+  end
+  period_start, period_end = period_end, period_start if period_start > period_end
+  period_range = period_start.beginning_of_day..period_end.end_of_day
+
+  range_days = (period_end - period_start).to_i + 1
+  use_daily  = range_days <= 62
+
+  if use_daily
+    counts_by_bucket = orders.where(created_at: period_range).group("DATE(created_at)").count
+    buckets       = (period_start..period_end).to_a
+    trend_labels  = buckets.map { |d| d.strftime('%d/%m') }
+    trend_values  = buckets.map { |d| counts_by_bucket[d] || 0 }
+  else
+    counts_by_bucket = orders.where(created_at: period_range).group("TO_CHAR(created_at, 'YYYY-MM')").count
+    month_cursor = period_start.beginning_of_month
+    buckets = []
+    while month_cursor <= period_end
+      buckets << month_cursor
+      month_cursor = month_cursor.next_month
+    end
+    trend_labels = buckets.map { |m| m.strftime('%m/%Y') }
+    trend_values = buckets.map { |m| counts_by_bucket[m.strftime('%Y-%m')] || 0 }
+  end
+
+  presets = {
+    "ມື້ວານ"    => [Date.yesterday, Date.yesterday],
+    "ມື້ນີ້"     => [Date.current, Date.current],
+    "ເດືອນກ່ອນ" => [1.month.ago.to_date.beginning_of_month, 1.month.ago.to_date.end_of_month],
+    "ເດືອນນີ້"   => [Date.current.beginning_of_month, Date.current.end_of_month],
+    "ປີທີ່ແລ້ວ"  => [1.year.ago.to_date.beginning_of_year, 1.year.ago.to_date.end_of_year],
+    "ປີນີ້"      => [Date.current.beginning_of_year, Date.current.end_of_year],
+  }
+
+  period_counts = orders.where(created_at: period_range).group(:status).count
+  period_total  = period_counts.values.sum
+%>
+
+<style>
+  .pd-presets { display: flex; gap: 5px; flex-wrap: wrap; }
+  .pd-preset { padding: 5px 12px; border-radius: 20px; font-size: 11.5px; font-weight: 700;
+               text-decoration: none; border: 1px solid #e2e8f0; color: #64748b; background: #fff; }
+  .pd-preset:hover { background: #f4f6f9; }
+  .pd-preset.active { background: #27bc9c; border-color: #27bc9c; color: #fff; }
+  .st { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 11.5px; font-weight: 700; }
+  .st-pending { background: #fef3c7; color: #b45309; }
+  .st-active { background: #dcfce7; color: #16a34a; }
+  .st-expired { background: #f1f5f9; color: #64748b; }
+  .st-cancelled { background: #fee2e2; color: #dc2626; }
+  .pd-empty { padding: 40px 20px; text-align: center; color: #94a3b8; font-size: 13px; }
+  .pd-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; border-bottom: 1px solid #f8fafc; }
+  .pd-row:last-child { border-bottom: none; }
+  .pd-row a { text-decoration: none; color: inherit; display: block; }
+
+  .pd-result-row { display: flex; align-items: center; gap: 12px; padding: 12px 20px; }
+  .pd-result-ico { width: 32px; height: 32px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+  .pd-result-label { font-size: 12.5px; font-weight: 700; color: #1f2a37; width: 110px; flex-shrink: 0; }
+  .pd-result-bar-wrap { flex: 1; height: 8px; border-radius: 5px; background: #f1f5f9; overflow: hidden; }
+  .pd-result-bar { height: 100%; border-radius: 5px; }
+  .pd-result-val { font-size: 12.5px; font-weight: 700; color: #1f2a37; width: 70px; text-align: right; flex-shrink: 0; }
+</style>
+
+<h2 style="font-size:16px;font-weight:800;margin:0 0 4px;"><%= company.name %></h2>
+<p style="font-size:12.5px;color:#64748b;margin:0 0 20px;">ພາບລວມອໍເດີ້ປະກັນໄພຂອງບໍລິສັດທ່ານ</p>
+
+<div class="stat-grid">
+  <div class="stat-card card-blue">
+    <div class="stat-icon-wrap"><i class="fas fa-file-invoice"></i></div>
+    <div class="stat-right"><div class="stat-value"><%= total %></div><div class="stat-label">ອໍເດີ້ທັງໝົດ</div></div>
+  </div>
+  <div class="stat-card card-orange">
+    <div class="stat-icon-wrap"><i class="fas fa-hourglass-half"></i></div>
+    <div class="stat-right"><div class="stat-value"><%= pending %></div><div class="stat-label">ລໍຖ້າຢືນຢັນ</div></div>
+  </div>
+  <div class="stat-card card-purple">
+    <div class="stat-icon-wrap"><i class="fas fa-check"></i></div>
+    <div class="stat-right"><div class="stat-value"><%= active %></div><div class="stat-label">ໃຊ້ງານຢູ່</div></div>
+  </div>
+  <div class="stat-card card-green">
+    <div class="stat-icon-wrap"><i class="fas fa-calendar-times"></i></div>
+    <div class="stat-right"><div class="stat-value"><%= expired %></div><div class="stat-label">ໝົດອາຍຸ</div></div>
+  </div>
+</div>
+
+<%# ===== QUICK PRESETS (shared by trend chart + results below) ===== %>
+<div class="pd-presets" style="margin-top:16px;">
+  <% presets.each do |label, (pfrom, pto)| %>
+    <%= link_to label, admin_dashboard_path(from: pfrom, to: pto),
+          class: "pd-preset #{'active' if period_start == pfrom && period_end == pto}" %>
+  <% end %>
+</div>
+<p style="font-size:11.5px;color:#94a3b8;margin:8px 0 0;">
+  <%= period_start.strftime('%d/%m/%Y') %> – <%= period_end.strftime('%d/%m/%Y') %>
+</p>
+
+<div class="dash-bottom-row" style="margin-top:16px;align-items:start;">
+
+  <%# ===== ແນວໂນ້ມອໍເດີ້ (trend) ===== %>
+  <div class="dash-panel" style="flex:2 !important;">
+    <div class="dash-panel-header">
+      <span><i class="fas fa-chart-column"></i> ແນວໂນ້ມອໍເດີ້ (<%= use_daily ? 'ລາຍວັນ' : 'ລາຍເດືອນ' %>)</span>
+    </div>
+    <div style="padding:16px 20px;">
+      <% if trend_values.sum.zero? %>
+        <div class="pd-empty">ບໍ່ມີຂໍ້ມູນໃນຊ່ວງເວລານີ້</div>
+      <% else %>
+        <div style="height:260px;"><canvas id="trendChart"></canvas></div>
+      <% end %>
+    </div>
+  </div>
+
+  <%# ===== ສະຖານະອໍເດີ້ (results) ===== %>
+  <div class="dash-panel">
+    <div class="dash-panel-header">
+      <span><i class="fas fa-chart-simple"></i> ສະຖານະອໍເດີ້</span>
+    </div>
+    <% if period_total.zero? %>
+      <div class="pd-empty">ບໍ່ມີຂໍ້ມູນໃນຊ່ວງເວລານີ້</div>
+    <% else %>
+      <% %w[pending active expired cancelled].each do |s| %>
+        <% count = period_counts[s] || 0 %>
+        <% pct   = period_total.zero? ? 0 : (count.to_f / period_total * 100).round %>
+        <div class="pd-result-row">
+          <div class="pd-result-ico" style="background:<%= status_color[s] %>1a;color:<%= status_color[s] %>;">
+            <i class="fas <%= status_icon[s] %>"></i>
+          </div>
+          <div class="pd-result-label"><%= status_label[s] %></div>
+          <div class="pd-result-bar-wrap">
+            <div class="pd-result-bar" style="width:<%= pct %>%;background:<%= status_color[s] %>;"></div>
+          </div>
+          <div class="pd-result-val"><%= count %> (<%= pct %>%)</div>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+
+</div>
+
+<div class="dash-panel" style="margin-top:20px;">
+  <div class="dash-panel-header">
+    <span><i class="fas fa-file-invoice"></i> ອໍເດີ້ລ່າສຸດ</span>
+    <%= link_to "ເບິ່ງທັງໝົດ →", admin_insurances_path, class: "dash-chart-link" %>
+  </div>
+  <% if recent.empty? %>
+    <div class="pd-empty">ຍັງບໍ່ມີອໍເດີ້</div>
+  <% else %>
+    <% recent.each do |ins| %>
+      <div class="pd-row">
+        <%= link_to admin_insurance_path(ins), style: "display:flex;align-items:center;gap:12px;" do %>
+          <div style="width:40px;height:40px;border-radius:10px;background:#eafaf5;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <i class="fas fa-car" style="color:#27bc9c;"></i>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#1f2a37;"><%= ins.vehicle.plate_number %></div>
+            <div style="font-size:12px;color:#94a3b8;"><%= ins.package %> · <%= ins.created_at.strftime('%d/%m/%Y') %></div>
+          </div>
+        <% end %>
+        <span class="st st-<%= ins.status %>"><%= status_label[ins.status] || ins.status %></span>
+      </div>
+    <% end %>
+  <% end %>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+  (function () {
+    var ctx = document.getElementById('trendChart');
+    if (!ctx || typeof Chart === 'undefined') return;
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: <%= raw trend_labels.to_json %>,
+        datasets: [{
+          data: <%= raw trend_values.to_json %>,
+          backgroundColor: '#27bc9c',
+          borderRadius: 4,
+          maxBarThickness: 24,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#e1e0d9' } },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+  })();
+</script>

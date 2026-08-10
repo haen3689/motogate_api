@@ -1,5 +1,5 @@
 ActiveAdmin.register RoadTaxSetting do
-  menu label: "ຄ່າທຳນຽມແພລດຟອມ", priority: 5, if: -> { !current_admin_user.partner? }
+  menu label: "ຄ່າທຳນຽມແພລດຟອມ", priority: 5, if: -> { !current_admin_user.partner? && !current_admin_user.insurance? }
 
   actions :show, :edit, :update
   config.batch_actions = false
@@ -16,16 +16,5 @@ ActiveAdmin.register RoadTaxSetting do
     end
   end
 
-  form do |f|
-    f.inputs "ຄ່າທຳນຽມແພລດຟອມ (ສຳລັບການອັບໂຫລດຫຼັກຖານຈ່າຍນອກລະບົບ)" do
-      f.input :fee_type, as: :select,
-        collection: [['ຈຳນວນເງິນຄົງທີ່', 'flat'], ['ເປີເຊັນຂອງຄ່າທາງ', 'percent']],
-        include_blank: false, label: "ຮູບແບບການຄິດໄລ່"
-      f.input :flat_amount, label: "ຈຳນວນເງິນຄົງທີ່ (₭)", hint: "ໃຊ້ເມື່ອເລືອກ \"ຈຳນວນເງິນຄົງທີ່\""
-      f.input :percent_rate, label: "ອັດຕາເປີເຊັນ (%)", hint: "ໃຊ້ເມື່ອເລືອກ \"ເປີເຊັນຂອງຄ່າທາງ\" — ຄິດຈາກລາຄາຄ່າທາງອ້າງອີງຂອງລົດຄັນນັ້ນ"
-    end
-    f.actions do
-      f.action :submit, label: "ບັນທຶກ"
-    end
-  end
+  form partial: "active_admin/road_tax_setting_form_content"
 end

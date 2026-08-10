@@ -4,6 +4,8 @@ ActiveAdmin.register_page "Reports" do
   content title: "ລາຍງານທັງໝົດ" do
     if current_admin_user.partner?
       render partial: "active_admin/partner_reports_content"
+    elsif current_admin_user.insurance?
+      render partial: "active_admin/insurance_reports_content"
     else
       render partial: "active_admin/reports_content"
     end

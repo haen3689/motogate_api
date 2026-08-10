@@ -1,0 +1,90 @@
+<%
+  l = resource
+  action_label = { "created" => "ສ້າງ", "updated" => "ແກ້ໄຂ", "deleted" => "ລຶບ" }
+  action_color = { "created" => "#16a34a", "updated" => "#f59e0b", "deleted" => "#dc2626" }
+  action_icon  = { "created" => "fa-plus", "updated" => "fa-pen", "deleted" => "fa-trash" }
+%>
+
+<style>
+  #titlebar { display:none !important; }
+  body.active_admin, #wrapper, #active_admin_content, #main_content,
+  #main, .flashes { background:#f4f6f9 !important; }
+  #main_content > .panel { background:transparent !important; border:none !important; box-shadow:none !important; padding:0 !important; margin:0 !important; }
+  #main_content > .panel > .panel_contents { padding:0 !important; }
+
+  .ics-page {
+    --brand:#27bc9c; --brand-d:#1e9e82; --ink:#1f2a37; --muted:#6b7684; --line:#e9edf2; --soft:#f4f6f9;
+    color:var(--ink); font-family:"Noto Sans Lao","Phetsarath OT",system-ui,sans-serif;
+    max-width:700px;
+  }
+
+  .ics-bar { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:22px; }
+  .ics-bar-l { display:flex; align-items:center; gap:14px; }
+  .ics-bar-ico { width:50px; height:50px; border-radius:14px; display:grid; place-items:center;
+                 background:linear-gradient(135deg,#27bc9c,#1e9e82); color:#fff; font-size:20px;
+                 box-shadow:0 8px 20px rgba(39,188,156,.35); flex-shrink:0; }
+  .ics-bar h2 { font-size:21px; font-weight:800; margin:0; }
+  .ics-bar p  { font-size:12.5px; color:var(--muted); margin:3px 0 0; }
+  .ics-btn { display:inline-flex; align-items:center; gap:7px; padding:10px 20px; border-radius:11px;
+             font-size:13.5px; font-weight:700; cursor:pointer; text-decoration:none !important;
+             text-shadow:none !important; border:none; transition:.15s; white-space:nowrap;
+             font-family:inherit; }
+  .ics-btn-back { background:#fff; border:1.5px solid var(--line); color:var(--muted) !important;
+                  box-shadow:0 2px 8px rgba(0,0,0,.06); }
+  .ics-btn-back:hover { border-color:#27bc9c; color:#27bc9c !important; }
+
+  .ics-card { background:#fff; border-radius:20px; box-shadow:0 4px 20px rgba(16,24,40,.06);
+              padding:24px 26px; margin-bottom:20px; }
+  .ics-g2 { display:grid; grid-template-columns:repeat(2,1fr); gap:20px; }
+  .ics-lbl { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; margin-bottom:4px; }
+  .ics-val { font-size:14px; color:var(--ink); }
+  .ics-status { display:inline-flex; align-items:center; gap:5px; padding:5px 12px; border-radius:20px; font-size:12px; font-weight:700; }
+</style>
+
+<div class="ics-page">
+  <div class="ics-bar">
+    <div class="ics-bar-l">
+      <div class="ics-bar-ico"><i class="fas fa-history"></i></div>
+      <div>
+        <h2>ລາຍລະອຽດປະຫວັດ</h2>
+        <p>#<%= l.id %></p>
+      </div>
+    </div>
+    <%= link_to admin_activity_logs_path, class: 'ics-btn ics-btn-back' do %>
+      <i class="fas fa-arrow-left"></i>ກັບຄືນ
+    <% end %>
+  </div>
+
+  <div class="ics-card">
+    <div class="ics-g2">
+      <div>
+        <div class="ics-lbl">ຜູ້ໃຊ້</div>
+        <div class="ics-val"><%= l.admin_user&.email || "—" %></div>
+      </div>
+      <div>
+        <div class="ics-lbl">ການກະທຳ</div>
+        <div class="ics-val">
+          <span class="ics-status" style="background:<%= action_color[l.action] %>1a;color:<%= action_color[l.action] %>;">
+            <i class="fas <%= action_icon[l.action] %>" style="font-size:10px;"></i> <%= action_label[l.action] || l.action %>
+          </span>
+        </div>
+      </div>
+      <div>
+        <div class="ics-lbl">ປະເພດ</div>
+        <div class="ics-val"><%= l.resource_type %></div>
+      </div>
+      <div>
+        <div class="ics-lbl">ລະຫັດລາຍການ</div>
+        <div class="ics-val">#<%= l.resource_id %></div>
+      </div>
+      <div style="grid-column:1 / -1;">
+        <div class="ics-lbl">ຊື່ລາຍການ</div>
+        <div class="ics-val"><%= l.resource_label.presence || "—" %></div>
+      </div>
+      <div>
+        <div class="ics-lbl">ເວລາ</div>
+        <div class="ics-val"><%= l.created_at.strftime('%d/%m/%Y %H:%M') %></div>
+      </div>
+    </div>
+  </div>
+</div>

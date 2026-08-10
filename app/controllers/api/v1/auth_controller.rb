@@ -101,6 +101,8 @@ class Api::V1::AuthController < ApiController
     data[:id_card_image_url]  = user.id_card_image.attached?  ? url_for(user.id_card_image)  : nil
     data[:license_image_url]  = user.license_image.attached?  ? url_for(user.license_image)  : nil
     data[:profile_image_url]  = user.profile_image.attached?  ? url_for(user.profile_image)  : nil
+    data[:unread_announcements_count] =
+      Announcement.active.where("created_at > ?", user.last_announcements_seen_at || Time.at(0)).count
     data
   end
 end

@@ -1,5 +1,7 @@
 class InsuranceCompany < ApplicationRecord
   has_many :insurance_packages, dependent: :destroy
+  has_many :insurances, dependent: :nullify
+  has_many :admin_users, dependent: :nullify
   accepts_nested_attributes_for :insurance_packages, allow_destroy: true,
     reject_if: proc { |attrs| attrs['name'].blank? }
 

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_07_093517) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_08_200000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -56,24 +56,80 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_07_093517) do
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
   end
 
+  create_table "activity_logs", force: :cascade do |t|
+    t.string "action", null: false
+    t.bigint "admin_user_id", null: false
+    t.datetime "created_at", null: false
+    t.bigint "resource_id"
+    t.string "resource_label"
+    t.string "resource_type", null: false
+    t.datetime "updated_at", null: false
+    t.index ["admin_user_id"], name: "index_activity_logs_on_admin_user_id"
+    t.index ["created_at"], name: "index_activity_logs_on_created_at"
+    t.index ["resource_type"], name: "index_activity_logs_on_resource_type"
+  end
+
   create_table "admin_users", force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.datetime "current_sign_in_at"
+    t.string "current_sign_in_ip"
+    t.bigint "custom_role_id"
     t.string "email", default: "", null: false
     t.string "encrypted_password", default: "", null: false
     t.bigint "inspection_center_id"
+    t.bigint "insurance_company_id"
+    t.boolean "is_support_agent", default: false, null: false
+    t.datetime "last_sign_in_at"
+    t.string "last_sign_in_ip"
     t.datetime "remember_created_at"
     t.datetime "reset_password_sent_at"
     t.string "reset_password_token"
     t.string "role", default: "admin", null: false
+    t.bigint "service_center_id"
+    t.integer "sign_in_count", default: 0, null: false
+    t.boolean "support_online", default: false, null: false
     t.datetime "updated_at", null: false
+    t.index ["custom_role_id"], name: "index_admin_users_on_custom_role_id"
     t.index ["email"], name: "index_admin_users_on_email", unique: true
     t.index ["inspection_center_id"], name: "index_admin_users_on_inspection_center_id"
+    t.index ["insurance_company_id"], name: "index_admin_users_on_insurance_company_id"
     t.index ["reset_password_token"], name: "index_admin_users_on_reset_password_token", unique: true
+    t.index ["service_center_id"], name: "index_admin_users_on_service_center_id"
+  end
+
+  create_table "advertisements", force: :cascade do |t|
+    t.boolean "active", default: true, null: false
+    t.integer "click_count", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.date "end_date"
+    t.string "image"
+    t.string "link_url"
+    t.string "placement", default: "banner", null: false
+    t.integer "position", default: 0, null: false
+    t.date "start_date"
+    t.string "subtitle"
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.integer "view_count", default: 0, null: false
+  end
+
+  create_table "announcements", force: :cascade do |t|
+    t.boolean "active", default: true, null: false
+    t.string "author"
+    t.text "body"
+    t.string "category", default: "promotion", null: false
+    t.datetime "created_at", null: false
+    t.string "image"
+    t.integer "position", default: 0, null: false
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.integer "view_count", default: 0, null: false
   end
 
   create_table "chat_messages", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
+    t.boolean "read_by_admin", default: false, null: false
     t.string "sender"
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
@@ -168,11 +224,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_07_093517) do
     t.string "company"
     t.datetime "created_at", null: false
     t.date "end_date"
+    t.bigint "insurance_company_id"
     t.string "package"
     t.date "start_date"
     t.string "status"
     t.datetime "updated_at", null: false
     t.bigint "vehicle_id", null: false
+    t.index ["insurance_company_id"], name: "index_insurances_on_insurance_company_id"
     t.index ["vehicle_id"], name: "index_insurances_on_vehicle_id"
   end
 
@@ -195,6 +253,38 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_07_093517) do
     t.text "subtitle", null: false
     t.string "title", null: false
     t.datetime "updated_at", null: false
+  end
+
+  create_table "partner_applications", force: :cascade do |t|
+    t.string "business_name", null: false
+    t.datetime "created_at", null: false
+    t.string "location"
+    t.text "notes"
+    t.string "owner_name"
+    t.string "phone"
+    t.datetime "reviewed_at"
+    t.bigint "reviewed_by_id"
+    t.bigint "service_center_id"
+    t.string "service_type", null: false
+    t.string "status", default: "pending", null: false
+    t.datetime "updated_at", null: false
+    t.index ["reviewed_by_id"], name: "index_partner_applications_on_reviewed_by_id"
+    t.index ["service_center_id"], name: "index_partner_applications_on_service_center_id"
+    t.index ["service_type"], name: "index_partner_applications_on_service_type"
+    t.index ["status"], name: "index_partner_applications_on_status"
+  end
+
+  create_table "permissions", force: :cascade do |t|
+    t.boolean "can_create", default: false, null: false
+    t.boolean "can_delete", default: false, null: false
+    t.boolean "can_read", default: true, null: false
+    t.boolean "can_update", default: false, null: false
+    t.datetime "created_at", null: false
+    t.string "resource", null: false
+    t.bigint "role_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["role_id", "resource"], name: "index_permissions_on_role_id_and_resource", unique: true
+    t.index ["role_id"], name: "index_permissions_on_role_id"
   end
 
   create_table "plate_types", force: :cascade do |t|
@@ -244,6 +334,43 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_07_093517) do
     t.index ["vehicle_id"], name: "index_road_taxes_on_vehicle_id"
   end
 
+  create_table "roles", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "key", null: false
+    t.string "name", null: false
+    t.datetime "updated_at", null: false
+    t.index ["key"], name: "index_roles_on_key", unique: true
+  end
+
+  create_table "service_center_contracts", force: :cascade do |t|
+    t.string "billing_cycle", default: "monthly", null: false
+    t.string "contract_number", null: false
+    t.datetime "created_at", null: false
+    t.date "end_date"
+    t.text "notes"
+    t.decimal "rent_amount", precision: 12, scale: 2, default: "0.0", null: false
+    t.bigint "service_center_id", null: false
+    t.date "start_date", null: false
+    t.string "status", default: "active", null: false
+    t.datetime "updated_at", null: false
+    t.index ["contract_number"], name: "index_service_center_contracts_on_contract_number", unique: true
+    t.index ["service_center_id"], name: "index_service_center_contracts_on_service_center_id"
+    t.index ["status"], name: "index_service_center_contracts_on_status"
+  end
+
+  create_table "service_center_payments", force: :cascade do |t|
+    t.decimal "amount", precision: 12, scale: 2, null: false
+    t.datetime "created_at", null: false
+    t.text "notes"
+    t.date "paid_at", null: false
+    t.string "payment_method"
+    t.string "period_label"
+    t.bigint "service_center_contract_id", null: false
+    t.string "status", default: "paid", null: false
+    t.datetime "updated_at", null: false
+    t.index ["service_center_contract_id"], name: "index_service_center_payments_on_service_center_contract_id"
+  end
+
   create_table "service_centers", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.decimal "lat"
@@ -255,7 +382,31 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_07_093517) do
     t.string "phone"
     t.decimal "rating"
     t.string "service_type"
+    t.string "specialty"
     t.string "status"
+    t.datetime "updated_at", null: false
+  end
+
+  create_table "support_cases", force: :cascade do |t|
+    t.bigint "admin_user_id"
+    t.datetime "created_at", null: false
+    t.text "feedback_comment"
+    t.datetime "last_message_at"
+    t.integer "rating"
+    t.datetime "resolved_at"
+    t.string "status", default: "open", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["admin_user_id"], name: "index_support_cases_on_admin_user_id"
+    t.index ["status"], name: "index_support_cases_on_status"
+    t.index ["user_id"], name: "index_support_cases_on_user_id", unique: true
+  end
+
+  create_table "support_templates", force: :cascade do |t|
+    t.text "body", null: false
+    t.datetime "created_at", null: false
+    t.integer "position", default: 0, null: false
+    t.string "title", null: false
     t.datetime "updated_at", null: false
   end
 
@@ -281,6 +432,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_07_093517) do
     t.date "id_expiry_date"
     t.string "id_number"
     t.string "id_type", default: "national_id"
+    t.datetime "last_announcements_seen_at"
     t.string "last_name"
     t.date "license_expiry_date"
     t.string "license_number"
@@ -333,14 +485,26 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_07_093517) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "activity_logs", "admin_users"
   add_foreign_key "admin_users", "inspection_centers"
+  add_foreign_key "admin_users", "insurance_companies"
+  add_foreign_key "admin_users", "roles", column: "custom_role_id"
+  add_foreign_key "admin_users", "service_centers"
   add_foreign_key "chat_messages", "users"
   add_foreign_key "documents", "vehicles"
   add_foreign_key "inspections", "inspection_centers"
   add_foreign_key "inspections", "vehicles"
+  add_foreign_key "insurances", "insurance_companies"
   add_foreign_key "insurances", "vehicles"
   add_foreign_key "notifications", "users"
+  add_foreign_key "partner_applications", "admin_users", column: "reviewed_by_id"
+  add_foreign_key "partner_applications", "service_centers"
+  add_foreign_key "permissions", "roles"
   add_foreign_key "road_taxes", "vehicles"
+  add_foreign_key "service_center_contracts", "service_centers"
+  add_foreign_key "service_center_payments", "service_center_contracts"
+  add_foreign_key "support_cases", "admin_users"
+  add_foreign_key "support_cases", "users"
   add_foreign_key "transactions", "users"
   add_foreign_key "vehicles", "users"
 end

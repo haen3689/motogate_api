@@ -1,0 +1,141 @@
+<% s = resource %>
+
+<style>
+  #titlebar { display:none !important; }
+  body.active_admin, #wrapper, #active_admin_content, #main_content,
+  #main, .flashes { background:#f4f6f9 !important; }
+  #main_content > .panel { background:transparent !important; border:none !important; box-shadow:none !important; padding:0 !important; margin:0 !important; }
+  #main_content > .panel > .panel_contents { padding:0 !important; }
+
+  .vef-page {
+    --brand:#27bc9c; --brand-d:#1e9e82; --ink:#1f2a37; --muted:#6b7684; --line:#e9edf2; --soft:#f4f6f9;
+    color:var(--ink); font-family:"Noto Sans Lao","Phetsarath OT",system-ui,sans-serif;
+    max-width:640px;
+  }
+
+  .vef-bar { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:28px; }
+  .vef-bar-l { display:flex; align-items:center; gap:14px; }
+  .vef-bar-ico { width:50px; height:50px; border-radius:14px; display:grid; place-items:center;
+                 background:linear-gradient(135deg,#27bc9c,#1e9e82); color:#fff; font-size:20px;
+                 box-shadow:0 8px 20px rgba(39,188,156,.35); flex-shrink:0; }
+  .vef-bar h2 { font-size:21px; font-weight:800; margin:0; }
+  .vef-bar p  { font-size:12.5px; color:var(--muted); margin:3px 0 0; }
+  .vef-btn { display:inline-flex; align-items:center; gap:7px; padding:10px 22px; border-radius:11px;
+             font-size:13.5px; font-weight:700; cursor:pointer; text-decoration:none !important;
+             text-shadow:none !important; border:none; transition:.15s; white-space:nowrap;
+             font-family:inherit; }
+  .vef-btn-save { background:linear-gradient(135deg,#27bc9c,#1e9e82); color:#fff !important;
+                  box-shadow:0 6px 16px rgba(39,188,156,.35); }
+  .vef-btn-save:hover { filter:brightness(1.07); color:#fff !important; transform:translateY(-1px); }
+
+  .vef-card { background:#fff; border-radius:20px; box-shadow:0 4px 20px rgba(16,24,40,.06);
+              padding:28px 32px; margin-bottom:20px; }
+  .vef-card-hd { display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:15px; font-weight:800;
+                 color:var(--ink); margin-bottom:24px; padding-bottom:14px;
+                 border-bottom:2px solid var(--soft); }
+  .vef-card-hd-l { display:flex; align-items:center; gap:10px; }
+  .vef-card-hd i { width:32px; height:32px; border-radius:9px; display:grid; place-items:center;
+                   background:#e6f7f3; color:#27bc9c; font-size:14px; flex-shrink:0; }
+
+  .vef-field { display:flex; flex-direction:column; gap:6px; }
+  .vef-label { font-size:12px; font-weight:700; color:#475569; letter-spacing:.02em; text-transform:uppercase; }
+  .vef-input {
+    border:1.5px solid var(--line) !important; border-radius:10px !important;
+    padding:11px 14px !important; font-size:13.5px !important; background:#fff !important;
+    outline:none !important; font-family:inherit !important; color:var(--ink) !important;
+    transition:.2s; width:100% !important; box-sizing:border-box !important;
+    min-height:44px !important; line-height:1.4 !important; margin:0 !important;
+    box-shadow:none !important; appearance:none; -webkit-appearance:none;
+  }
+  .vef-input:focus { border-color:#27bc9c !important; box-shadow:0 0 0 3px rgba(39,188,156,.13) !important; }
+  .vef-hint { font-size:11.5px; color:var(--muted); margin-top:2px; }
+
+  .vef-fee-toggle { display:flex; gap:8px; margin-bottom:20px; }
+  .vef-fee-sr { display:none; }
+  .vef-fee-sl { flex:1; padding:14px 18px; border-radius:12px; border:1.5px solid var(--line);
+                background:#fafafa; color:#64748b; font-size:13.5px; font-weight:700; text-align:center;
+                cursor:pointer; transition:.15s; display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .vef-fee-sl i { font-size:18px; }
+  .vef-fee-sl:hover { border-color:#27bc9c; color:#27bc9c; }
+  #rts_flat:checked    + .vef-fee-sl,
+  #rts_percent:checked + .vef-fee-sl { color:#fff; background:#27bc9c; border-color:#27bc9c; }
+
+  .vef-fee-field { display:none; }
+  .vef-fee-field.vef-fee-visible { display:flex; }
+
+  .vef-errors { background:#fff1f2; border:1.5px solid #fca5a5; border-radius:14px;
+                padding:16px 22px; margin-bottom:20px; }
+  .vef-errors strong { color:#dc2626; display:block; margin-bottom:8px; }
+  .vef-errors li { color:#dc2626; font-size:13px; margin-bottom:2px; }
+</style>
+
+<div class="vef-page">
+  <%= form_with model: [:admin, s], local: true, html: { style:"margin:0;" } do |f| %>
+
+    <div class="vef-bar">
+      <div class="vef-bar-l">
+        <div class="vef-bar-ico"><i class="fas fa-cog"></i></div>
+        <div>
+          <h2>ຕັ້ງຄ່າ ຄ່າທຳນຽມແພລດຟອມ</h2>
+          <p>ສຳລັບການອັບໂຫລດຫຼັກຖານຈ່າຍຄ່າທາງນອກລະບົບ</p>
+        </div>
+      </div>
+      <%= f.submit 'ບັນທຶກການແກ້ໄຂ', class: 'vef-btn vef-btn-save' %>
+    </div>
+
+    <% if s.errors.any? %>
+      <div class="vef-errors">
+        <strong><i class="fas fa-exclamation-circle" style="margin-right:6px;"></i>ກະລຸນາກວດສອບຂໍ້ມູນ</strong>
+        <ul style="margin:0;padding-left:18px;">
+          <% s.errors.full_messages.each do |msg| %>
+            <li><%= msg %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <div class="vef-card">
+      <div class="vef-card-hd">
+        <div class="vef-card-hd-l"><i class="fas fa-coins"></i>ຮູບແບບການຄິດໄລ່</div>
+      </div>
+
+      <div class="vef-fee-toggle">
+        <%= f.radio_button :fee_type, 'flat', id: 'rts_flat', class: 'vef-fee-sr', checked: s.fee_type != 'percent' %>
+        <label class="vef-fee-sl" for="rts_flat"><i class="fas fa-money-bill-wave"></i>ຈຳນວນເງິນຄົງທີ່</label>
+
+        <%= f.radio_button :fee_type, 'percent', id: 'rts_percent', class: 'vef-fee-sr' %>
+        <label class="vef-fee-sl" for="rts_percent"><i class="fas fa-percent"></i>ເປີເຊັນຂອງຄ່າທາງ</label>
+      </div>
+
+      <div class="vef-field vef-fee-field" id="rts_flat_field">
+        <label class="vef-label">ຈຳນວນເງິນຄົງທີ່ (₭)</label>
+        <%= f.number_field :flat_amount, class: 'vef-input', placeholder: '10000' %>
+        <p class="vef-hint">ໃຊ້ເມື່ອເລືອກ "ຈຳນວນເງິນຄົງທີ່" — ຄ່າທຳນຽມເທົ່າກັນທຸກລາຍການ</p>
+      </div>
+
+      <div class="vef-field vef-fee-field" id="rts_percent_field">
+        <label class="vef-label">ອັດຕາເປີເຊັນ (%)</label>
+        <%= f.number_field :percent_rate, class: 'vef-input', placeholder: '5', step: '0.01' %>
+        <p class="vef-hint">ໃຊ້ເມື່ອເລືອກ "ເປີເຊັນຂອງຄ່າທາງ" — ຄິດຈາກລາຄາຄ່າທາງອ້າງອີງຂອງລົດຄັນນັ້ນ</p>
+      </div>
+    </div>
+
+  <% end %>
+</div>
+
+<script>
+  (function () {
+    var flatRadio = document.getElementById('rts_flat');
+    var percentRadio = document.getElementById('rts_percent');
+    var flatField = document.getElementById('rts_flat_field');
+    var percentField = document.getElementById('rts_percent_field');
+
+    function sync() {
+      flatField.classList.toggle('vef-fee-visible', flatRadio.checked);
+      percentField.classList.toggle('vef-fee-visible', percentRadio.checked);
+    }
+    flatRadio.addEventListener('change', sync);
+    percentRadio.addEventListener('change', sync);
+    sync();
+  })();
+</script>

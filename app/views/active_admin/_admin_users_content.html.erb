@@ -1,0 +1,276 @@
+<%
+  role_label = { "admin" => "Admin", "superadmin" => "Superadmin", "partner" => "Partner", "insurance" => "Insurance", "service_partner" => "ພາດເນີສູນບໍລິການ", "staff" => "Staff" }
+  role_icon  = { "admin" => "fa-user-shield", "superadmin" => "fa-crown", "partner" => "fa-warehouse", "insurance" => "fa-building-shield", "service_partner" => "fa-store", "staff" => "fa-id-badge" }
+  role_color = { "admin" => "#2563eb", "superadmin" => "#7c3aed", "partner" => "#f59e0b", "insurance" => "#0ea5e9", "service_partner" => "#db2777", "staff" => "#16a34a" }
+
+  filter_search = params.dig(:q, :search)
+  filter_role   = params.dig(:q, :role)
+
+  scope = AdminUser.left_joins(:inspection_center, :insurance_company, :service_center, :custom_role)
+                   .select("admin_users.*, inspection_centers.name AS ic_name, insurance_companies.name AS co_name, service_centers.name AS sc_name, roles.name AS role_name")
+                   .order(created_at: :desc)
+  scope = scope.where("admin_users.email ILIKE :q", q: "%#{filter_search.strip}%") if filter_search.present?
+  scope = scope.where(role: filter_role) if filter_role.present?
+
+  page     = (params[:page] || 1).to_i
+  per_page = 20
+  admin_users = scope.page(page).per(per_page)
+
+  total          = AdminUser.count
+  agents_online  = AdminUser.where(is_support_agent: true, support_online: true).count
+  role_counts    = AdminUser.group(:role).count
+  has_filter     = filter_search.present? || filter_role.present?
+%>
+
+<style>
+  .index_content .scopes, #titlebar { display:none !important; }
+  body.active_admin, #wrapper, #active_admin_content, #main_content,
+  .index_content, #main, .flashes { background:#f4f6f9 !important; }
+  .index_content > .panel,
+  .index_as_table,
+  #main_content .panel:first-child { background:transparent !important; border:none !important; box-shadow:none !important; padding:0 !important; margin:0 !important; }
+  .index_content > .panel > .panel_contents,
+  .index_as_table > .panel_contents { padding:0 !important; background:transparent !important; }
+
+  .ic-page { --brand:#27bc9c; --brand-d:#1e9e82; --ink:#1f2a37; --muted:#6b7684; --line:#e9edf2;
+             color:var(--ink); font-family:"Noto Sans Lao","Phetsarath OT",system-ui,sans-serif; }
+
+  .ic-head { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:24px; }
+  .ic-head-l { display:flex; align-items:center; gap:14px; }
+  .ic-head-ico { width:48px; height:48px; border-radius:14px; display:grid; place-items:center;
+                 color:#fff; font-size:20px; background:linear-gradient(135deg,#27bc9c,#1e9e82);
+                 box-shadow:0 8px 18px rgba(39,188,156,.35); flex-shrink:0; }
+  .ic-head h2 { font-size:20px; font-weight:800; margin:0; letter-spacing:-.2px; }
+  .ic-head p  { font-size:12.5px; color:var(--muted); margin:3px 0 0; }
+  .ic-btn-add { border:none; border-radius:11px; padding:10px 20px; font-size:13.5px; font-weight:700;
+                background:linear-gradient(135deg,#27bc9c,#1e9e82); color:#fff !important;
+                box-shadow:0 6px 14px rgba(39,188,156,.32); cursor:pointer; display:inline-flex;
+                align-items:center; gap:8px; text-decoration:none !important; transition:.15s; }
+  .ic-btn-add:hover { filter:brightness(1.06); color:#fff !important; transform:translateY(-1px); }
+
+  .ic-stats { display:grid; grid-template-columns:repeat(5,1fr); gap:14px; margin-bottom:22px; }
+  @media (max-width:1100px) { .ic-stats { grid-template-columns:repeat(3,1fr); } }
+  .ic-stat { background:#fff; border-radius:16px; padding:16px 18px;
+             box-shadow:0 4px 16px rgba(16,24,40,.05); display:flex; align-items:center; gap:14px;
+             border-left:4px solid transparent; }
+  .ic-stat-ico { width:40px; height:40px; border-radius:11px; display:grid; place-items:center; font-size:16px; flex-shrink:0; }
+  .ic-stat-label { font-size:11.5px; color:var(--muted); font-weight:600; margin:0 0 3px; white-space:nowrap; }
+  .ic-stat-val   { font-size:21px; font-weight:800; margin:0; letter-spacing:-.5px; }
+
+  .ic-filter { background:#fff; border-radius:16px; padding:18px 20px; margin-bottom:20px;
+               box-shadow:0 4px 16px rgba(16,24,40,.05); }
+  .ic-filter-label { display:block; font-size:12.5px; font-weight:700; color:#334155; margin-bottom:6px; }
+  .ic-filter-input { width:100%; border:1px solid var(--line); border-radius:10px; padding:10px 14px;
+                     font-size:13.5px; background:#fff; outline:none;
+                     font-family:inherit; color:var(--ink); }
+  .ic-filter-input:focus { border-color:#27bc9c; box-shadow:0 0 0 3px rgba(39,188,156,.12); }
+  .ic-filter-row { display:flex !important; flex-direction:row !important; gap:12px; align-items:flex-end; flex-wrap:nowrap; }
+  .ic-filter-search { flex:2.5; min-width:0; }
+  .ic-filter-sel    { flex:1.5; min-width:0; }
+  .ic-filter-btns   { flex-shrink:0; display:flex; flex-direction:column; gap:6px; }
+  .ic-btn-filter { border:none; border-radius:10px; padding:10px 18px; font-size:13.5px; font-weight:700;
+                   background:#1f2a37; color:#fff; cursor:pointer; display:inline-flex; align-items:center; gap:6px;
+                   white-space:nowrap; width:100%; justify-content:center; min-height:44px; box-sizing:border-box; }
+  .ic-btn-filter:hover { background:#374151; }
+  .ic-btn-clear { border:1px solid var(--line); border-radius:10px; padding:10px 18px; font-size:13.5px;
+                  font-weight:600; background:#fff; text-decoration:none !important;
+                  display:inline-flex; align-items:center; gap:6px; white-space:nowrap;
+                  width:100%; justify-content:center; color:var(--muted) !important;
+                  min-height:44px; box-sizing:border-box; }
+  .ic-btn-clear:hover { background:#f8fafc; color:var(--ink) !important; }
+
+  .ic-table-card { background:#fff; border-radius:20px; overflow:hidden; box-shadow:0 4px 20px rgba(16,24,40,.06); }
+  .ic-table { width:100%; border-collapse:collapse; }
+  .ic-table thead th { background:#f8fafc; padding:12px 14px; font-size:12px; font-weight:700;
+                       color:var(--muted); text-transform:uppercase; letter-spacing:.5px;
+                       border-bottom:1px solid var(--line); white-space:nowrap; }
+  .ic-table thead th:first-child { padding-left:20px; }
+  .ic-table thead th:last-child  { padding-right:20px; text-align:center; }
+  .ic-table tbody td { padding:12px 14px; font-size:13.5px; border-bottom:1px solid var(--line); vertical-align:middle; }
+  .ic-table tbody td:first-child { padding-left:20px; }
+  .ic-table tbody td:last-child  { padding-right:20px; text-align:center; }
+  .ic-table tbody tr:last-child td { border-bottom:none; }
+  .ic-table tbody tr:hover td { background:#fafcfb; }
+
+  .ic-avatar { width:38px; height:38px; border-radius:50%; background:#e6f7f3; color:#27bc9c;
+               display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px; flex-shrink:0; }
+
+  .ic-role-badge { display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border-radius:20px; font-size:12px; font-weight:700; }
+
+  .ic-online-dot { width:7px; height:7px; border-radius:50%; display:inline-block; margin-right:5px; }
+
+  .ic-actions { display:flex; gap:5px; justify-content:center; }
+  .ic-btn-view { border:1px solid #0ea5e9; background:#f0f9ff; color:#0369a1 !important; border-radius:7px;
+                 padding:5px 10px; font-size:12px; font-weight:700; text-decoration:none !important;
+                 display:inline-flex; align-items:center; gap:4px; transition:.15s; }
+  .ic-btn-view:hover { background:#0ea5e9; color:#fff !important; }
+  .ic-btn-edit { border:1px solid #16a34a; background:#f0fdf4; color:#15803d !important; border-radius:7px;
+                 padding:5px 10px; font-size:12px; font-weight:700; text-decoration:none !important;
+                 display:inline-flex; align-items:center; gap:4px; transition:.15s; }
+  .ic-btn-edit:hover { background:#16a34a; color:#fff !important; }
+  .ic-btn-del { border:1px solid #f87171; background:#fff1f2; color:#991b1b; border-radius:7px;
+                padding:5px 10px; font-size:12px; font-weight:700; cursor:pointer;
+                display:inline-flex; align-items:center; gap:4px; transition:.15s; }
+  .ic-btn-del:hover { background:#dc2626; color:#fff; border-color:#dc2626; }
+  .ic-btn-del form { margin:0; }
+
+  .ic-empty { text-align:center; padding:60px 20px; }
+  .ic-empty i { font-size:3rem; color:#cbd5e1; display:block; margin-bottom:12px; }
+  .ic-empty p { color:var(--muted); font-size:14px; margin:0; }
+
+  .ic-page-wrap .pagination .page.current a,
+  .ic-page-wrap .pagination .page.current span { background:#27bc9c; border-color:#27bc9c; color:#fff; border-radius:8px; }
+  .ic-page-wrap .pagination a, .ic-page-wrap .pagination span { border-radius:8px; }
+</style>
+
+<div class="ic-page">
+
+  <div class="ic-head">
+    <div class="ic-head-l">
+      <div class="ic-head-ico"><i class="fas fa-user-shield"></i></div>
+      <div>
+        <h2>ຈັດການຜູ້ດູແລລະບົບ</h2>
+        <p>ບັນຊີແອດມິນ, ພາດເນີ, ບໍລິສັດປະກັນໄພ ແລະ ພະນັກງານ</p>
+      </div>
+    </div>
+    <%= link_to new_admin_admin_user_path, class: 'ic-btn-add' do %>
+      <i class="fas fa-plus"></i>ເພີ່ມຜູ້ດູແລລະບົບໃໝ່
+    <% end %>
+  </div>
+
+  <div class="ic-stats">
+    <div class="ic-stat" style="border-left-color:#1f2a37;">
+      <div class="ic-stat-ico" style="background:#f1f5f9;color:#1f2a37;"><i class="fas fa-users"></i></div>
+      <div><p class="ic-stat-label">ທັງໝົດ</p><p class="ic-stat-val"><%= total %></p></div>
+    </div>
+    <% %w[admin superadmin partner insurance service_partner].each do |r| %>
+      <div class="ic-stat" style="border-left-color:<%= role_color[r] %>;">
+        <div class="ic-stat-ico" style="background:<%= role_color[r] %>1a;color:<%= role_color[r] %>;"><i class="fas <%= role_icon[r] %>"></i></div>
+        <div><p class="ic-stat-label"><%= role_label[r] %></p><p class="ic-stat-val"><%= role_counts[r] || 0 %></p></div>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="ic-filter">
+    <form method="GET" action="<%= admin_admin_users_path %>">
+      <div class="ic-filter-row">
+        <div class="ic-filter-search">
+          <label class="ic-filter-label">ຄົ້ນຫາ</label>
+          <input type="text" name="q[search]" class="ic-filter-input"
+                 value="<%= filter_search %>" placeholder="ອີເມວ...">
+        </div>
+        <div class="ic-filter-sel">
+          <label class="ic-filter-label">ບົດບາດ</label>
+          <select name="q[role]" class="ic-filter-input">
+            <option value="">ທັງໝົດ</option>
+            <% AdminUser::ROLES.each do |r| %>
+              <option value="<%= r %>" <%= 'selected' if filter_role == r %>><%= role_label[r] || r %></option>
+            <% end %>
+          </select>
+        </div>
+        <div class="ic-filter-btns">
+          <button type="submit" class="ic-btn-filter">
+            <i class="fas fa-filter"></i>ກອງຂໍ້ມູນ
+          </button>
+          <% if has_filter %>
+            <a href="<%= admin_admin_users_path %>" class="ic-btn-clear">
+              <i class="fas fa-times"></i>ລ້າງ
+            </a>
+          <% end %>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div class="ic-table-card">
+    <div style="overflow-x:auto;">
+      <table class="ic-table">
+        <thead>
+          <tr>
+            <th>ຜູ້ໃຊ້</th>
+            <th>ບົດບາດ</th>
+            <th>ຂອບເຂດ</th>
+            <th>Support Agent</th>
+            <th>ເຂົ້າສູ່ລະບົບຫຼ້າສຸດ</th>
+            <th>ຈັດການ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% admin_users.each do |u| %>
+            <tr>
+              <td>
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <div class="ic-avatar"><%= (u.email || "?")[0].upcase %></div>
+                  <div style="font-weight:700;font-size:13.5px;"><%= u.email %></div>
+                </div>
+              </td>
+              <td>
+                <span class="ic-role-badge" style="background:<%= role_color[u.role] %>1a;color:<%= role_color[u.role] %>;">
+                  <i class="fas <%= role_icon[u.role] %>"></i> <%= role_label[u.role] || u.role %>
+                </span>
+              </td>
+              <td style="font-size:13px;color:var(--muted);">
+                <% if u.ic_name %>
+                  <%= link_to u.ic_name, admin_inspection_center_path(u.inspection_center_id), style: "color:inherit;" %>
+                <% elsif u.co_name %>
+                  <%= link_to u.co_name, admin_insurance_company_path(u.insurance_company_id), style: "color:inherit;" %>
+                <% elsif u.sc_name %>
+                  <%= link_to u.sc_name, admin_service_center_path(u.service_center_id), style: "color:inherit;" %>
+                <% elsif u.role_name %>
+                  <%= link_to u.role_name, admin_role_path(u.custom_role_id), style: "color:inherit;" %>
+                <% else %>
+                  —
+                <% end %>
+              </td>
+              <td>
+                <% if u.is_support_agent? %>
+                  <span class="ic-online-dot" style="background:<%= u.support_online? ? '#16a34a' : '#94a3b8' %>;"></span>
+                  <span style="font-size:12.5px;color:var(--muted);"><%= u.support_online? ? 'ອອນລາຍ' : 'ອອບລາຍ' %></span>
+                <% else %>
+                  <span style="color:var(--muted);">—</span>
+                <% end %>
+              </td>
+              <td style="font-size:13px;color:var(--muted);"><%= u.current_sign_in_at&.strftime('%d/%m/%Y %H:%M') || 'ຍັງບໍ່ເຄີຍ' %></td>
+              <td>
+                <div class="ic-actions">
+                  <%= link_to admin_admin_user_path(u), class: 'ic-btn-view' do %>
+                    <i class="fas fa-eye"></i>
+                  <% end %>
+                  <%= link_to edit_admin_admin_user_path(u), class: 'ic-btn-edit' do %>
+                    <i class="fas fa-edit"></i>
+                  <% end %>
+                  <% unless u.id == current_admin_user.id %>
+                    <%= button_to admin_admin_user_path(u), method: :delete,
+                          class: 'ic-btn-del',
+                          form: { style: 'margin:0;' },
+                          data: { confirm: "ຢືນຢັນການລົບບັນຊີ #{u.email}?" } do %>
+                      <i class="fas fa-trash"></i>
+                    <% end %>
+                  <% end %>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+
+          <% if admin_users.empty? %>
+            <tr>
+              <td colspan="6">
+                <div class="ic-empty">
+                  <i class="fas fa-user-shield"></i>
+                  <p>ບໍ່ພົບຜູ້ດູແລລະບົບ</p>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <% if admin_users.respond_to?(:total_pages) && admin_users.total_pages > 1 %>
+    <div class="ic-page-wrap" style="display:flex;justify-content:center;margin-top:20px;">
+      <%= paginate admin_users %>
+    </div>
+  <% end %>
+
+</div>

@@ -1,0 +1,31 @@
+<%
+  role = current_admin_user.custom_role
+  granted = role ? role.permissions.where(can_read: true).map(&:resource) : []
+%>
+
+<h2 style="font-size:16px;font-weight:800;margin:0 0 4px;">
+  ສະບາຍດີ, <%= current_admin_user.email %>
+</h2>
+<p style="font-size:12.5px;color:#64748b;margin:0 0 20px;">
+  ບົດບາດຂອງທ່ານ: <strong><%= role&.name || "—" %></strong> — ເລືອກໜ້າທີ່ຕ້ອງການຈັດການຂ້າງລຸ່ມນີ້
+</p>
+
+<% if granted.empty? %>
+  <div class="dash-panel">
+    <div style="text-align:center;color:#94a3b8;font-size:13px;padding:40px 0;">
+      <i class="fas fa-lock" style="font-size:1.8rem;display:block;margin-bottom:10px;color:#cbd5e1;"></i>
+      ບົດບາດຂອງທ່ານຍັງບໍ່ໄດ້ຮັບອະນຸຍາດເຂົ້າເຖິງໜ້າໃດເລີຍ — ກະລຸນາຕິດຕໍ່ຜູ້ບໍລິຫານ (Superadmin)
+    </div>
+  </div>
+<% else %>
+  <div class="stat-grid">
+    <% granted.each do |resource_key| %>
+      <% entry = Permission::CATALOG[resource_key] %>
+      <% next unless entry %>
+      <%= link_to Permission.path_for(resource_key), class: "stat-card card-blue", style: "text-decoration:none;" do %>
+        <div class="stat-icon-wrap"><i class="fas <%= entry[:icon] %>"></i></div>
+        <div class="stat-right"><div class="stat-value" style="font-size:14px;"><%= entry[:label] %></div></div>
+      <% end %>
+    <% end %>
+  </div>
+<% end %>

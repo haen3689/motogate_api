@@ -30,7 +30,9 @@ Rails.application.routes.draw do
       resource :road_tax_setting, only: %i[show]
 
       # Insurance
-      resources :insurances, only: %i[index create show]
+      resources :insurances, only: %i[index create show] do
+        member { patch :upload_document }
+      end
 
       # Inspection
       resources :inspections, only: %i[index create show update]
@@ -52,6 +54,7 @@ Rails.application.routes.draw do
 
       # Service Centers (garage / towing / dealer)
       resources :service_centers, only: %i[index show]
+      resources :partner_applications, only: %i[create]
 
       # Vehicle Brands
       get "vehicle_brands", to: "vehicle_brands#index"
@@ -64,6 +67,20 @@ Rails.application.routes.draw do
 
       # Onboarding
       get "onboarding_slides", to: "onboarding_slides#index"
+
+      # Advertisements / promo banners
+      get "advertisements", to: "advertisements#index"
+      post "advertisements/:id/click", to: "advertisements#click"
+
+      # Hotline support chat
+      resources :chat_messages, only: %i[index create]
+      get "support_case", to: "support_cases#show"
+      post "support_case/rate", to: "support_cases#rate"
+
+      # Announcements
+      get "announcements", to: "announcements#index"
+      post "announcements/mark_seen", to: "announcements#mark_seen"
+      get "announcements/:id", to: "announcements#show"
     end
   end
 end

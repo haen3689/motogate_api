@@ -19,6 +19,12 @@ ActiveAdmin.register InsuranceCompany do
   form partial: "active_admin/insurance_company_form_content"
 
   controller do
+    def scoped_collection
+      scope = super
+      scope = scope.where(id: current_admin_user.insurance_company_id) if current_admin_user.insurance?
+      scope
+    end
+
     def find_resource
       scoped_collection.includes(:insurance_packages).find(params[:id])
     end

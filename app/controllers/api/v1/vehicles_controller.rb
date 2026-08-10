@@ -24,6 +24,7 @@ class Api::V1::VehiclesController < ApiController
     if @vehicle.update(vehicle_params)
       @vehicle.registration_front.attach(params[:registration_front]) if params[:registration_front].present?
       @vehicle.registration_back.attach(params[:registration_back])   if params[:registration_back].present?
+      @vehicle.front_photo.attach(params[:front_photo])               if params[:front_photo].present?
       render_success(vehicle_json(@vehicle))
     else
       render_error(@vehicle.errors.full_messages.join(", "))
@@ -54,6 +55,7 @@ class Api::V1::VehiclesController < ApiController
     v.as_json.merge(
       registration_front_url: v.registration_front.attached? ? url_for(v.registration_front) : nil,
       registration_back_url:  v.registration_back.attached?  ? url_for(v.registration_back)  : nil,
+      front_photo_url:        v.front_photo.attached?        ? url_for(v.front_photo)        : nil,
     )
   end
 end

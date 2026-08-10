@@ -1,0 +1,143 @@
+<%
+  total     = SupportCase.count
+  open_c    = SupportCase.open_cases.count
+  pending_c = SupportCase.pending.count
+  resolved_c = SupportCase.resolved.count
+
+  avg_rating = SupportCase.where.not(rating: nil).average(:rating)&.round(2)
+  avg_resolution_hours = SupportCase.resolved.where.not(resolved_at: nil)
+    .average("EXTRACT(EPOCH FROM (resolved_at - created_at)) / 3600.0")&.round(1)
+
+  online_agents = AdminUser.support_agents.where(support_online: true).count
+  total_agents  = AdminUser.support_agents.count
+
+  begin
+    period_start = params[:from].present? ? Date.parse(params[:from]) : 30.days.ago.to_date
+    period_end   = params[:to].present?   ? Date.parse(params[:to])   : Date.current
+  rescue ArgumentError
+    period_start = 30.days.ago.to_date
+    period_end   = Date.current
+  end
+  period_start, period_end = period_end, period_start if period_start > period_end
+  period_range = period_start.beginning_of_day..period_end.end_of_day
+
+  range_days = (period_end - period_start).to_i + 1
+  use_daily  = range_days <= 62
+
+  if use_daily
+    counts_by_bucket = SupportCase.where(created_at: period_range).group("DATE(created_at)").count
+    buckets       = (period_start..period_end).to_a
+    trend_labels  = buckets.map { |d| d.strftime('%d/%m') }
+    trend_values  = buckets.map { |d| counts_by_bucket[d] || 0 }
+  else
+    counts_by_bucket = SupportCase.where(created_at: period_range).group("TO_CHAR(created_at, 'YYYY-MM')").count
+    month_cursor = period_start.beginning_of_month
+    buckets = []
+    while month_cursor <= period_end
+      buckets << month_cursor
+      month_cursor = month_cursor.next_month
+    end
+    trend_labels = buckets.map { |m| m.strftime('%m/%Y') }
+    trend_values = buckets.map { |m| counts_by_bucket[m.strftime('%Y-%m')] || 0 }
+  end
+
+  presets = {
+    "ມື້ວານ"    => [Date.yesterday, Date.yesterday],
+    "ມື້ນີ້"     => [Date.current, Date.current],
+    "ເດືອນກ່ອນ" => [1.month.ago.to_date.beginning_of_month, 1.month.ago.to_date.end_of_month],
+    "ເດືອນນີ້"   => [Date.current.beginning_of_month, Date.current.end_of_month],
+    "ປີທີ່ແລ້ວ"  => [1.year.ago.to_date.beginning_of_year, 1.year.ago.to_date.end_of_year],
+    "ປີນີ້"      => [Date.current.beginning_of_year, Date.current.end_of_year],
+  }
+%>
+
+<style>
+  .pd-presets { display: flex; gap: 5px; flex-wrap: wrap; }
+  .pd-preset { padding: 5px 12px; border-radius: 20px; font-size: 11.5px; font-weight: 700;
+               text-decoration: none; border: 1px solid #e2e8f0; color: #64748b; background: #fff; }
+  .pd-preset:hover { background: #f4f6f9; }
+  .pd-preset.active { background: #27bc9c; border-color: #27bc9c; color: #fff; }
+  .pd-empty { padding: 40px 20px; text-align: center; color: #94a3b8; font-size: 13px; }
+</style>
+
+<div class="stat-grid">
+  <div class="stat-card card-blue">
+    <div class="stat-icon-wrap"><i class="fas fa-comments"></i></div>
+    <div class="stat-right"><div class="stat-value"><%= total %></div><div class="stat-label">ເຄສທັງໝົດ</div></div>
+  </div>
+  <div class="stat-card card-orange">
+    <div class="stat-icon-wrap"><i class="fas fa-hourglass-half"></i></div>
+    <div class="stat-right"><div class="stat-value"><%= open_c + pending_c %></div><div class="stat-label">ກຳລັງດຳເນີນການ</div></div>
+  </div>
+  <div class="stat-card card-green">
+    <div class="stat-icon-wrap"><i class="fas fa-check"></i></div>
+    <div class="stat-right"><div class="stat-value"><%= resolved_c %></div><div class="stat-label">ປິດແລ້ວ</div></div>
+  </div>
+  <div class="stat-card card-purple">
+    <div class="stat-icon-wrap"><i class="fas fa-user-check"></i></div>
+    <div class="stat-right"><div class="stat-value"><%= online_agents %>/<%= total_agents %></div><div class="stat-label">Agent ອອນລາຍ</div></div>
+  </div>
+</div>
+
+<div class="stat-grid" style="margin-top:14px;">
+  <div class="stat-card card-blue">
+    <div class="stat-icon-wrap"><i class="fas fa-star"></i></div>
+    <div class="stat-right"><div class="stat-value"><%= avg_rating || "—" %></div><div class="stat-label">ຄະແນນສະເລ່ຍ</div></div>
+  </div>
+  <div class="stat-card card-orange">
+    <div class="stat-icon-wrap"><i class="fas fa-clock"></i></div>
+    <div class="stat-right"><div class="stat-value"><%= avg_resolution_hours ? "#{avg_resolution_hours} ຊม" : "—" %></div><div class="stat-label">ເວລາປິດເຄສສະເລ່ຍ</div></div>
+  </div>
+</div>
+
+<div class="pd-presets" style="margin-top:16px;">
+  <% presets.each do |label, (pfrom, pto)| %>
+    <%= link_to label, admin_support_dashboard_path(from: pfrom, to: pto),
+          class: "pd-preset #{'active' if period_start == pfrom && period_end == pto}" %>
+  <% end %>
+</div>
+<p style="font-size:11.5px;color:#94a3b8;margin:8px 0 0;">
+  <%= period_start.strftime('%d/%m/%Y') %> – <%= period_end.strftime('%d/%m/%Y') %>
+</p>
+
+<div class="dash-panel" style="margin-top:16px;">
+  <div class="dash-panel-header">
+    <span><i class="fas fa-chart-column"></i> ເຄສໃໝ່ (<%= use_daily ? 'ລາຍວັນ' : 'ລາຍເດືອນ' %>)</span>
+  </div>
+  <div style="padding:16px 20px;">
+    <% if trend_values.sum.zero? %>
+      <div class="pd-empty">ບໍ່ມີຂໍ້ມູນໃນຊ່ວງເວລານີ້</div>
+    <% else %>
+      <div style="height:240px;"><canvas id="supportTrendChart"></canvas></div>
+    <% end %>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+  (function () {
+    var ctx = document.getElementById('supportTrendChart');
+    if (!ctx || typeof Chart === 'undefined') return;
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: <%= raw trend_labels.to_json %>,
+        datasets: [{
+          data: <%= raw trend_values.to_json %>,
+          backgroundColor: '#27bc9c',
+          borderRadius: 4,
+          maxBarThickness: 24,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#e1e0d9' } },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+  })();
+</script>

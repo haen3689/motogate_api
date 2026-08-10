@@ -1,4 +1,6 @@
 class ApiController < ActionController::API
+  include TransactionLogging
+
   before_action :authenticate!
 
   private

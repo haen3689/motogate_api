@@ -1,0 +1,234 @@
+<%
+  action_label = { "created" => "ສ້າງ", "updated" => "ແກ້ໄຂ", "deleted" => "ລຶບ" }
+  action_color = { "created" => "#16a34a", "updated" => "#f59e0b", "deleted" => "#dc2626" }
+  action_icon  = { "created" => "fa-plus", "updated" => "fa-pen", "deleted" => "fa-trash" }
+
+  filter_action = params.dig(:q, :action)
+  filter_admin  = params.dig(:q, :admin_user_id)
+
+  scope = ActivityLog.includes(:admin_user).order(created_at: :desc)
+  scope = scope.where(action: filter_action) if filter_action.present?
+  scope = scope.where(admin_user_id: filter_admin) if filter_admin.present?
+
+  page     = (params[:page] || 1).to_i
+  per_page = 30
+  logs = scope.page(page).per(per_page)
+
+  total          = ActivityLog.count
+  created_count  = ActivityLog.where(action: 'created').count
+  updated_count  = ActivityLog.where(action: 'updated').count
+  deleted_count  = ActivityLog.where(action: 'deleted').count
+  has_filter     = filter_action.present? || filter_admin.present?
+%>
+
+<style>
+  .index_content .scopes, #titlebar { display:none !important; }
+  body.active_admin, #wrapper, #active_admin_content, #main_content,
+  .index_content, #main, .flashes { background:#f4f6f9 !important; }
+  .index_content > .panel,
+  .index_as_table,
+  #main_content .panel:first-child { background:transparent !important; border:none !important; box-shadow:none !important; padding:0 !important; margin:0 !important; }
+  .index_content > .panel > .panel_contents,
+  .index_as_table > .panel_contents { padding:0 !important; background:transparent !important; }
+
+  .ic-page { --brand:#27bc9c; --brand-d:#1e9e82; --ink:#1f2a37; --muted:#6b7684; --line:#e9edf2;
+             color:var(--ink); font-family:"Noto Sans Lao","Phetsarath OT",system-ui,sans-serif; }
+
+  .ic-head { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:24px; }
+  .ic-head-l { display:flex; align-items:center; gap:14px; }
+  .ic-head-ico { width:48px; height:48px; border-radius:14px; display:grid; place-items:center;
+                 color:#fff; font-size:20px; background:linear-gradient(135deg,#27bc9c,#1e9e82);
+                 box-shadow:0 8px 18px rgba(39,188,156,.35); flex-shrink:0; }
+  .ic-head h2 { font-size:20px; font-weight:800; margin:0; letter-spacing:-.2px; }
+  .ic-head p  { font-size:12.5px; color:var(--muted); margin:3px 0 0; }
+
+  .ic-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:22px; }
+  .ic-stat { background:#fff; border-radius:16px; padding:18px 20px;
+             box-shadow:0 4px 16px rgba(16,24,40,.05); display:flex; align-items:center; gap:16px;
+             border-left:4px solid transparent; }
+  .ic-stat.teal   { border-left-color:#27bc9c; }
+  .ic-stat.green  { border-left-color:#16a34a; }
+  .ic-stat.orange { border-left-color:#f59e0b; }
+  .ic-stat.red    { border-left-color:#dc2626; }
+  .ic-stat-ico { width:44px; height:44px; border-radius:12px; display:grid; place-items:center; font-size:18px; flex-shrink:0; }
+  .ic-stat.teal   .ic-stat-ico { background:#e6f7f3; color:#27bc9c; }
+  .ic-stat.green  .ic-stat-ico { background:#dcfce7; color:#16a34a; }
+  .ic-stat.orange .ic-stat-ico { background:#fef3c7; color:#f59e0b; }
+  .ic-stat.red    .ic-stat-ico { background:#fee2e2; color:#dc2626; }
+  .ic-stat-label { font-size:12px; color:var(--muted); font-weight:600; margin:0 0 4px; }
+  .ic-stat-val   { font-size:24px; font-weight:800; margin:0; letter-spacing:-.5px; }
+
+  .ic-filter { background:#fff; border-radius:16px; padding:18px 20px; margin-bottom:20px;
+               box-shadow:0 4px 16px rgba(16,24,40,.05); }
+  .ic-filter-label { display:block; font-size:12.5px; font-weight:700; color:#334155; margin-bottom:6px; }
+  .ic-filter-input { width:100%; border:1px solid var(--line); border-radius:10px; padding:10px 14px;
+                     font-size:13.5px; background:#fff; outline:none;
+                     font-family:inherit; color:var(--ink); }
+  .ic-filter-input:focus { border-color:#27bc9c; box-shadow:0 0 0 3px rgba(39,188,156,.12); }
+  .ic-filter-row { display:flex !important; flex-direction:row !important; gap:12px; align-items:flex-end; flex-wrap:nowrap; }
+  .ic-filter-sel    { flex:1; min-width:0; }
+  .ic-filter-btns   { flex-shrink:0; display:flex; flex-direction:column; gap:6px; }
+  .ic-btn-filter { border:none; border-radius:10px; padding:10px 18px; font-size:13.5px; font-weight:700;
+                   background:#1f2a37; color:#fff; cursor:pointer; display:inline-flex; align-items:center; gap:6px;
+                   white-space:nowrap; width:100%; justify-content:center; min-height:44px; box-sizing:border-box; }
+  .ic-btn-filter:hover { background:#374151; }
+  .ic-btn-clear { border:1px solid var(--line); border-radius:10px; padding:10px 18px; font-size:13.5px;
+                  font-weight:600; background:#fff; text-decoration:none !important;
+                  display:inline-flex; align-items:center; gap:6px; white-space:nowrap;
+                  width:100%; justify-content:center; color:var(--muted) !important;
+                  min-height:44px; box-sizing:border-box; }
+  .ic-btn-clear:hover { background:#f8fafc; color:var(--ink) !important; }
+
+  .ic-table-card { background:#fff; border-radius:20px; overflow:hidden; box-shadow:0 4px 20px rgba(16,24,40,.06); }
+  .ic-table { width:100%; border-collapse:collapse; }
+  .ic-table thead th { background:#f8fafc; padding:12px 14px; font-size:12px; font-weight:700;
+                       color:var(--muted); text-transform:uppercase; letter-spacing:.5px;
+                       border-bottom:1px solid var(--line); white-space:nowrap; }
+  .ic-table thead th:first-child { padding-left:20px; }
+  .ic-table thead th:last-child  { padding-right:20px; text-align:center; }
+  .ic-table tbody td { padding:12px 14px; font-size:13.5px; border-bottom:1px solid var(--line); vertical-align:middle; }
+  .ic-table tbody td:first-child { padding-left:20px; }
+  .ic-table tbody td:last-child  { padding-right:20px; text-align:center; }
+  .ic-table tbody tr:last-child td { border-bottom:none; }
+  .ic-table tbody tr:hover td { background:#fafcfb; }
+
+  .ic-status { display:inline-flex; align-items:center; gap:5px; padding:5px 12px; border-radius:20px; font-size:12px; font-weight:600; white-space:nowrap; }
+
+  .ic-actions { display:flex; gap:5px; justify-content:center; }
+  .ic-btn-view { border:1px solid #0ea5e9; background:#f0f9ff; color:#0369a1 !important; border-radius:7px;
+                 padding:5px 10px; font-size:12px; font-weight:700; text-decoration:none !important;
+                 display:inline-flex; align-items:center; gap:4px; transition:.15s; }
+  .ic-btn-view:hover { background:#0ea5e9; color:#fff !important; }
+
+  .ic-empty { text-align:center; padding:60px 20px; }
+  .ic-empty i { font-size:3rem; color:#cbd5e1; display:block; margin-bottom:12px; }
+  .ic-empty p { color:var(--muted); font-size:14px; margin:0; }
+
+  .ic-page-wrap .pagination .page.current a,
+  .ic-page-wrap .pagination .page.current span { background:#27bc9c; border-color:#27bc9c; color:#fff; border-radius:8px; }
+  .ic-page-wrap .pagination a, .ic-page-wrap .pagination span { border-radius:8px; }
+</style>
+
+<div class="ic-page">
+
+  <div class="ic-head">
+    <div class="ic-head-l">
+      <div class="ic-head-ico"><i class="fas fa-history"></i></div>
+      <div>
+        <h2>ປະຫວັດການເຮັດວຽກ</h2>
+        <p>ບັນທຶກການສ້າງ/ແກ້ໄຂ/ລຶບ ຂອງຜູ້ດູແລລະບົບທັງໝົດ</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="ic-stats">
+    <div class="ic-stat teal">
+      <div class="ic-stat-ico"><i class="fas fa-list"></i></div>
+      <div><p class="ic-stat-label">ທັງໝົດ</p><p class="ic-stat-val"><%= total %></p></div>
+    </div>
+    <div class="ic-stat green">
+      <div class="ic-stat-ico"><i class="fas fa-plus"></i></div>
+      <div><p class="ic-stat-label">ສ້າງ</p><p class="ic-stat-val"><%= created_count %></p></div>
+    </div>
+    <div class="ic-stat orange">
+      <div class="ic-stat-ico"><i class="fas fa-pen"></i></div>
+      <div><p class="ic-stat-label">ແກ້ໄຂ</p><p class="ic-stat-val"><%= updated_count %></p></div>
+    </div>
+    <div class="ic-stat red">
+      <div class="ic-stat-ico"><i class="fas fa-trash"></i></div>
+      <div><p class="ic-stat-label">ລຶບ</p><p class="ic-stat-val"><%= deleted_count %></p></div>
+    </div>
+  </div>
+
+  <div class="ic-filter">
+    <form method="GET" action="<%= admin_activity_logs_path %>">
+      <div class="ic-filter-row">
+        <div class="ic-filter-sel">
+          <label class="ic-filter-label">ຜູ້ໃຊ້</label>
+          <select name="q[admin_user_id]" class="ic-filter-input">
+            <option value="">ທັງໝົດ</option>
+            <% AdminUser.order(:email).each do |u| %>
+              <option value="<%= u.id %>" <%= 'selected' if filter_admin == u.id.to_s %>><%= u.email %></option>
+            <% end %>
+          </select>
+        </div>
+        <div class="ic-filter-sel">
+          <label class="ic-filter-label">ການກະທຳ</label>
+          <select name="q[action]" class="ic-filter-input">
+            <option value="">ທັງໝົດ</option>
+            <% action_label.each do |k, v| %>
+              <option value="<%= k %>" <%= 'selected' if filter_action == k %>><%= v %></option>
+            <% end %>
+          </select>
+        </div>
+        <div class="ic-filter-btns">
+          <button type="submit" class="ic-btn-filter">
+            <i class="fas fa-filter"></i>ກອງຂໍ້ມູນ
+          </button>
+          <% if has_filter %>
+            <a href="<%= admin_activity_logs_path %>" class="ic-btn-clear">
+              <i class="fas fa-times"></i>ລ້າງ
+            </a>
+          <% end %>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div class="ic-table-card">
+    <div style="overflow-x:auto;">
+      <table class="ic-table">
+        <thead>
+          <tr>
+            <th>ຜູ້ໃຊ້</th>
+            <th>ການກະທຳ</th>
+            <th>ປະເພດ</th>
+            <th>ລາຍການ</th>
+            <th>ເວລາ</th>
+            <th>ຈັດການ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% logs.each do |l| %>
+            <tr>
+              <td style="font-weight:700;"><%= l.admin_user&.email || "—" %></td>
+              <td>
+                <span class="ic-status" style="background:<%= action_color[l.action] %>1a;color:<%= action_color[l.action] %>;">
+                  <i class="fas <%= action_icon[l.action] %>" style="font-size:10px;"></i> <%= action_label[l.action] || l.action %>
+                </span>
+              </td>
+              <td style="font-size:12.5px;color:var(--muted);"><%= l.resource_type %></td>
+              <td><%= l.resource_label.presence || "##{l.resource_id}" %></td>
+              <td style="font-size:13px;color:var(--muted);"><%= l.created_at.strftime('%d/%m/%Y %H:%M') %></td>
+              <td>
+                <div class="ic-actions">
+                  <%= link_to admin_activity_log_path(l), class: 'ic-btn-view' do %>
+                    <i class="fas fa-eye"></i>
+                  <% end %>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+
+          <% if logs.empty? %>
+            <tr>
+              <td colspan="6">
+                <div class="ic-empty">
+                  <i class="fas fa-history"></i>
+                  <p>ຍັງບໍ່ມີປະຫວັດການເຮັດວຽກ</p>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <% if logs.respond_to?(:total_pages) && logs.total_pages > 1 %>
+    <div class="ic-page-wrap" style="display:flex;justify-content:center;margin-top:20px;">
+      <%= paginate logs %>
+    </div>
+  <% end %>
+
+</div>

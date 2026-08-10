@@ -1,0 +1,145 @@
+<%
+  a = resource
+  category_label = { "maintenance" => "ປິດປັບປຸງ", "promotion" => "ໂປຣໂມຊັ່ນ", "feature" => "ຟີເຈີໃໝ່", "event" => "ກິດຈະກຳ" }
+  category_color = { "maintenance" => "#dc2626", "promotion" => "#7c3aed", "feature" => "#0ea5e9", "event" => "#f59e0b" }
+%>
+
+<style>
+  #titlebar { display:none !important; }
+  body.active_admin, #wrapper, #active_admin_content, #main_content,
+  #main, .flashes { background:#f4f6f9 !important; }
+  #main_content > .panel { background:transparent !important; border:none !important; box-shadow:none !important; padding:0 !important; margin:0 !important; }
+  #main_content > .panel > .panel_contents { padding:0 !important; }
+
+  .ics-page {
+    --brand:#27bc9c; --brand-d:#1e9e82; --ink:#1f2a37; --muted:#6b7684; --line:#e9edf2; --soft:#f4f6f9;
+    color:var(--ink); font-family:"Noto Sans Lao","Phetsarath OT",system-ui,sans-serif;
+    max-width:760px;
+  }
+
+  .ics-bar { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:22px; }
+  .ics-bar-l { display:flex; align-items:center; gap:14px; }
+  .ics-bar-ico { width:50px; height:50px; border-radius:14px; display:grid; place-items:center;
+                 background:linear-gradient(135deg,#27bc9c,#1e9e82); color:#fff; font-size:20px;
+                 box-shadow:0 8px 20px rgba(39,188,156,.35); flex-shrink:0; }
+  .ics-bar h2 { font-size:21px; font-weight:800; margin:0; }
+  .ics-bar p  { font-size:12.5px; color:var(--muted); margin:3px 0 0; }
+  .ics-bar-btns { display:flex; gap:10px; }
+  .ics-btn { display:inline-flex; align-items:center; gap:7px; padding:10px 20px; border-radius:11px;
+             font-size:13.5px; font-weight:700; cursor:pointer; text-decoration:none !important;
+             text-shadow:none !important; border:none; transition:.15s; white-space:nowrap;
+             font-family:inherit; }
+  .ics-btn-edit { background:linear-gradient(135deg,#27bc9c,#1e9e82); color:#fff !important;
+                  box-shadow:0 6px 16px rgba(39,188,156,.35); }
+  .ics-btn-edit:hover { filter:brightness(1.07); color:#fff !important; transform:translateY(-1px); }
+  .ics-btn-back { background:#fff; border:1.5px solid var(--line); color:var(--muted) !important;
+                  box-shadow:0 2px 8px rgba(0,0,0,.06); }
+  .ics-btn-back:hover { border-color:#27bc9c; color:#27bc9c !important; }
+
+  .ics-preview { background:#fff; border-radius:20px; box-shadow:0 4px 20px rgba(16,24,40,.06);
+                 overflow:hidden; margin-bottom:20px; }
+  .ics-preview-img { width:100%; height:260px; background:#f1f5f9; display:flex; align-items:center; justify-content:center; }
+  .ics-preview-img img { width:100%; height:100%; object-fit:cover; }
+  .ics-preview-img i { font-size:2.5rem; color:#cbd5e1; }
+  .ics-preview-body { padding:22px 26px; }
+  .ics-preview-body h3 { font-size:18px; font-weight:800; margin:0 0 8px; }
+  .ics-preview-body p { font-size:13.5px; color:var(--muted); margin:0; line-height:1.6; }
+
+  .ics-card { background:#fff; border-radius:20px; box-shadow:0 4px 20px rgba(16,24,40,.06);
+              padding:24px 26px; margin-bottom:20px; }
+  .ics-card-hd { display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:15px; font-weight:800;
+                 color:var(--ink); margin-bottom:18px; padding-bottom:14px; border-bottom:2px solid var(--soft); }
+  .ics-card-hd-l { display:flex; align-items:center; gap:10px; }
+  .ics-card-hd i { width:32px; height:32px; border-radius:9px; display:grid; place-items:center;
+                   background:#e6f7f3; color:#27bc9c; font-size:14px; flex-shrink:0; }
+
+  .ics-g2 { display:grid; grid-template-columns:repeat(2,1fr); gap:20px; }
+  .ics-lbl { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; margin-bottom:4px; }
+  .ics-val { font-size:14px; color:var(--ink); }
+
+  .ics-status { display:inline-flex; align-items:center; gap:5px; padding:5px 12px; border-radius:20px; font-size:12px; font-weight:700; }
+  .ics-status-active   { background:#dcfce7; color:#16a34a; }
+  .ics-status-inactive { background:#fee2e2; color:#dc2626; }
+</style>
+
+<div class="ics-page">
+  <div class="ics-bar">
+    <div class="ics-bar-l">
+      <div class="ics-bar-ico"><i class="fas fa-bullhorn"></i></div>
+      <div>
+        <h2>ລາຍລະອຽດປະກາດ</h2>
+        <p>ຕົວຢ່າງ ແລະ ຂໍ້ມູນຂອງປະກາດ</p>
+      </div>
+    </div>
+    <div class="ics-bar-btns">
+      <%= link_to edit_admin_announcement_path(a), class: 'ics-btn ics-btn-edit' do %>
+        <i class="fas fa-edit"></i>ແກ້ໄຂ
+      <% end %>
+      <%= link_to admin_announcements_path, class: 'ics-btn ics-btn-back' do %>
+        <i class="fas fa-arrow-left"></i>ກັບຄືນ
+      <% end %>
+    </div>
+  </div>
+
+  <div class="ics-preview">
+    <div class="ics-preview-img">
+      <% if a.image.present? %>
+        <img src="<%= a.image %>" alt="">
+      <% else %>
+        <i class="fas fa-image"></i>
+      <% end %>
+    </div>
+    <div class="ics-preview-body">
+      <h3><%= a.title %></h3>
+      <p><%= simple_format(a.body.to_s) %></p>
+    </div>
+  </div>
+
+  <div class="ics-card">
+    <div class="ics-card-hd">
+      <div class="ics-card-hd-l"><i class="fas fa-eye"></i>ສະຖິຕິ</div>
+    </div>
+    <div class="ics-g2">
+      <div>
+        <div class="ics-lbl">ຍອດເບິ່ງ</div>
+        <div class="ics-val" style="font-size:20px;font-weight:800;color:#7c3aed;"><%= number_with_delimiter(a.view_count) %></div>
+      </div>
+      <div>
+        <div class="ics-lbl">ສະຖານະ</div>
+        <div class="ics-val">
+          <span class="ics-status <%= a.active ? 'ics-status-active' : 'ics-status-inactive' %>">
+            <%= a.active ? 'ເຜີຍແຜ່' : 'ເກັບຖານ' %>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ics-card">
+    <div class="ics-card-hd">
+      <div class="ics-card-hd-l"><i class="fas fa-info-circle"></i>ຂໍ້ມູນປະກາດ</div>
+    </div>
+    <div class="ics-g2">
+      <div>
+        <div class="ics-lbl">ປະເພດ</div>
+        <div class="ics-val">
+          <span class="ics-status" style="background:<%= category_color[a.category] %>1a;color:<%= category_color[a.category] %>;">
+            <%= category_label[a.category] || a.category %>
+          </span>
+        </div>
+      </div>
+      <div>
+        <div class="ics-lbl">ຜູ້ຂຽນ</div>
+        <div class="ics-val"><%= a.author.presence || "—" %></div>
+      </div>
+      <div>
+        <div class="ics-lbl">ລຳດັບ</div>
+        <div class="ics-val"><%= a.position %></div>
+      </div>
+      <div>
+        <div class="ics-lbl">ວັນທີ່ສ້າງ</div>
+        <div class="ics-val"><%= a.created_at.strftime('%d/%m/%Y') %></div>
+      </div>
+    </div>
+  </div>
+</div>

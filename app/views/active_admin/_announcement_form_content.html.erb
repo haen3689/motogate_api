@@ -1,0 +1,187 @@
+<% a = resource %>
+
+<style>
+  #titlebar { display:none !important; }
+  body.active_admin, #wrapper, #active_admin_content, #main_content,
+  #main, .flashes { background:#f4f6f9 !important; }
+  #main_content > .panel { background:transparent !important; border:none !important; box-shadow:none !important; padding:0 !important; margin:0 !important; }
+  #main_content > .panel > .panel_contents { padding:0 !important; }
+
+  .vef-page {
+    --brand:#27bc9c; --brand-d:#1e9e82; --ink:#1f2a37; --muted:#6b7684; --line:#e9edf2; --soft:#f4f6f9;
+    color:var(--ink); font-family:"Noto Sans Lao","Phetsarath OT",system-ui,sans-serif;
+    max-width:900px;
+  }
+
+  .vef-bar { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:28px; }
+  .vef-bar-l { display:flex; align-items:center; gap:14px; }
+  .vef-bar-ico { width:50px; height:50px; border-radius:14px; display:grid; place-items:center;
+                 background:linear-gradient(135deg,#27bc9c,#1e9e82); color:#fff; font-size:20px;
+                 box-shadow:0 8px 20px rgba(39,188,156,.35); flex-shrink:0; }
+  .vef-bar h2 { font-size:21px; font-weight:800; margin:0; }
+  .vef-bar p  { font-size:12.5px; color:var(--muted); margin:3px 0 0; }
+  .vef-bar-btns { display:flex; gap:10px; }
+  .vef-btn { display:inline-flex; align-items:center; gap:7px; padding:10px 22px; border-radius:11px;
+             font-size:13.5px; font-weight:700; cursor:pointer; text-decoration:none !important;
+             text-shadow:none !important; border:none; transition:.15s; white-space:nowrap;
+             font-family:inherit; }
+  .vef-btn-save { background:linear-gradient(135deg,#27bc9c,#1e9e82); color:#fff !important;
+                  box-shadow:0 6px 16px rgba(39,188,156,.35); }
+  .vef-btn-save:hover { filter:brightness(1.07); color:#fff !important; transform:translateY(-1px); }
+  .vef-btn-back { background:#fff; border:1.5px solid var(--line); color:var(--muted) !important;
+                  box-shadow:0 2px 8px rgba(0,0,0,.06); }
+  .vef-btn-back:hover { border-color:#27bc9c; color:#27bc9c !important; }
+
+  .vef-card { background:#fff; border-radius:20px; box-shadow:0 4px 20px rgba(16,24,40,.06);
+              padding:28px 32px; margin-bottom:20px; }
+  .vef-card-hd { display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:15px; font-weight:800;
+                 color:var(--ink); margin-bottom:24px; padding-bottom:14px;
+                 border-bottom:2px solid var(--soft); }
+  .vef-card-hd-l { display:flex; align-items:center; gap:10px; }
+  .vef-card-hd i { width:32px; height:32px; border-radius:9px; display:grid; place-items:center;
+                   background:#e6f7f3; color:#27bc9c; font-size:14px; flex-shrink:0; }
+
+  .vef-g2 { display:grid; grid-template-columns:repeat(2,1fr); gap:20px; }
+  .vef-field { display:flex; flex-direction:column; gap:6px; }
+  .vef-label { font-size:12px; font-weight:700; color:#475569; letter-spacing:.02em; text-transform:uppercase; }
+  .vef-label span { color:#ef4444; }
+  .vef-input {
+    border:1.5px solid var(--line) !important; border-radius:10px !important;
+    padding:11px 14px !important; font-size:13.5px !important; background:#fff !important;
+    outline:none !important; font-family:inherit !important; color:var(--ink) !important;
+    transition:.2s; width:100% !important; box-sizing:border-box !important;
+    min-height:44px !important; line-height:1.4 !important; margin:0 !important;
+    box-shadow:none !important; appearance:none; -webkit-appearance:none;
+  }
+  .vef-input:focus { border-color:#27bc9c !important; box-shadow:0 0 0 3px rgba(39,188,156,.13) !important; }
+  textarea.vef-input { min-height:120px !important; resize:vertical; }
+
+  .vef-status-wrap { display:flex; gap:8px; flex-wrap:wrap; }
+  .vef-sr { display:none; }
+  .vef-sl { padding:8px 18px; border-radius:9px; border:1.5px solid var(--line);
+            background:#fafafa; color:#94a3b8; font-size:13px; font-weight:700;
+            cursor:pointer; transition:.15s; user-select:none; }
+  .vef-sl:hover { border-color:#27bc9c; color:#27bc9c; }
+  #an_active:checked   + .vef-sl { color:#fff;    background:#16a34a; border-color:#16a34a; }
+  #an_inactive:checked + .vef-sl { color:#dc2626; background:#fff1f2; border-color:#f87171; }
+
+  .vef-errors { background:#fff1f2; border:1.5px solid #fca5a5; border-radius:14px;
+                padding:16px 22px; margin-bottom:20px; }
+  .vef-errors strong { color:#dc2626; display:block; margin-bottom:8px; }
+  .vef-errors li { color:#dc2626; font-size:13px; margin-bottom:2px; }
+
+  .icf-logo-wrap { text-align:center; margin-bottom:20px; }
+  .icf-logo-preview { width:100%; height:180px; margin:10px auto 14px; border-radius:16px;
+                       background:#f8f9fa; border:2px dashed #d8dee6; display:flex;
+                       align-items:center; justify-content:center; overflow:hidden; }
+  .icf-logo-preview img { width:100%; height:100%; object-fit:cover; }
+  .icf-logo-preview i { font-size:32px; color:#c2cad4; }
+</style>
+
+<div class="vef-page">
+  <%= form_with model: [:admin, a], local: true, html: { style:"margin:0;", multipart: true } do |f| %>
+
+    <div class="vef-bar">
+      <div class="vef-bar-l">
+        <div class="vef-bar-ico"><i class="fas fa-bullhorn"></i></div>
+        <div>
+          <h2><%= a.persisted? ? 'ແກ້ໄຂປະກາດ' : 'ເພີ່ມປະກາດໃໝ່' %></h2>
+          <p>ຂ່າວສານ ແລະ ປະກາດແຈ້ງເຕືອນລູກຄ້າ</p>
+        </div>
+      </div>
+      <div class="vef-bar-btns">
+        <%= f.submit(a.persisted? ? 'ບັນທຶກການແກ້ໄຂ' : 'ບັນທຶກທັງໝົດ', class: 'vef-btn vef-btn-save') %>
+        <%= link_to admin_announcements_path, class: 'vef-btn vef-btn-back' do %>
+          <i class="fas fa-arrow-left"></i>ກັບຄືນ
+        <% end %>
+      </div>
+    </div>
+
+    <% if a.errors.any? %>
+      <div class="vef-errors">
+        <strong><i class="fas fa-exclamation-circle" style="margin-right:6px;"></i>ກະລຸນາກວດສອບຂໍ້ມູນ</strong>
+        <ul style="margin:0;padding-left:18px;">
+          <% a.errors.full_messages.each do |msg| %>
+            <li><%= msg %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <div class="vef-card">
+      <div class="vef-card-hd">
+        <div class="vef-card-hd-l"><i class="fas fa-info-circle"></i>ຂໍ້ມູນປະກາດ</div>
+      </div>
+
+      <div class="icf-logo-wrap">
+        <label class="vef-label" style="display:block;text-align:left;margin-bottom:6px;">ຮູບພາບ (ຖ້າມີ)</label>
+        <div class="icf-logo-preview" id="anImgPreview">
+          <% if a.image.present? %>
+            <img src="<%= a.image %>" alt="">
+          <% else %>
+            <i class="fas fa-image"></i>
+          <% end %>
+        </div>
+        <%= f.file_field :image_file, class: 'vef-input', accept: 'image/*', id: 'anImgFileInput' %>
+      </div>
+
+      <div class="vef-g2" style="margin-bottom:20px;">
+        <div class="vef-field">
+          <label class="vef-label">ລຳດັບ (ຫຼາຍສຸດ = ຂຶ້ນກ່ອນ)</label>
+          <%= f.number_field :position, class: 'vef-input', placeholder: '0' %>
+        </div>
+        <div class="vef-field">
+          <label class="vef-label">ສະຖານະ</label>
+          <div class="vef-status-wrap">
+            <%= f.radio_button :active, true, id: 'an_active', class: 'vef-sr', checked: a.active != false %>
+            <label class="vef-sl" for="an_active">ເປີດເຜີຍແຜ່</label>
+            <%= f.radio_button :active, false, id: 'an_inactive', class: 'vef-sr' %>
+            <label class="vef-sl" for="an_inactive">ປິດ</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="vef-field" style="margin-bottom:20px;">
+        <label class="vef-label">ຫົວຂໍ້ <span>*</span></label>
+        <%= f.text_field :title, class: 'vef-input', placeholder: 'ຫົວຂໍ້ປະກາດ...' %>
+      </div>
+
+      <div class="vef-field">
+        <label class="vef-label">ເນື້ອຫາ</label>
+        <%= f.text_area :body, class: 'vef-input', rows: 6, placeholder: 'ເນື້ອຫາປະກາດ...' %>
+      </div>
+    </div>
+
+    <div class="vef-card">
+      <div class="vef-card-hd">
+        <div class="vef-card-hd-l"><i class="fas fa-tags"></i>ປະເພດ ແລະ ຜູ້ຂຽນ</div>
+      </div>
+      <div class="vef-g2">
+        <div class="vef-field">
+          <label class="vef-label">ປະເພດ</label>
+          <%= f.select :category, [['ປິດປັບປຸງ', 'maintenance'], ['ໂປຣໂມຊັ່ນ', 'promotion'], ['ຟີເຈີໃໝ່', 'feature'], ['ກິດຈະກຳ', 'event']], {}, class: 'vef-input' %>
+        </div>
+        <div class="vef-field">
+          <label class="vef-label">ຜູ້ຂຽນ / ພະແນກ</label>
+          <%= f.text_field :author, class: 'vef-input', placeholder: 'ເຊັ່ນ: Admin, Marketing, Product Team' %>
+        </div>
+      </div>
+    </div>
+
+  <% end %>
+</div>
+
+<script>
+  var anImgFileInput = document.getElementById('anImgFileInput');
+  if (anImgFileInput) {
+    anImgFileInput.addEventListener('change', function () {
+      var file = this.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        document.getElementById('anImgPreview').innerHTML = '<img src="' + e.target.result + '" alt="">';
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+</script>

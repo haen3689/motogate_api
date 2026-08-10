@@ -1,0 +1,98 @@
+<%
+  empty_room_notice = local_assigns[:empty_room_notice]
+  status_filter = params[:status].presence_in(SupportCase::STATUSES) || params[:status]
+  status_label = { "open" => "ລໍຖ້າຕອບ", "pending" => "ລໍຖ້າລູກຄ້າ", "resolved" => "ປິດແລ້ວ" }
+  status_color = { "open" => "#dc2626", "pending" => "#f59e0b", "resolved" => "#16a34a" }
+
+  cases_scope = SupportCase.includes(:user, :admin_user)
+  cases_scope = cases_scope.where(status: status_filter) if SupportCase::STATUSES.include?(status_filter)
+
+  user_ids = ChatMessage.distinct.pluck(:user_id)
+  users_by_id = User.where(id: user_ids).index_by(&:id)
+  cases_by_user = cases_scope.index_by(&:user_id)
+
+  conversations = user_ids.filter_map do |uid|
+    user = users_by_id[uid]
+    next unless user
+    kase = cases_by_user[uid]
+    next if SupportCase::STATUSES.include?(status_filter) && kase.nil?
+    last   = ChatMessage.where(user_id: uid).order(created_at: :desc).first
+    unread = ChatMessage.where(user_id: uid, sender: "user", read_by_admin: false).count
+    { user: user, last: last, unread: unread, kase: kase }
+  end.sort_by { |c| c[:last]&.created_at || Time.at(0) }.reverse
+%>
+
+<style>
+  .sc-row { display: flex; align-items: center; gap: 14px; padding: 14px 20px; border-bottom: 1px solid #f8fafc; text-decoration: none; color: inherit; }
+  .sc-row:hover { background: #fafcfb; }
+  .sc-row:last-child { border-bottom: none; }
+  .sc-avatar { width: 42px; height: 42px; border-radius: 50%; background: #e6f7f3; color: #27bc9c;
+               display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px; flex-shrink: 0; }
+  .sc-name { font-weight: 700; font-size: 13.5px; color: #1f2a37; }
+  .sc-preview { font-size: 12.5px; color: #94a3b8; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 380px; }
+  .sc-time { font-size: 11.5px; color: #94a3b8; white-space: nowrap; }
+  .sc-unread { background: #ef4444; color: #fff; font-size: 11px; font-weight: 700; border-radius: 10px;
+               min-width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; padding: 0 6px; }
+  .sc-empty { text-align: center; padding: 60px 20px; color: #94a3b8; font-size: 13px; }
+  .sc-status { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 10.5px; font-weight: 700; white-space: nowrap; }
+  .sc-agent { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+  .sc-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .sc-tab { padding: 6px 14px; border-radius: 20px; font-size: 12.5px; font-weight: 700;
+            text-decoration: none; border: 1px solid #e2e8f0; color: #64748b; background: #fff; }
+  .sc-tab:hover { background: #f4f6f9; }
+  .sc-tab.active { background: #27bc9c; border-color: #27bc9c; color: #fff; }
+  .sc-online-btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 20px;
+                   font-size: 12.5px; font-weight: 700; border: none; cursor: pointer; }
+  .sc-online-btn.on { background: #dcfce7; color: #16a34a; }
+  .sc-online-btn.off { background: #f1f5f9; color: #64748b; }
+  .sc-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+</style>
+
+<% if empty_room_notice %>
+  <div style="background:#fffbeb;border:1px solid #fde68a;color:#b45309;border-radius:12px;padding:12px 16px;margin-bottom:14px;font-size:12.5px;">
+    <i class="fas fa-circle-check"></i> ບໍ່ມີເຄສທີ່ລໍຖ້າຢູ່ໃນຄິວຂອງທ່ານຕອນນີ້
+  </div>
+<% end %>
+
+<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:2px;">
+  <div class="sc-tabs">
+    <%= link_to "ທັງໝົດ", admin_support_chat_path, class: "sc-tab #{'active' unless SupportCase::STATUSES.include?(status_filter)}" %>
+    <% SupportCase::STATUSES.each do |s| %>
+      <%= link_to status_label[s], admin_support_chat_path(status: s), class: "sc-tab #{'active' if status_filter == s}" %>
+    <% end %>
+  </div>
+  <% if current_admin_user.is_support_agent? %>
+    <%= button_to admin_support_chat_toggle_online_path, method: :post, class: "sc-online-btn #{current_admin_user.support_online? ? 'on' : 'off'}", form: { style: "display:inline;" } do %>
+      <span class="sc-dot" style="background:<%= current_admin_user.support_online? ? '#16a34a' : '#94a3b8' %>;"></span>
+      <%= current_admin_user.support_online? ? "ອອນລາຍ — ຮັບເຄສຢູ່" : "ອອບລາຍ — ບໍ່ຮັບເຄສ" %>
+    <% end %>
+  <% end %>
+</div>
+
+<div class="dash-panel">
+  <% if conversations.empty? %>
+    <div class="sc-empty"><i class="fas fa-comments" style="font-size:2.2rem;display:block;margin-bottom:10px;color:#cbd5e1;"></i>ຍັງບໍ່ມີການສົນທະນາ</div>
+  <% else %>
+    <% conversations.each do |c| %>
+      <%= link_to admin_support_chat_path(user_id: c[:user].id), class: "sc-row" do %>
+        <div class="sc-avatar"><%= (c[:user].phone_number || "?")[0] %></div>
+        <div style="flex:1;min-width:0;">
+          <div class="sc-name"><%= [c[:user].first_name, c[:user].last_name].compact.join(" ").presence || c[:user].name.presence || c[:user].phone_number %></div>
+          <div class="sc-preview"><%= c[:last] ? "#{c[:last].sender == 'agent' ? 'ທ່ານ: ' : ''}#{c[:last].body}" : "—" %></div>
+          <% if c[:kase]&.admin_user %>
+            <div class="sc-agent"><i class="fas fa-user-headset"></i> <%= c[:kase].admin_user.email %></div>
+          <% end %>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+          <span class="sc-time"><%= c[:last]&.created_at&.strftime("%d/%m %H:%M") %></span>
+          <% if c[:kase] %>
+            <span class="sc-status" style="background:<%= status_color[c[:kase].status] %>1a;color:<%= status_color[c[:kase].status] %>;">
+              <%= status_label[c[:kase].status] %>
+            </span>
+          <% end %>
+          <% if c[:unread] > 0 %><span class="sc-unread"><%= c[:unread] %></span><% end %>
+        </div>
+      <% end %>
+    <% end %>
+  <% end %>
+</div>

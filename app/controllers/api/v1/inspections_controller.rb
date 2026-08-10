@@ -33,6 +33,12 @@ class Api::V1::InspectionsController < ApiController
     if inspection.save
       notify_center(center, inspection)
       broadcast_new_booking(inspection)
+      log_transaction!(
+        type: "inspection",
+        amount: inspection.amount,
+        reference: vehicle.plate_number,
+        description: "#{inspection.service_name} - #{vehicle.plate_number}"
+      )
       render_success(inspection.as_json, status: :created)
     else
       render_error(inspection.errors.full_messages.join(", "))

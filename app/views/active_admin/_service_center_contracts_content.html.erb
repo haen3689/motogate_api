@@ -1,0 +1,316 @@
+<%
+  type_label = { 'garage' => 'ສູນສ້ອມແປງລົດ', 'dealer' => 'ສູນຂາຍລົດ', 'towing' => 'ລາກລົດ 24ຊມ' }
+  contract_status_label = { "normal" => "ປົກກະຕິ", "expiring" => "ໃກ້ໝົດອາຍຸ", "expired" => "ໝົດອາຍຸ" }
+  contract_status_color = { "normal" => "#16a34a", "expiring" => "#f59e0b", "expired" => "#dc2626" }
+  payment_status_label = { "paid" => "ຈ່າຍແລ້ວ", "pending" => "ລໍຖ້າກວດສອບ", "unpaid" => "ຄ້າງຊຳລະ" }
+  payment_status_color = { "paid" => "#16a34a", "pending" => "#f59e0b", "unpaid" => "#dc2626" }
+
+  is_partner   = current_admin_user.service_partner?
+  current_type = is_partner ? current_admin_user.service_center.service_type : (params.dig(:q, :type).presence || params[:type].presence || "garage")
+  filter_search  = params.dig(:q, :search)
+  filter_contract = params.dig(:q, :contract_status)
+  filter_payment  = params.dig(:q, :payment_status)
+
+  base_scope = ServiceCenterContract.for_type(current_type).includes(:service_center, :service_center_payments)
+  base_scope = base_scope.where(service_center_id: current_admin_user.service_center_id) if is_partner
+  scope = base_scope.order(created_at: :desc)
+  scope = scope.where("service_centers.name ILIKE :q OR service_center_contracts.contract_number ILIKE :q", q: "%#{filter_search.strip}%") if filter_search.present?
+
+  all_contracts = scope.to_a
+  all_contracts = all_contracts.select { |c| c.near_expiry_status == filter_contract } if filter_contract.present?
+  all_contracts = all_contracts.select { |c| c.payment_status == filter_payment } if filter_payment.present?
+
+  page     = (params[:page] || 1).to_i
+  per_page = 20
+  contracts = Kaminari.paginate_array(all_contracts).page(page).per(per_page)
+
+  all      = base_scope.to_a
+  total    = all.size
+  active_count = all.count { |c| c.effective_status == "active" }
+  monthly_recurring = all.select { |c| c.effective_status == "active" && c.billing_cycle == "monthly" }.sum(&:rent_amount)
+  has_filter = filter_search.present? || filter_contract.present? || filter_payment.present?
+%>
+
+<style>
+  .index_content .scopes, #titlebar { display:none !important; }
+  body.active_admin, #wrapper, #active_admin_content, #main_content,
+  .index_content, #main, .flashes { background:#f4f6f9 !important; }
+  .index_content > .panel,
+  .index_as_table,
+  #main_content .panel:first-child { background:transparent !important; border:none !important; box-shadow:none !important; padding:0 !important; margin:0 !important; }
+  .index_content > .panel > .panel_contents,
+  .index_as_table > .panel_contents { padding:0 !important; background:transparent !important; }
+
+  .ic-page { --brand:#27bc9c; --brand-d:#1e9e82; --ink:#1f2a37; --muted:#6b7684; --line:#e9edf2;
+             color:var(--ink); font-family:"Noto Sans Lao","Phetsarath OT",system-ui,sans-serif; }
+
+  .ic-head { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:24px; }
+  .ic-head-l { display:flex; align-items:center; gap:14px; }
+  .ic-head-ico { width:48px; height:48px; border-radius:14px; display:grid; place-items:center;
+                 color:#fff; font-size:20px; background:linear-gradient(135deg,#27bc9c,#1e9e82);
+                 box-shadow:0 8px 18px rgba(39,188,156,.35); flex-shrink:0; }
+  .ic-head h2 { font-size:20px; font-weight:800; margin:0; letter-spacing:-.2px; }
+  .ic-head p  { font-size:12.5px; color:var(--muted); margin:3px 0 0; }
+  .ic-btn-add { border:none; border-radius:11px; padding:10px 20px; font-size:13.5px; font-weight:700;
+                background:linear-gradient(135deg,#27bc9c,#1e9e82); color:#fff !important;
+                box-shadow:0 6px 14px rgba(39,188,156,.32); cursor:pointer; display:inline-flex;
+                align-items:center; gap:8px; text-decoration:none !important; transition:.15s; }
+  .ic-btn-add:hover { filter:brightness(1.06); color:#fff !important; transform:translateY(-1px); }
+
+  .ic-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:22px; }
+  .ic-stat { background:#fff; border-radius:16px; padding:18px 20px;
+             box-shadow:0 4px 16px rgba(16,24,40,.05); display:flex; align-items:center; gap:16px;
+             border-left:4px solid transparent; }
+  .ic-stat.teal   { border-left-color:#27bc9c; }
+  .ic-stat.green  { border-left-color:#16a34a; }
+  .ic-stat.purple { border-left-color:#7c3aed; }
+  .ic-stat-ico { width:44px; height:44px; border-radius:12px; display:grid; place-items:center; font-size:18px; flex-shrink:0; }
+  .ic-stat.teal   .ic-stat-ico { background:#e6f7f3; color:#27bc9c; }
+  .ic-stat.green  .ic-stat-ico { background:#dcfce7; color:#16a34a; }
+  .ic-stat.purple .ic-stat-ico { background:#ede9fe; color:#7c3aed; }
+  .ic-stat-label { font-size:12px; color:var(--muted); font-weight:600; margin:0 0 4px; }
+  .ic-stat-val   { font-size:24px; font-weight:800; margin:0; letter-spacing:-.5px; }
+
+  .ic-filter { background:#fff; border-radius:16px; padding:18px 20px; margin-bottom:20px;
+               box-shadow:0 4px 16px rgba(16,24,40,.05); }
+  .ic-filter-label { display:block; font-size:12.5px; font-weight:700; color:#334155; margin-bottom:6px; }
+  .ic-filter-input { width:100%; border:1px solid var(--line); border-radius:10px; padding:10px 14px;
+                     font-size:13.5px; background:#fff; outline:none;
+                     font-family:inherit; color:var(--ink); }
+  .ic-filter-input:focus { border-color:#27bc9c; box-shadow:0 0 0 3px rgba(39,188,156,.12); }
+  .ic-filter-row { display:flex !important; flex-direction:row !important; gap:12px; align-items:flex-end; flex-wrap:nowrap; }
+  .ic-filter-search { flex:2; min-width:0; }
+  .ic-filter-sel    { flex:1; min-width:0; }
+  .ic-filter-btns   { flex-shrink:0; display:flex; flex-direction:column; gap:6px; }
+  .ic-btn-filter { border:none; border-radius:10px; padding:10px 18px; font-size:13.5px; font-weight:700;
+                   background:#1f2a37; color:#fff; cursor:pointer; display:inline-flex; align-items:center; gap:6px;
+                   white-space:nowrap; width:100%; justify-content:center; min-height:44px; box-sizing:border-box; }
+  .ic-btn-filter:hover { background:#374151; }
+  .ic-btn-clear { border:1px solid var(--line); border-radius:10px; padding:10px 18px; font-size:13.5px;
+                  font-weight:600; background:#fff; text-decoration:none !important;
+                  display:inline-flex; align-items:center; gap:6px; white-space:nowrap;
+                  width:100%; justify-content:center; color:var(--muted) !important;
+                  min-height:44px; box-sizing:border-box; }
+  .ic-btn-clear:hover { background:#f8fafc; color:var(--ink) !important; }
+
+  .ic-table-card { background:#fff; border-radius:20px; overflow:hidden; box-shadow:0 4px 20px rgba(16,24,40,.06); }
+  .ic-table { width:100%; border-collapse:collapse; }
+  .ic-table thead th { background:#f8fafc; padding:12px 14px; font-size:12px; font-weight:700;
+                       color:var(--muted); text-transform:uppercase; letter-spacing:.5px;
+                       border-bottom:1px solid var(--line); white-space:nowrap; }
+  .ic-table thead th:first-child { padding-left:20px; }
+  .ic-table thead th:last-child  { padding-right:20px; text-align:center; }
+  .ic-table tbody td { padding:12px 14px; font-size:13.5px; border-bottom:1px solid var(--line); vertical-align:middle; }
+  .ic-table tbody td:first-child { padding-left:20px; }
+  .ic-table tbody td:last-child  { padding-right:20px; text-align:center; }
+  .ic-table tbody tr:last-child td { border-bottom:none; }
+  .ic-table tbody tr:hover td { background:#fafcfb; }
+
+  .ic-status { display:inline-block; padding:5px 12px; border-radius:20px; font-size:12px; font-weight:600; white-space:nowrap; }
+
+  .ic-actions { display:flex; gap:5px; justify-content:center; }
+  .ic-btn-view { border:1px solid #0ea5e9; background:#f0f9ff; color:#0369a1 !important; border-radius:7px;
+                 padding:5px 10px; font-size:12px; font-weight:700; text-decoration:none !important;
+                 display:inline-flex; align-items:center; gap:4px; transition:.15s; }
+  .ic-btn-view:hover { background:#0ea5e9; color:#fff !important; }
+  .ic-btn-edit { border:1px solid #16a34a; background:#f0fdf4; color:#15803d !important; border-radius:7px;
+                 padding:5px 10px; font-size:12px; font-weight:700; text-decoration:none !important;
+                 display:inline-flex; align-items:center; gap:4px; transition:.15s; }
+  .ic-btn-edit:hover { background:#16a34a; color:#fff !important; }
+  .ic-btn-del { border:1px solid #f87171; background:#fff1f2; color:#991b1b; border-radius:7px;
+                padding:5px 10px; font-size:12px; font-weight:700; cursor:pointer;
+                display:inline-flex; align-items:center; gap:4px; transition:.15s; }
+  .ic-btn-del:hover { background:#dc2626; color:#fff; border-color:#dc2626; }
+  .ic-btn-del form { margin:0; }
+
+  .ic-dd { position:relative; display:inline-block; }
+  .ic-dd > summary { list-style:none; cursor:pointer; border:1px solid var(--line); background:#fff;
+                      border-radius:20px; padding:6px 16px; font-size:12.5px; font-weight:700; color:var(--ink);
+                      display:inline-flex; align-items:center; gap:6px; }
+  .ic-dd > summary::-webkit-details-marker { display:none; }
+  .ic-dd > summary:after { content:"\f107"; font-family:"Font Awesome 6 Free"; font-weight:900; font-size:10px; color:var(--muted); }
+  .ic-dd[open] > summary { border-color:#27bc9c; }
+  .ic-dd-menu { position:absolute; right:0; top:calc(100% + 6px); background:#fff; border:1px solid var(--line);
+                border-radius:12px; box-shadow:0 10px 30px rgba(16,24,40,.12); min-width:190px; z-index:20;
+                overflow:hidden; padding:6px; text-align:left; }
+  .ic-dd-item { display:flex; align-items:center; gap:9px; padding:8px 10px; border-radius:8px; font-size:12.5px;
+                font-weight:600; color:var(--ink) !important; text-decoration:none !important; cursor:pointer;
+                width:100%; background:none; border:none; font-family:inherit; }
+  .ic-dd-item:hover { background:#f8fafc; }
+  .ic-dd-item.danger { color:#dc2626 !important; }
+  .ic-dd-item i { width:16px; text-align:center; }
+  .ic-dd-sep { height:1px; background:var(--line); margin:6px 2px; }
+  .ic-dd-item form { margin:0; width:100%; }
+  .ic-dd-item button { background:none; border:none; padding:0; font:inherit; color:inherit; cursor:pointer;
+                        display:flex; align-items:center; gap:9px; width:100%; text-align:left; }
+
+  .ic-empty { text-align:center; padding:60px 20px; }
+  .ic-empty i { font-size:3rem; color:#cbd5e1; display:block; margin-bottom:12px; }
+  .ic-empty p { color:var(--muted); font-size:14px; margin:0; }
+
+  .ic-page-wrap .pagination .page.current a,
+  .ic-page-wrap .pagination .page.current span { background:#27bc9c; border-color:#27bc9c; color:#fff; border-radius:8px; }
+  .ic-page-wrap .pagination a, .ic-page-wrap .pagination span { border-radius:8px; }
+</style>
+
+<div class="ic-page">
+
+  <div class="ic-head">
+    <div class="ic-head-l">
+      <div class="ic-head-ico"><i class="fas fa-file-contract"></i></div>
+      <div>
+        <h2>ຄຸ້ມຄອງສັນຍາ & ຄ່າເຊົ່າພາກສ່ວນພາດເນີ — <%= type_label[current_type] %></h2>
+        <p><%= is_partner ? "ຕິດຕາມການເກັບຄ່າບໍລິການ ແລະ ອາຍຸສັນຍາຂອງທ່ານ" : "ຕິດຕາມການເກັບຄ່າບໍລິການລາຍເດືອນ/ລາຍປີ ແລະ ການຕໍ່ອາຍຸສັນຍາສະແດງຜົນ" %></p>
+      </div>
+    </div>
+    <% unless is_partner %>
+      <%= link_to new_admin_service_center_contract_path(type: current_type), class: 'ic-btn-add' do %>
+        <i class="fas fa-plus"></i>ເພີ່ມສັນຍາໃໝ່
+      <% end %>
+    <% end %>
+  </div>
+
+  <div class="ic-stats">
+    <div class="ic-stat teal">
+      <div class="ic-stat-ico"><i class="fas fa-file-contract"></i></div>
+      <div><p class="ic-stat-label">ສັນຍາທັງໝົດ</p><p class="ic-stat-val"><%= total %></p></div>
+    </div>
+    <div class="ic-stat green">
+      <div class="ic-stat-ico"><i class="fas fa-check-circle"></i></div>
+      <div><p class="ic-stat-label">ໃຊ້ງານຢູ່</p><p class="ic-stat-val"><%= active_count %></p></div>
+    </div>
+    <div class="ic-stat purple">
+      <div class="ic-stat-ico"><i class="fas fa-coins"></i></div>
+      <div><p class="ic-stat-label">ຄ່າເຊົ່າ/ເດືອນ (ລວມ)</p><p class="ic-stat-val"><%= number_to_currency(monthly_recurring, unit: "₭", precision: 0, delimiter: ",") %></p></div>
+    </div>
+  </div>
+
+  <div class="ic-filter">
+    <form method="GET" action="<%= admin_service_center_contracts_path %>">
+      <input type="hidden" name="q[type]" value="<%= current_type %>">
+      <div class="ic-filter-row">
+        <div class="ic-filter-search">
+          <label class="ic-filter-label">ຄົ້ນຫາ</label>
+          <input type="text" name="q[search]" class="ic-filter-input"
+                 value="<%= filter_search %>" placeholder="ຊື່ສູນ, ເລກສັນຍາ...">
+        </div>
+        <div class="ic-filter-sel">
+          <label class="ic-filter-label">ສະຖານະສັນຍາ</label>
+          <select name="q[contract_status]" class="ic-filter-input">
+            <option value="">-- ສະຖານະສັນຍາ --</option>
+            <% %w[normal expiring expired].each do |s| %>
+              <option value="<%= s %>" <%= 'selected' if filter_contract == s %>><%= contract_status_label[s] %></option>
+            <% end %>
+          </select>
+        </div>
+        <div class="ic-filter-sel">
+          <label class="ic-filter-label">ສະຖານະການຊຳລະ</label>
+          <select name="q[payment_status]" class="ic-filter-input">
+            <option value="">-- ສະຖານະການຊຳລະ --</option>
+            <% %w[paid pending unpaid].each do |s| %>
+              <option value="<%= s %>" <%= 'selected' if filter_payment == s %>><%= payment_status_label[s] %></option>
+            <% end %>
+          </select>
+        </div>
+        <div class="ic-filter-btns">
+          <button type="submit" class="ic-btn-filter">
+            <i class="fas fa-filter"></i>ກອງຂໍ້ມູນ
+          </button>
+          <% if has_filter %>
+            <a href="<%= admin_service_center_contracts_path(q: { type: current_type }) %>" class="ic-btn-clear">
+              <i class="fas fa-times"></i>ລ້າງ
+            </a>
+          <% end %>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div class="ic-table-card">
+    <div style="overflow-x:auto;">
+      <table class="ic-table">
+        <thead>
+          <tr>
+            <th>ເລກທີສັນຍາ</th>
+            <th>ຊື່ສູນສ້ອມແປງ</th>
+            <th>ແພັກເກດ / ຄ່າເຊົ່າ</th>
+            <th>ໄລຍະເວລາສັນຍາ</th>
+            <th>ສະຖານະຊຳລະເງິນ</th>
+            <th>ສະຖານະສັນຍາ</th>
+            <th>ຈັດການ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% contracts.each do |c| %>
+            <tr>
+              <td><code style="font-size:12px;"><%= c.contract_number %></code></td>
+              <td style="font-weight:700;"><%= c.service_center.name %></td>
+              <td>
+                <div style="font-weight:700;"><%= c.package_label %></div>
+                <div style="font-size:11px;color:#2563eb;font-weight:600;"><%= number_to_currency(c.rent_amount, unit: "₭", precision: 0, delimiter: ",") %>/<%= c.billing_cycle == 'monthly' ? 'ເດືອນ' : 'ປີ' %></div>
+              </td>
+              <td style="font-size:12px;color:var(--muted);white-space:nowrap;">
+                <div><span style="color:#94a3b8;">ເລີ່ມ:</span> <%= c.start_date.strftime('%d/%m/%Y') %></div>
+                <div><span style="color:#94a3b8;">ສິ້ນສຸດ:</span> <%= c.end_date&.strftime('%d/%m/%Y') || 'ບໍ່ມີກຳນົດ' %></div>
+              </td>
+              <td>
+                <span class="ic-status" style="background:<%= payment_status_color[c.payment_status] %>1a;color:<%= payment_status_color[c.payment_status] %>;">
+                  <%= payment_status_label[c.payment_status] %>
+                </span>
+              </td>
+              <td>
+                <span class="ic-status" style="background:<%= contract_status_color[c.near_expiry_status] %>1a;color:<%= contract_status_color[c.near_expiry_status] %>;">
+                  <%= contract_status_label[c.near_expiry_status] %>
+                </span>
+              </td>
+              <td>
+                <% if is_partner %>
+                  <%= link_to admin_service_center_contract_path(c), class: 'ic-btn-view' do %>
+                    <i class="fas fa-eye"></i>
+                  <% end %>
+                <% else %>
+                  <details class="ic-dd">
+                    <summary>ເລືອກເຮັດວຽກ</summary>
+                    <div class="ic-dd-menu">
+                      <%= link_to edit_admin_service_center_contract_path(c), class: 'ic-dd-item' do %>
+                        <i class="fas fa-sync-alt" style="color:#2563eb;"></i>ຕໍ່ອາຍຸສັນຍາ
+                      <% end %>
+                      <%= link_to admin_service_center_contract_path(c), class: 'ic-dd-item' do %>
+                        <i class="fas fa-receipt" style="color:#16a34a;"></i>ເບິ່ງໃບບິນ / ກວດເງິນ
+                      <% end %>
+                      <div class="ic-dd-sep"></div>
+                      <div class="ic-dd-item">
+                        <%= button_to cancel_admin_service_center_contract_path(c), method: :post,
+                              data: { confirm: "ຕ້ອງການຍົກເລີກສັນຍາ #{c.contract_number} ແທ້ບໍ່?" } do %>
+                          <i class="fas fa-file-excel"></i><span style="color:#dc2626;">ຍົກເລີກສັນຍາ</span>
+                        <% end %>
+                      </div>
+                    </div>
+                  </details>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+
+          <% if contracts.empty? %>
+            <tr>
+              <td colspan="7">
+                <div class="ic-empty">
+                  <i class="fas fa-file-contract"></i>
+                  <p>ບໍ່ພົບສັນຍາ</p>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <% if contracts.respond_to?(:total_pages) && contracts.total_pages > 1 %>
+    <div class="ic-page-wrap" style="display:flex;justify-content:center;margin-top:20px;">
+      <%= paginate contracts %>
+    </div>
+  <% end %>
+
+</div>

@@ -1,0 +1,146 @@
+<%
+  c = resource
+  type_label = { 'garage' => 'ສູນສ້ອມແປງລົດ', 'dealer' => 'ສູນຂາຍລົດ', 'towing' => 'ລາກລົດ 24ຊມ' }
+  type_icon  = { 'garage' => 'fa-screwdriver-wrench', 'dealer' => 'fa-store', 'towing' => 'fa-truck-pickup' }
+%>
+
+<style>
+  #titlebar { display:none !important; }
+  body.active_admin, #wrapper, #active_admin_content, #main_content,
+  #main, .flashes { background:#f4f6f9 !important; }
+  #main_content > .panel { background:transparent !important; border:none !important; box-shadow:none !important; padding:0 !important; margin:0 !important; }
+  #main_content > .panel > .panel_contents { padding:0 !important; }
+
+  .ics-page {
+    --brand:#27bc9c; --brand-d:#1e9e82; --ink:#1f2a37; --muted:#6b7684; --line:#e9edf2; --soft:#f4f6f9;
+    color:var(--ink); font-family:"Noto Sans Lao","Phetsarath OT",system-ui,sans-serif;
+    max-width:900px;
+  }
+
+  .ics-bar { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:22px; }
+  .ics-bar-l { display:flex; align-items:center; gap:14px; }
+  .ics-bar-ico { width:50px; height:50px; border-radius:14px; display:grid; place-items:center;
+                 background:linear-gradient(135deg,#27bc9c,#1e9e82); color:#fff; font-size:20px;
+                 box-shadow:0 8px 20px rgba(39,188,156,.35); flex-shrink:0; }
+  .ics-bar h2 { font-size:21px; font-weight:800; margin:0; }
+  .ics-bar p  { font-size:12.5px; color:var(--muted); margin:3px 0 0; }
+  .ics-bar-btns { display:flex; gap:10px; }
+  .ics-btn { display:inline-flex; align-items:center; gap:7px; padding:10px 20px; border-radius:11px;
+             font-size:13.5px; font-weight:700; cursor:pointer; text-decoration:none !important;
+             text-shadow:none !important; border:none; transition:.15s; white-space:nowrap;
+             font-family:inherit; }
+  .ics-btn-edit { background:linear-gradient(135deg,#27bc9c,#1e9e82); color:#fff !important;
+                  box-shadow:0 6px 16px rgba(39,188,156,.35); }
+  .ics-btn-edit:hover { filter:brightness(1.07); color:#fff !important; transform:translateY(-1px); }
+  .ics-btn-back { background:#fff; border:1.5px solid var(--line); color:var(--muted) !important;
+                  box-shadow:0 2px 8px rgba(0,0,0,.06); }
+  .ics-btn-back:hover { border-color:#27bc9c; color:#27bc9c !important; }
+
+  .ics-hero { background:#fff; border-radius:20px; box-shadow:0 4px 20px rgba(16,24,40,.06);
+              padding:26px 28px; margin-bottom:20px; display:flex; align-items:center; gap:24px; flex-wrap:wrap; }
+  .ics-logo { width:84px; height:84px; border-radius:20px; background:#f8f9fa; border:1.5px solid var(--line);
+              display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0; }
+  .ics-logo img { width:100%; height:100%; object-fit:cover; }
+  .ics-logo i { font-size:32px; color:#c2cad4; }
+  .ics-hero-info { flex:1; min-width:200px; }
+  .ics-hero-info h3 { font-size:19px; font-weight:800; margin:0 0 8px; }
+  .ics-hero-meta { display:flex; align-items:center; gap:14px; flex-wrap:wrap; font-size:12.5px; color:var(--muted); }
+  .ics-hero-meta span { display:inline-flex; align-items:center; gap:6px; }
+  .ics-status { display:inline-flex; align-items:center; gap:5px; padding:5px 12px; border-radius:20px; font-size:12px; font-weight:700; }
+  .ics-status-active   { background:#dcfce7; color:#16a34a; }
+  .ics-status-inactive { background:#fee2e2; color:#dc2626; }
+  .ics-hero-stats { display:flex; gap:12px; flex-shrink:0; }
+  .ics-stat-box { text-align:center; background:var(--soft); border-radius:14px; padding:12px 20px; min-width:84px; }
+  .ics-stat-box .val { font-size:22px; font-weight:800; color:var(--brand-d); letter-spacing:-.5px; }
+  .ics-stat-box .lbl { font-size:11px; color:var(--muted); font-weight:600; margin-top:2px; }
+
+  .ics-card { background:#fff; border-radius:20px; box-shadow:0 4px 20px rgba(16,24,40,.06);
+              padding:24px 26px; margin-bottom:20px; }
+  .ics-card-hd { display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:15px; font-weight:800;
+                 color:var(--ink); margin-bottom:18px; padding-bottom:14px; border-bottom:2px solid var(--soft); }
+  .ics-card-hd-l { display:flex; align-items:center; gap:10px; }
+  .ics-card-hd i { width:32px; height:32px; border-radius:9px; display:grid; place-items:center;
+                   background:#e6f7f3; color:#27bc9c; font-size:14px; flex-shrink:0; }
+
+  .ics-g2 { display:grid; grid-template-columns:repeat(2,1fr); gap:20px; }
+  .ics-lbl { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; margin-bottom:4px; }
+  .ics-val { font-size:14px; color:var(--ink); }
+  .ics-val.muted { color:#b0bac5; font-style:italic; }
+</style>
+
+<div class="ics-page">
+  <div class="ics-bar">
+    <div class="ics-bar-l">
+      <div class="ics-bar-ico"><i class="fas <%= type_icon[c.service_type] || 'fa-store' %>"></i></div>
+      <div>
+        <h2><%= c.name %></h2>
+        <p><%= type_label[c.service_type] || c.service_type %></p>
+      </div>
+    </div>
+    <div class="ics-bar-btns">
+      <%= link_to edit_admin_service_center_path(c), class: 'ics-btn ics-btn-edit' do %>
+        <i class="fas fa-edit"></i>ແກ້ໄຂ
+      <% end %>
+      <%= link_to admin_service_centers_path(q: { service_type_eq: c.service_type }), class: 'ics-btn ics-btn-back' do %>
+        <i class="fas fa-arrow-left"></i>ກັບຄືນ
+      <% end %>
+    </div>
+  </div>
+
+  <div class="ics-hero">
+    <div class="ics-logo">
+      <% if c.logo.present? %>
+        <img src="<%= c.logo %>" alt="">
+      <% else %>
+        <i class="fas <%= type_icon[c.service_type] || 'fa-store' %>"></i>
+      <% end %>
+    </div>
+    <div class="ics-hero-info">
+      <h3><%= c.name %></h3>
+      <% if c.specialty.present? %><p style="font-size:12.5px;color:var(--muted);margin:2px 0 8px;"><i class="fas fa-tools"></i> <%= c.specialty %></p><% end %>
+      <div class="ics-hero-meta">
+        <% if c.owner_name.present? %><span><i class="fas fa-user"></i> <%= c.owner_name %></span><% end %>
+        <% if c.phone.present? %><span><i class="fas fa-phone"></i> <%= c.phone %></span><% end %>
+        <span>
+          <span class="ics-status <%= c.status == 'active' ? 'ics-status-active' : 'ics-status-inactive' %>">
+            <%= c.status == 'active' ? 'ເປີດໃຫ້ບໍລິການ' : 'ປິດໃຫ້ບໍລິການ' %>
+          </span>
+        </span>
+      </div>
+    </div>
+    <% if c.rating.present? %>
+      <div class="ics-hero-stats">
+        <div class="ics-stat-box">
+          <div class="val"><i class="fas fa-star" style="color:#f59e0b;font-size:16px;"></i> <%= c.rating %></div>
+          <div class="lbl">ຄະແນນ</div>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="ics-card">
+    <div class="ics-card-hd">
+      <div class="ics-card-hd-l"><i class="fas fa-location-dot"></i>ທີ່ຕັ້ງ</div>
+    </div>
+    <div class="ics-g2">
+      <div style="grid-column:1 / -1;">
+        <div class="ics-lbl">ທີ່ຢູ່</div>
+        <div class="ics-val <%= 'muted' unless c.location.present? %>"><%= c.location.presence || 'ບໍ່ມີຂໍ້ມູນ' %></div>
+      </div>
+      <div>
+        <div class="ics-lbl">ພິກັດ GPS</div>
+        <div class="ics-val">
+          <% if c.lat.present? && c.lng.present? %>
+            <%= link_to "#{c.lat}, #{c.lng} (Google Maps)", "https://www.google.com/maps/search/?api=1&query=#{c.lat},#{c.lng}", target: "_blank", rel: "noopener", style: "color:#27bc9c;" %>
+          <% else %>
+            <span class="muted">ບໍ່ມີພິກັດ</span>
+          <% end %>
+        </div>
+      </div>
+      <div>
+        <div class="ics-lbl">ແກ້ໄຂຫຼ້າສຸດ</div>
+        <div class="ics-val"><%= c.updated_at.strftime('%d/%m/%Y') %></div>
+      </div>
+    </div>
+  </div>
+</div>
