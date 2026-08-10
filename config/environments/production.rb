@@ -29,11 +29,11 @@ Rails.application.configure do
   config.active_support.report_deprecations = false
 
   # Use memory store to bypass solid_cache database dependency
-  config.cache_store = :memory_store
+  config.cache_store = :solid_cache_store
 
   # Active Job Adapter (ເຊື່ອມຕໍ່ກັບ SOLID_QUEUE_IN_PUMA: true ໃນ deploy.yml)
   config.active_job.queue_adapter = :solid_queue
-  config.solid_queue.connects_to = { database: { writing: :primary } }
+  config.solid_queue.connects_to = { database: { writing: :queue } }
 
   # Enable locale fallbacks for I18n
   config.i18n.fallbacks = true
