@@ -28,14 +28,14 @@ Rails.application.configure do
   # Don't log any deprecations.
   config.active_support.report_deprecations = false
 
-  # 1. ປ່ຽນ Cache store ເປັນ memory_store ເພື່ອຂ້າມ Solid Cache DB error
+  # Use memory store to bypass solid_cache database dependency on Render
   config.cache_store = :memory_store
 
-  # Replace the default in-process and non-durable queuing backend for Active Job.
-  config.active_job.queue_adapter = :solid_queue
-  config.solid_queue.connects_to = { database: { writing: :primary } }
+  # Switch queue adapter to :async to avoid Solid Queue DB requirements
+  config.active_job.queue_adapter = :async
 
-  # Enable locale fallbacks for I18n
+  # Enable locale fallbacks for I18n (makes lookups for any locale fall back to
+  # the I18n.default_locale when a translation cannot be found).
   config.i18n.fallbacks = true
 
   # Do not dump schema after migrations.
@@ -47,6 +47,6 @@ Rails.application.configure do
   # Disable active storage variant processor if image_processing gem is not installed
   config.active_storage.variant_processor = :disabled
   
-  # 2. ເພີ່ມ Active Storage Service
+  # Configure Active Storage service for production
   config.active_storage.service = :local
 end
