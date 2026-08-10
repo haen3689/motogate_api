@@ -1,74 +1,162 @@
+
 require "active_support/core_ext/integer/time"
 
 Rails.application.configure do
-  # Settings specified here will take precedence over those in config/application.rb.
+  # ============================================================
+  # Production Configuration
+  # Rails + PostgreSQL + Render
+  # ============================================================
+
+  # ------------------------------------------------------------
+  # Code loading
+  # ------------------------------------------------------------
 
   # Code is not reloaded between requests.
   config.enable_reloading = false
 
-  # Eager load code on boot for better performance and memory savings (ignored by Rake tasks).
+  # Eager load code on boot for better performance.
   config.eager_load = true
 
-  # Show full error reports in production for debugging deployment issues.
-  config.consider_all_requests_local = true
 
-  # Cache assets for far-future expiry since they are all digest stamped.
-  config.public_file_server.headers = { "cache-control" => "public, max-age=#{1.year.to_i}" }
+  # ------------------------------------------------------------
+  # Error handling
+  # ------------------------------------------------------------
 
-  # Enable serving of images, stylesheets, and JavaScripts from an asset server.
-  # config.asset_host = "http://assets.example.com"
+  # Do not show detailed error pages to users in production.
+  config.consider_all_requests_local = false
 
-  # Assume all access to the app is happening through a SSL-terminating reverse proxy.
+
+  # ------------------------------------------------------------
+  # Static files / Assets
+  # ------------------------------------------------------------
+
+  # Cache assets for 1 year.
+  config.public_file_server.headers = {
+    "cache-control" => "public, max-age=#{1.year.to_i}"
+  }
+
+
+  # ------------------------------------------------------------
+  # SSL
+  # ------------------------------------------------------------
+
+  # Render provides HTTPS.
+  #
+  # Keep these disabled during initial testing if necessary.
+  # Once your deployment is working correctly, you can enable them.
+  #
   # config.assume_ssl = true
-
-  # Force all access to the app over SSL, use Strict-Transport-Security, and use secure cookies.
   # config.force_ssl = true
 
-  # Skip http-to-https redirect for the default health check endpoint.
-  # config.ssl_options = { redirect: { exclude: ->(request) { request.path == "/up" } } }
 
-  # Log to STDOUT with the current request id as a default log tag.
-  config.log_tags = [ :request_id ]
-  config.logger   = ActiveSupport::TaggedLogging.logger(STDOUT)
+  # ------------------------------------------------------------
+  # Logging
+  # ------------------------------------------------------------
 
-  # Change to "debug" to log everything (including potentially personally-identifiable information!).
+  # Log to STDOUT so Render can display logs.
+  config.log_tags = [:request_id]
+
+  config.logger = ActiveSupport::TaggedLogging.logger(STDOUT)
+
+  # Log level can be controlled with RAILS_LOG_LEVEL.
   config.log_level = ENV.fetch("RAILS_LOG_LEVEL", "info")
 
-  # Prevent health checks from clogging up the logs.
+
+  # ------------------------------------------------------------
+  # Health check
+  # ------------------------------------------------------------
+
+  # Prevent health checks from filling the logs.
   config.silence_healthcheck_path = "/up"
 
-  # Don't log any deprecations.
+
+  # ------------------------------------------------------------
+  # Active Support
+  # ------------------------------------------------------------
+
+  # Disable deprecation logging.
   config.active_support.report_deprecations = false
 
-  # Use memory store to bypass solid_cache database dependency on Render
-  config.cache_store = :memory_store
-
-  # Replace the default in-process and non-durable queuing backend for Active Job.
-  config.active_job.queue_adapter = :solid_queue
-  config.solid_queue.connects_to = { database: { writing: :primary } }
-
-  # Enable locale fallbacks for I18n (makes lookups for any locale fall back to
-  # the I18n.default_locale when a translation cannot be found).
+  # Enable I18n locale fallbacks.
   config.i18n.fallbacks = true
 
-  # Do not dump schema after migrations.
+
+  # ------------------------------------------------------------
+  # Cache
+  # ------------------------------------------------------------
+
+  # Use memory cache.
+  #
+  # This avoids requiring Solid Cache database configuration
+  # during the first Render deployment.
+  config.cache_store = :memory_store
+
+
+  # ------------------------------------------------------------
+  # Active Job
+  # ------------------------------------------------------------
+
+  # Use Async adapter.
+  #
+  # This is suitable for initial deployment/testing on Render.
+  # It does not require Solid Queue infrastructure.
+  config.active_job.queue_adapter = :async
+
+
+  # ------------------------------------------------------------
+  # Active Record / Database
+  # ------------------------------------------------------------
+
+  # Do not automatically dump schema after migrations.
   config.active_record.dump_schema_after_migration = false
 
-  # Only use :id for inspections in production.
-  config.active_record.attributes_for_inspect = [ :id ]
+  # Only show ID when inspecting Active Record objects.
+  config.active_record.attributes_for_inspect = [:id]
 
-  # Disable active storage variant processor if image_processing gem is not installed
+
+  # ------------------------------------------------------------
+  # Active Storage
+  # ------------------------------------------------------------
+
+  # Disable image variants if image_processing is not installed.
   config.active_storage.variant_processor = :disabled
-  
-  # Configure Active Storage service for production
+
+  # Local storage for initial testing.
+  #
+  # IMPORTANT:
+  # Render's filesystem should NOT be treated as permanent storage
+  # for production documents/images.
+  #
+  # For production, move this to S3-compatible object storage.
   config.active_storage.service = :local
 
-  # Enable DNS rebinding protection and other `Host` header attacks.
-  # config.hosts = [
-  #   "example.com",     # Allow requests from example.com
-  #   /.*\.example\.com/ # Allow requests from subdomains like `www.example.com`
-  # ]
+
+  # ------------------------------------------------------------
+  # Security / Host Authorization
+  # ------------------------------------------------------------
+
+  # Leave this commented during initial Render testing.
   #
-  # Skip DNS rebinding protection for the default health check endpoint.
-  # config.host_authorization = { exclude: ->(request) { request.path == "/up" } }
+  # When you have your real domain, configure it here:
+  #
+  # config.hosts = [
+  #   "yourdomain.com",
+  #   /.*\.yourdomain\.com/
+  # ]
+
+
+  # ------------------------------------------------------------
+  # Optional SSL health-check configuration
+  # ------------------------------------------------------------
+
+  # If force_ssl is enabled later, you can exclude /up:
+  #
+  # config.ssl_options = {
+  #   redirect: {
+  #     exclude: ->(request) {
+  #       request.path == "/up"
+  #     }
+  #   }
+  # }
 end
+
