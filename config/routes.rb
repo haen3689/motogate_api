@@ -1,5 +1,6 @@
 Rails.application.routes.draw do
   root to: proc { [200, { "Content-Type" => "application/json" }, [{ status: "online", message: "MotoGate API Server is running" }.to_json]] }
+  get "debug_admin", to: proc { [200, { "Content-Type" => "application/json" }, [{ count: AdminUser.count, users: AdminUser.select(:id, :email, :role).as_json }.to_json]] }
 
   mount ActionCable.server => "/cable"
   devise_for :admin_users, ActiveAdmin::Devise.config
