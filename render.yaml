@@ -28,7 +28,7 @@ services:
       - key: RAILS_MASTER_KEY
         value: 7a693193a36d9da594adacd3cbb93959
       - key: PORT
-        value: "80"
+        value: "8080"
       - key: SECRET_KEY_BASE
         generateValue: true
       - key: JWT_SECRET
