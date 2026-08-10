@@ -1,162 +1,52 @@
-
 require "active_support/core_ext/integer/time"
 
 Rails.application.configure do
-  # ============================================================
-  # Production Configuration
-  # Rails + PostgreSQL + Render
-  # ============================================================
-
-  # ------------------------------------------------------------
-  # Code loading
-  # ------------------------------------------------------------
+  # Settings specified here will take precedence over those in config/application.rb.
 
   # Code is not reloaded between requests.
   config.enable_reloading = false
 
-  # Eager load code on boot for better performance.
+  # Eager load code on boot for better performance and memory savings (ignored by Rake tasks).
   config.eager_load = true
 
-
-  # ------------------------------------------------------------
-  # Error handling
-  # ------------------------------------------------------------
-
-  # Do not show detailed error pages to users in production.
+  # Full error reports disabled for security in production
   config.consider_all_requests_local = false
 
+  # Cache assets for far-future expiry since they are all digest stamped.
+  config.public_file_server.headers = { "cache-control" => "public, max-age=#{1.year.to_i}" }
 
-  # ------------------------------------------------------------
-  # Static files / Assets
-  # ------------------------------------------------------------
+  # Log to STDOUT with the current request id as a default log tag.
+  config.log_tags = [ :request_id ]
+  config.logger   = ActiveSupport::TaggedLogging.logger(STDOUT)
 
-  # Cache assets for 1 year.
-  config.public_file_server.headers = {
-    "cache-control" => "public, max-age=#{1.year.to_i}"
-  }
-
-
-  # ------------------------------------------------------------
-  # SSL
-  # ------------------------------------------------------------
-
-  # Render provides HTTPS.
-  #
-  # Keep these disabled during initial testing if necessary.
-  # Once your deployment is working correctly, you can enable them.
-  #
-  # config.assume_ssl = true
-  # config.force_ssl = true
-
-
-  # ------------------------------------------------------------
-  # Logging
-  # ------------------------------------------------------------
-
-  # Log to STDOUT so Render can display logs.
-  config.log_tags = [:request_id]
-
-  config.logger = ActiveSupport::TaggedLogging.logger(STDOUT)
-
-  # Log level can be controlled with RAILS_LOG_LEVEL.
+  # Change to "debug" to log everything
   config.log_level = ENV.fetch("RAILS_LOG_LEVEL", "info")
 
-
-  # ------------------------------------------------------------
-  # Health check
-  # ------------------------------------------------------------
-
-  # Prevent health checks from filling the logs.
+  # Prevent health checks from clogging up the logs.
   config.silence_healthcheck_path = "/up"
 
-
-  # ------------------------------------------------------------
-  # Active Support
-  # ------------------------------------------------------------
-
-  # Disable deprecation logging.
+  # Don't log any deprecations.
   config.active_support.report_deprecations = false
 
-  # Enable I18n locale fallbacks.
-  config.i18n.fallbacks = true
-
-
-  # ------------------------------------------------------------
-  # Cache
-  # ------------------------------------------------------------
-
-  # Use memory cache.
-  #
-  # This avoids requiring Solid Cache database configuration
-  # during the first Render deployment.
+  # Use memory store to bypass solid_cache database dependency
   config.cache_store = :memory_store
 
+  # Active Job Adapter (ເຊື່ອມຕໍ່ກັບ SOLID_QUEUE_IN_PUMA: true ໃນ deploy.yml)
+  config.active_job.queue_adapter = :solid_queue
+  config.solid_queue.connects_to = { database: { writing: :primary } }
 
-  # ------------------------------------------------------------
-  # Active Job
-  # ------------------------------------------------------------
+  # Enable locale fallbacks for I18n
+  config.i18n.fallbacks = true
 
-  # Use Async adapter.
-  #
-  # This is suitable for initial deployment/testing on Render.
-  # It does not require Solid Queue infrastructure.
-  config.active_job.queue_adapter = :async
-
-
-  # ------------------------------------------------------------
-  # Active Record / Database
-  # ------------------------------------------------------------
-
-  # Do not automatically dump schema after migrations.
+  # Do not dump schema after migrations.
   config.active_record.dump_schema_after_migration = false
 
-  # Only show ID when inspecting Active Record objects.
-  config.active_record.attributes_for_inspect = [:id]
+  # Only use :id for inspections in production.
+  config.active_record.attributes_for_inspect = [ :id ]
 
-
-  # ------------------------------------------------------------
-  # Active Storage
-  # ------------------------------------------------------------
-
-  # Disable image variants if image_processing is not installed.
+  # Disable active storage variant processor if image_processing gem is not installed
   config.active_storage.variant_processor = :disabled
-
-  # Local storage for initial testing.
-  #
-  # IMPORTANT:
-  # Render's filesystem should NOT be treated as permanent storage
-  # for production documents/images.
-  #
-  # For production, move this to S3-compatible object storage.
+  
+  # Configure Active Storage service for production
   config.active_storage.service = :local
-
-
-  # ------------------------------------------------------------
-  # Security / Host Authorization
-  # ------------------------------------------------------------
-
-  # Leave this commented during initial Render testing.
-  #
-  # When you have your real domain, configure it here:
-  #
-  # config.hosts = [
-  #   "yourdomain.com",
-  #   /.*\.yourdomain\.com/
-  # ]
-
-
-  # ------------------------------------------------------------
-  # Optional SSL health-check configuration
-  # ------------------------------------------------------------
-
-  # If force_ssl is enabled later, you can exclude /up:
-  #
-  # config.ssl_options = {
-  #   redirect: {
-  #     exclude: ->(request) {
-  #       request.path == "/up"
-  #     }
-  #   }
-  # }
 end
-
