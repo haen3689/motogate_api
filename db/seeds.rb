@@ -7,11 +7,11 @@
 #   ["Action", "Comedy", "Drama", "Horror"].each do |genre_name|
 #     MovieGenre.find_or_create_by!(name: genre_name)
 #   end
-AdminUser.find_or_create_by!(email: 'admin@example.com') do |admin|
-  admin.password = 'password'
-  admin.password_confirmation = 'password'
-  admin.role = 'admin'
-end
+admin = AdminUser.find_or_initialize_by(email: 'admin@example.com')
+admin.password = 'password'
+admin.password_confirmation = 'password'
+admin.role = 'admin'
+admin.save!
 
 [
   { position: 0, title: "ທະບຽນລົດງ່າຍ",   subtitle: "ຈັດການເອກະສານລົດຂອງທ່ານ\nໄດ້ຄົບໃນທີ່ດຽວ" },
