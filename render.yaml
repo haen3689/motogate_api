@@ -25,6 +25,8 @@ services:
         value: "1"
       - key: RAILS_SERVE_STATIC_FILES
         value: "true"
+      - key: RAILS_MASTER_KEY
+        value: 7a693193a36d9da594adacd3cbb93959
       - key: PORT
         value: "80"
       - key: SECRET_KEY_BASE
