@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-./bin/rails db:prepare
-./bin/rails db:seed
+# Prepare database safely on boot
+./bin/rails db:prepare || true
 
 exec "${@}"
