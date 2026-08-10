@@ -9,11 +9,23 @@ Rails.application.configure do
   # Eager load code on boot for better performance and memory savings (ignored by Rake tasks).
   config.eager_load = true
 
-  # Set to false in production to prevent leaking sensitive debugging details to users
-  config.consider_all_requests_local = false
+  # Show full error reports in production for debugging deployment issues.
+  config.consider_all_requests_local = true
 
   # Cache assets for far-future expiry since they are all digest stamped.
   config.public_file_server.headers = { "cache-control" => "public, max-age=#{1.year.to_i}" }
+
+  # Enable serving of images, stylesheets, and JavaScripts from an asset server.
+  # config.asset_host = "http://assets.example.com"
+
+  # Assume all access to the app is happening through a SSL-terminating reverse proxy.
+  # config.assume_ssl = true
+
+  # Force all access to the app over SSL, use Strict-Transport-Security, and use secure cookies.
+  # config.force_ssl = true
+
+  # Skip http-to-https redirect for the default health check endpoint.
+  # config.ssl_options = { redirect: { exclude: ->(request) { request.path == "/up" } } }
 
   # Log to STDOUT with the current request id as a default log tag.
   config.log_tags = [ :request_id ]
@@ -31,15 +43,32 @@ Rails.application.configure do
   # Use memory store to bypass solid_cache database dependency on Render
   config.cache_store = :memory_store
 
-  # Switch queue adapter to :async to avoid Solid Queue DB requirements
-  config.active_job.queue_adapter = :async
+  # Replace the default in-process and non-durable queuing backend for Active Job.
+  config.active_job.queue_adapter = :solid_queue
+  config.solid_queue.connects_to = { database: { writing: :primary } }
 
-  # Enable locale fallbacks for I18n
+  # Enable locale fallbacks for I18n (makes lookups for any locale fall back to
+  # the I18n.default_locale when a translation cannot be found).
   config.i18n.fallbacks = true
+
+  # Do not dump schema after migrations.
+  config.active_record.dump_schema_after_migration = false
+
+  # Only use :id for inspections in production.
+  config.active_record.attributes_for_inspect = [ :id ]
 
   # Disable active storage variant processor if image_processing gem is not installed
   config.active_storage.variant_processor = :disabled
-
+  
   # Configure Active Storage service for production
   config.active_storage.service = :local
+
+  # Enable DNS rebinding protection and other `Host` header attacks.
+  # config.hosts = [
+  #   "example.com",     # Allow requests from example.com
+  #   /.*\.example\.com/ # Allow requests from subdomains like `www.example.com`
+  # ]
+  #
+  # Skip DNS rebinding protection for the default health check endpoint.
+  # config.host_authorization = { exclude: ->(request) { request.path == "/up" } }
 end
