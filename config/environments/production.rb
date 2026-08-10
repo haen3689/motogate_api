@@ -9,8 +9,8 @@ Rails.application.configure do
   # Eager load code on boot for better performance and memory savings (ignored by Rake tasks).
   config.eager_load = true
 
-  # Show full error reports in production for debugging deployment issues.
-  config.consider_all_requests_local = true
+  # Set to false in production to prevent leaking sensitive debugging details to users
+  config.consider_all_requests_local = false
 
   # Cache assets for far-future expiry since they are all digest stamped.
   config.public_file_server.headers = { "cache-control" => "public, max-age=#{1.year.to_i}" }
@@ -34,19 +34,12 @@ Rails.application.configure do
   # Switch queue adapter to :async to avoid Solid Queue DB requirements
   config.active_job.queue_adapter = :async
 
-  # Enable locale fallbacks for I18n (makes lookups for any locale fall back to
-  # the I18n.default_locale when a translation cannot be found).
+  # Enable locale fallbacks for I18n
   config.i18n.fallbacks = true
-
-  # Do not dump schema after migrations.
-  config.active_record.dump_schema_after_migration = false
-
-  # Only use :id for inspections in production.
-  config.active_record.attributes_for_inspect = [ :id ]
 
   # Disable active storage variant processor if image_processing gem is not installed
   config.active_storage.variant_processor = :disabled
-  
+
   # Configure Active Storage service for production
   config.active_storage.service = :local
 end
