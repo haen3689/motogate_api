@@ -5,7 +5,8 @@ require "json"
 class TelbizSmsService
   BASE_URL  = "https://api.telbiz.la/api/v1"
   CLIENT_ID = ENV.fetch("TELBIZ_CLIENT_ID", "")
-  SECRET    = ENV.fetch("TELBIZ_SECRET",    "")
+  # ✅ แก้ไขให้ตรงกับ KEY บน Render Dashboard (TELBIZ_SECRET_KEY)
+  SECRET    = ENV.fetch("TELBIZ_SECRET_KEY", ENV.fetch("TELBIZ_SECRET", ""))
 
   def self.send_otp(phone_number:, otp:)
     new(phone_number:, title: "OTP", message: "ລະຫັດ MotoGate OTP ຂອງທ່ານແມ່ນ: #{otp} ").send!
@@ -28,6 +29,9 @@ class TelbizSmsService
   def send!
     token = connect_token
     send_sms(token)
+  rescue StandardError => e
+    Rails.logger.error("[Telbiz Execution Error] #{e.message}")
+    false
   end
 
   private
@@ -41,7 +45,11 @@ class TelbizSmsService
       scope:     "Telbiz_API_SCOPE profile openid"
     }
     res = post("#{BASE_URL}/connect/token", body, {})
-    raise "Telbiz auth failed: #{res.body}" unless res.code.to_i == 200
+    
+    unless res.code.to_i == 200
+      Rails.logger.error("[Telbiz Auth Failed] Status: #{res.code}, Body: #{res.body}")
+      raise "Telbiz auth failed: #{res.body}"
+    end
 
     JSON.parse(res.body)["accessToken"] ||
       raise("Telbiz: no accessToken in response")
@@ -59,10 +67,10 @@ class TelbizSmsService
 
     unless res.code.to_i == 200
       Rails.logger.error("[Telbiz] SMS failed: #{res.code} #{res.body}")
-      raise "SMS sending failed"
+      raise "SMS sending failed: #{res.body}"
     end
 
-    Rails.logger.info("[Telbiz] SMS sent to #{@phone_number}")
+    Rails.logger.info("[Telbiz] SMS sent successfully to #{@phone_number}")
     true
   end
 
@@ -70,8 +78,13 @@ class TelbizSmsService
     uri  = URI.parse(url)
     http = Net::HTTP.new(uri.host, uri.port)
     http.use_ssl = true
+    
+    # ✅ ป้องกัน HTTP Request ค้างเกินไปจนเกิด Connection Reset บน Render Free Tier
+    http.open_timeout = 5
+    http.read_timeout = 8
 
-    req = Net::HTTP::Post.new(uri.path,
+    req = Net::HTTP::Post.new(
+      uri.path,
       "accept"       => "text/plain",
       "Content-Type" => "application/json"
     )
@@ -83,6 +96,6 @@ class TelbizSmsService
 
   # +85620XXXXXXX or 020XXXXXXX → 20XXXXXXX
   def normalize_phone(number)
-    number.sub(/^\+856/, "").sub(/^0/, "")
+    number.to_s.sub(/^\+856/, "").sub(/^0/, "")
   end
 end
