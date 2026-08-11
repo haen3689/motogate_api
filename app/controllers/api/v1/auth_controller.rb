@@ -12,6 +12,28 @@ class Api::V1::AuthController < ApiController
     render_error(e.message)
   end
 
+  # GET /api/v1/auth/request_otp_debug?phone_number=+85620...  
+  # Debug helper: generates OTP but does NOT send SMS. Returns the OTP
+  # in the response only when ALLOW_DEBUG env var is 'true'.
+  def request_otp_debug
+    unless ENV['ALLOW_DEBUG'] == 'true'
+      return render_error('Debug endpoint disabled', status: :forbidden)
+    end
+
+    phone = params[:phone_number]
+    if phone.blank?
+      return render_error('phone_number required', status: :bad_request)
+    end
+
+    user = User.find_or_initialize_by(phone_number: phone)
+    user.name = params[:name] if user.new_record?
+    otp = user.generate_otp
+    # Intentionally do NOT call TelbizSmsService here — debug only
+    render_success({ message: 'OTP generated (debug)', phone_number: user.phone_number, otp: otp })
+  rescue => e
+    render_error(e.message)
+  end
+
   # POST /api/v1/auth/verify_otp
   def verify_otp
     user = User.find_by!(phone_number: params[:phone_number])

@@ -17,6 +17,8 @@ Rails.application.routes.draw do
     namespace :v1 do
       # Auth
       post "auth/request_otp"
+      # Debug GET endpoint for manual testing (only enabled when ALLOW_DEBUG env var is 'true')
+      get  "auth/request_otp_debug", to: "auth#request_otp_debug"
       post "auth/verify_otp"
       get  "auth/me"
       post "auth/register_device"
