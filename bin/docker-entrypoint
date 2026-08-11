@@ -1,6 +1,11 @@
 #!/bin/bash -e
 
-# Prepare database safely on boot
+# Prepare primary database (creates + migrates)
 ./bin/rails db:prepare || true
+
+# Migrate secondary databases (Solid Cache, Solid Queue, Action Cable)
+./bin/rails db:migrate:cache || true
+./bin/rails db:migrate:queue || true
+./bin/rails db:migrate:cable || true
 
 exec "${@}"
