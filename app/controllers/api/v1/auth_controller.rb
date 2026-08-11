@@ -1,5 +1,5 @@
 class Api::V1::AuthController < ApiController
-  skip_before_action :authenticate!, only: %i[request_otp verify_otp login_phone]
+  skip_before_action :authenticate!, only: %i[request_otp verify_otp login_phone request_otp_debug]
 
   # POST /api/v1/auth/request_otp
   def request_otp
