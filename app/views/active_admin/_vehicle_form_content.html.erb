@@ -138,7 +138,10 @@
       <div class="vef-g-1-2" style="margin-bottom:20px;">
         <div class="vef-field">
           <label class="vef-label">ຮູບພາຫະນະ</label>
-          <input type="file" name="vehicle_img" class="vef-input" accept="image/*">
+          <%= f.file_field :front_photo, class: 'vef-input', accept: 'image/*' %>
+          <% if vehicle.front_photo.attached? %>
+            <span class="vef-attached"><i class="fas fa-check-circle"></i> ມີຮູບຢູ່ແລ້ວ</span>
+          <% end %>
         </div>
         <div class="vef-field">
           <label class="vef-label">ຍີ່ຫໍ້ພາຫະນະ <span>*</span></label>
@@ -274,10 +277,6 @@
       </div>
       <div class="vef-g3">
         <div class="vef-field">
-          <label class="vef-label">ຮູບທະບຽນລົດ</label>
-          <input type="file" name="vehicle_reg_img" class="vef-input" accept="image/*">
-        </div>
-        <div class="vef-field">
           <label class="vef-label">ປຶ້ມຕິດຕາມ — ດ້ານໜ້າ</label>
           <%= f.file_field :registration_front, class: 'vef-input', accept: 'image/*' %>
           <% if vehicle.registration_front.attached? %>
@@ -288,6 +287,13 @@
           <label class="vef-label">ປຶ້ມຕິດຕາມ — ດ້ານຫຼັງ</label>
           <%= f.file_field :registration_back, class: 'vef-input', accept: 'image/*' %>
           <% if vehicle.registration_back.attached? %>
+            <span class="vef-attached"><i class="fas fa-check-circle"></i> ມີຮູບຢູ່ແລ້ວ</span>
+          <% end %>
+        </div>
+        <div class="vef-field">
+          <label class="vef-label">ປື້ມຂົນສົ່ງ</label>
+          <%= f.file_field :transport_booklet, class: 'vef-input', accept: 'image/*' %>
+          <% if vehicle.transport_booklet.attached? %>
             <span class="vef-attached"><i class="fas fa-check-circle"></i> ມີຮູບຢູ່ແລ້ວ</span>
           <% end %>
         </div>

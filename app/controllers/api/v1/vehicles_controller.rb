@@ -16,6 +16,8 @@ class Api::V1::VehiclesController < ApiController
     vehicle = current_user.vehicles.build(vehicle_params)
     vehicle.registration_front.attach(params[:registration_front]) if params[:registration_front].present?
     vehicle.registration_back.attach(params[:registration_back])   if params[:registration_back].present?
+    vehicle.front_photo.attach(params[:front_photo])               if params[:front_photo].present?
+    vehicle.transport_booklet.attach(params[:transport_booklet])   if params[:transport_booklet].present?
     if vehicle.save
       render_success(vehicle_json(vehicle, owner: true), status: :created)
     else
@@ -28,6 +30,7 @@ class Api::V1::VehiclesController < ApiController
       @vehicle.registration_front.attach(params[:registration_front]) if params[:registration_front].present?
       @vehicle.registration_back.attach(params[:registration_back])   if params[:registration_back].present?
       @vehicle.front_photo.attach(params[:front_photo])               if params[:front_photo].present?
+      @vehicle.transport_booklet.attach(params[:transport_booklet])   if params[:transport_booklet].present?
       render_success(vehicle_json(@vehicle, owner: true))
     else
       render_error(@vehicle.errors.full_messages.join(", "))
@@ -95,6 +98,7 @@ class Api::V1::VehiclesController < ApiController
       registration_front_url: v.registration_front.attached? ? url_for(v.registration_front) : nil,
       registration_back_url:  v.registration_back.attached?  ? url_for(v.registration_back)  : nil,
       front_photo_url:        v.front_photo.attached?        ? url_for(v.front_photo)        : nil,
+      transport_booklet_url:  v.transport_booklet.attached?  ? url_for(v.transport_booklet)  : nil,
       is_owner: owner,
       shared_users: owner ? v.shared_users.map { |u| shared_user_json(u) } : [],
     )

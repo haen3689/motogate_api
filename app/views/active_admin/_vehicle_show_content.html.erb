@@ -336,6 +336,26 @@
         </div>
       </div>
 
+      <%# Vehicle photo %>
+      <div class="vsw-card">
+        <div class="vsw-section-hd"><i class="fas fa-camera"></i>ຮູບພາຫະນະ</div>
+        <% if vehicle.front_photo.attached? %>
+          <%= image_tag url_for(vehicle.front_photo), style:'width:100%;border-radius:12px;border:1px solid #e2e8f0;max-height:240px;object-fit:cover;' %>
+        <% else %>
+          <div class="vsw-img-placeholder"><i class="fas fa-image"></i>ຍັງບໍ່ມີຮູບ</div>
+        <% end %>
+      </div>
+
+      <%# Transport booklet %>
+      <div class="vsw-card">
+        <div class="vsw-section-hd"><i class="fas fa-book"></i>ປື້ມຂົນສົ່ງ</div>
+        <% if vehicle.transport_booklet.attached? %>
+          <%= image_tag url_for(vehicle.transport_booklet), style:'width:100%;border-radius:12px;border:1px solid #e2e8f0;max-height:240px;object-fit:cover;' %>
+        <% else %>
+          <div class="vsw-img-placeholder"><i class="fas fa-image"></i>ຍັງບໍ່ມີຮູບ</div>
+        <% end %>
+      </div>
+
       <%# Road taxes %>
       <% if vehicle.road_taxes.any? %>
         <div class="vsw-card">

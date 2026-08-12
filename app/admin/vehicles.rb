@@ -7,7 +7,7 @@ ActiveAdmin.register Vehicle do
                 :engine_number, :chassis_number, :cc, :province, :usage_type,
                 :owner_name, :fuel_type, :seat_count, :axle_count, :cylinder_count, :weight,
                 :registration_expiry_date,
-                :registration_front, :registration_back
+                :registration_front, :registration_back, :front_photo, :transport_booklet
 
   index title: false, download_links: false do
     render partial: "active_admin/vehicles_content"
