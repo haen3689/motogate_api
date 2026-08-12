@@ -19,6 +19,14 @@ ActiveAdmin.register Vehicle do
 
   form partial: "active_admin/vehicle_form_content"
 
+  # TEMPORARY — diagnosing a 500 on edit/update. Safe because it only fires
+  # for requests that already passed admin authentication. Remove once fixed.
+  controller do
+    rescue_from StandardError do |e|
+      render plain: "#{e.class}: #{e.message}\n\n#{e.backtrace.first(30).join("\n")}", status: 500
+    end
+  end
+
   # "ຜູ້ໃຊ້ຮອງ" (sub_owner_phone) isn't a Vehicle column — it grants an
   # already-registered user read-only access via the same VehicleShare
   # mechanism the app's "ຜູ້ໃຊ້ສຳຮອງ" feature uses.
