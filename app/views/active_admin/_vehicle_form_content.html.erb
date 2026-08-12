@@ -206,7 +206,9 @@
       <div class="vef-g3">
         <div class="vef-field">
           <label class="vef-label">ປະເພດການນຳໃຊ້</label>
-          <%= f.text_field :usage_type, class: 'vef-input', placeholder: 'ນຳໃຊ້ສ່ວນຕົວ...' %>
+          <%= f.select :usage_type,
+                ['ນຳໃຊ້ສ່ວນຕົວ', 'ນຳໃຊ້ທຸລະກິດ'],
+                { include_blank: '— ເລືອກ —' }, class: 'vef-input' %>
         </div>
         <div class="vef-field">
           <label class="vef-label">ຜູ້ໃຊ້ຫຼັກ <span>*</span></label>
