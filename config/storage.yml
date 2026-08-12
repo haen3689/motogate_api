@@ -16,3 +16,9 @@ cloudflare_r2:
   secret_access_key: <%= ENV["R2_SECRET_ACCESS_KEY"] %>
   region: auto
   bucket: <%= ENV["R2_BUCKET"] %>
+  # R2 doesn't support the newer AWS SDK default of auto-attaching its own
+  # checksum header on top of the one Rails already sends — without this,
+  # every upload fails with "You can only specify one non-default checksum
+  # at a time".
+  request_checksum_calculation: when_required
+  response_checksum_validation: when_required
