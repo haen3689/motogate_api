@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_12_210000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_12_230000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -183,6 +183,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_12_210000) do
     t.string "service_name"
     t.string "status"
     t.string "sticker"
+    t.string "sticker_number"
     t.datetime "updated_at", null: false
     t.bigint "vehicle_id", null: false
     t.index ["inspection_center_id"], name: "index_inspections_on_inspection_center_id"
@@ -221,6 +222,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_12_210000) do
 
   create_table "insurances", force: :cascade do |t|
     t.decimal "amount"
+    t.string "certificate_number"
     t.string "company"
     t.datetime "created_at", null: false
     t.date "end_date"
@@ -230,6 +232,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_12_210000) do
     t.string "status"
     t.datetime "updated_at", null: false
     t.bigint "vehicle_id", null: false
+    t.index ["certificate_number"], name: "index_insurances_on_certificate_number", unique: true
     t.index ["insurance_company_id"], name: "index_insurances_on_insurance_company_id"
     t.index ["vehicle_id"], name: "index_insurances_on_vehicle_id"
   end

@@ -15,7 +15,7 @@ class Inspection < ApplicationRecord
   before_save :attach_sticker_file, if: -> { sticker_file.present? }
 
   def self.ransackable_attributes(auth_object = nil)
-    %w[id center_name service_name amount appointment_at status sticker notes created_at updated_at]
+    %w[id center_name service_name amount appointment_at status sticker sticker_number notes created_at updated_at]
   end
 
   def self.ransackable_associations(auth_object = nil)

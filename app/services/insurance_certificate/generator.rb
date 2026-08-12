@@ -146,7 +146,7 @@ module InsuranceCertificate
     end
 
     def certificate_no
-      "MG#{@insurance.created_at.strftime('%y')}-#{@insurance.id.to_s.rjust(6, '0')}"
+      @insurance.certificate_number
     end
 
     def format_date(date)

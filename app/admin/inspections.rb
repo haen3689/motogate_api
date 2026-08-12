@@ -4,7 +4,7 @@ ActiveAdmin.register Inspection do
   config.batch_actions = false
   config.filters = false
 
-  permit_params :status, :notes, :sticker_file
+  permit_params :status, :notes, :sticker_file, :sticker_number
 
   index as: :content do
     render partial: "active_admin/inspections_content"

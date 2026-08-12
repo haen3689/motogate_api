@@ -13,7 +13,7 @@ class Insurance < ApplicationRecord
   before_validation :set_insurance_company, if: -> { insurance_company_id.blank? && company.present? }
 
   def self.ransackable_attributes(auth_object = nil)
-    %w[id amount company package status start_date end_date vehicle_id insurance_company_id created_at updated_at]
+    %w[id amount company package status certificate_number start_date end_date vehicle_id insurance_company_id created_at updated_at]
   end
 
   def self.ransackable_associations(auth_object = nil)
@@ -30,7 +30,12 @@ class Insurance < ApplicationRecord
   def mark_paid_from_payment!(payment)
     duration = insurance_company&.insurance_packages&.find_by(name: package)&.duration_months || DEFAULT_DURATION_MONTHS
     start = Date.current
-    update!(status: "active", start_date: start, end_date: start >> duration)
+    update!(
+      status: "active",
+      start_date: start,
+      end_date: start >> duration,
+      certificate_number: generate_certificate_number
+    )
     vehicle.user.transactions.create!(
       transaction_type: "insurance",
       amount: payment.amount,
@@ -46,5 +51,17 @@ class Insurance < ApplicationRecord
 
   def set_insurance_company
     self.insurance_company = InsuranceCompany.find_by(name: company)
+  end
+
+  # Assigned only once a policy actually becomes active (not at pending/cart
+  # creation) so numbers aren't wasted on abandoned purchases. Resets to 1
+  # each year, same convention as ServiceCenterContract#generate_contract_number.
+  def generate_certificate_number
+    return certificate_number if certificate_number.present?
+
+    year = Date.current.strftime("%y")
+    last = Insurance.where("certificate_number LIKE ?", "MG#{year}-%").order(:certificate_number).last
+    seq = last ? last.certificate_number.split("-").last.to_i + 1 : 1
+    "MG#{year}-#{seq.to_s.rjust(6, '0')}"
   end
 end
