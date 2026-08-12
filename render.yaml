@@ -56,3 +56,25 @@ services:
         sync: false
       - key: R2_BUCKET
         sync: false
+
+      # BCEL OnePay (app/services/payments/bcel_one_pay) — set these
+      # manually in the Render dashboard once BCEL issues production
+      # merchant credentials. Until set, the code falls back to BCEL's
+      # published TEST merchant, so payments work against sandbox out of
+      # the box. BCEL_PRIVATE_KEY_PEM is our own RSA key used to sign
+      # void/refund requests — its matching PUBLIC key must be emailed to
+      # BCEL (phayudon@bcel.com.la) before void/refund calls will work.
+      - key: BCEL_MCID
+        sync: false
+      - key: BCEL_MCC
+        sync: false
+      - key: BCEL_SHOPCODE
+        sync: false
+      - key: BCEL_CCY
+        sync: false
+      - key: BCEL_COUNTRY
+        sync: false
+      - key: BCEL_PROVINCE
+        sync: false
+      - key: BCEL_PRIVATE_KEY_PEM
+        sync: false

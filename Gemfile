@@ -21,6 +21,10 @@ gem "rack-cors"
 # Active Storage → Cloudflare R2 (S3-compatible object storage)
 gem "aws-sdk-s3", require: false
 
+# BCEL OnePay payment callbacks are delivered over PubNub (no plain HTTP
+# webhook option in their API) — see app/services/payments/bcel_one_pay
+gem "pubnub", "~> 5.4"
+
 # Admin panel
 gem "activeadmin"
 gem "devise"

@@ -1,4 +1,6 @@
 class Vehicle < ApplicationRecord
+  include PayableByPayment
+
   belongs_to :user
   has_many :road_taxes, dependent: :destroy
   has_many :insurances, dependent: :destroy
@@ -16,11 +18,34 @@ class Vehicle < ApplicationRecord
 
   VEHICLE_TYPES = %w[motorcycle car pickup suv van bus towtruck trailer].freeze
 
+  # One-time platform registration fee, charged right after a vehicle is
+  # added — fixed amount, not vehicle-dependent.
+  REGISTRATION_FEE = 200_000
+
   def self.ransackable_attributes(auth_object = nil)
     %w[id plate_number plate_type brand model year color vehicle_type created_at updated_at]
   end
 
   def self.ransackable_associations(auth_object = nil)
     %w[user road_taxes insurances inspections]
+  end
+
+  def payment_owner
+    user
+  end
+
+  # Called by Payment#mark_paid! once BCEL confirms the payment via
+  # callback — fee_paid can only ever flip true through a real payment now.
+  def mark_paid_from_payment!(payment)
+    update!(fee_paid: true)
+    user.transactions.create!(
+      transaction_type: "vehicle_fee",
+      amount: payment.amount,
+      status: "success",
+      reference: plate_number,
+      description: "ຄ່າທຳນຽມລົງທະບຽນລົດ - #{plate_number}"
+    )
+  rescue StandardError => e
+    Rails.logger.error("[Vehicle] Failed to finalize payment #{payment.uuid}: #{e.message}")
   end
 end

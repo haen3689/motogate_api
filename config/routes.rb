@@ -31,6 +31,7 @@ Rails.application.routes.draw do
         member do
           post "share"
           delete "share/:user_id", action: :unshare, as: :unshare
+          post "pay_fee"
         end
       end
 
@@ -49,6 +50,10 @@ Rails.application.routes.draw do
 
       # Transactions
       resources :transactions, only: %i[index show]
+
+      # Payments (BCEL OnePay) — poll-for-status; creation happens inside
+      # each payable's own create action.
+      resources :payments, only: %i[show], param: :id
 
       # Notifications
       resources :notifications, only: %i[index] do

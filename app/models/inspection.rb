@@ -1,4 +1,6 @@
 class Inspection < ApplicationRecord
+  include PayableByPayment
+
   belongs_to :vehicle
   belongs_to :inspection_center, optional: true
 
@@ -20,7 +22,52 @@ class Inspection < ApplicationRecord
     %w[vehicle inspection_center]
   end
 
+  def payment_owner
+    vehicle.user
+  end
+
+  # Called by Payment#mark_paid! once BCEL confirms the payment via
+  # callback — the booking only becomes "confirmed" (and the center
+  # notified) once payment has actually cleared.
+  def mark_paid_from_payment!(payment)
+    update!(status: "confirmed")
+    vehicle.user.transactions.create!(
+      transaction_type: "inspection",
+      amount: payment.amount,
+      status: "success",
+      reference: vehicle.plate_number,
+      description: "#{service_name} - #{vehicle.plate_number}"
+    )
+    notify_center!
+    broadcast_new_booking!
+  rescue StandardError => e
+    Rails.logger.error("[Inspection] Failed to finalize payment #{payment.uuid}: #{e.message}")
+  end
+
   private
+
+  # Notify the inspection center's phone that a new (paid) booking came in.
+  # Best-effort — must never break payment finalization if SMS is down.
+  def notify_center!
+    return if inspection_center.blank? || inspection_center.phone.blank?
+
+    message = "ມີການຈອງກວດສະພາບລົດໃໝ່ ທະບຽນ #{vehicle.plate_number} " \
+              "ບໍລິການ #{service_name} ວັນທີ #{appointment_at.strftime('%d/%m/%Y %H:%M')}"
+    TelbizSmsService.send_message(phone_number: inspection_center.phone, message: message)
+  rescue StandardError => e
+    Rails.logger.error("[Inspection] Failed to notify center #{inspection_center&.id}: #{e.message}")
+  end
+
+  # Pushes the new booking to any admin browser currently subscribed via
+  # AdminInspectionsChannel, so the backend list updates live. Best-effort,
+  # same as notify_center!.
+  def broadcast_new_booking!
+    ActionCable.server.broadcast("admin_inspections", {
+      inspection: as_json.merge(plate_number: vehicle.plate_number)
+    })
+  rescue StandardError => e
+    Rails.logger.error("[Inspection] Failed to broadcast new booking #{id}: #{e.message}")
+  end
 
   def attach_sticker_file
     unless sticker_file.content_type.to_s.start_with?('image/')

@@ -1,5 +1,5 @@
 class Api::V1::VehiclesController < ApiController
-  before_action :set_owned_vehicle, only: %i[update destroy share unshare]
+  before_action :set_owned_vehicle, only: %i[update destroy share unshare pay_fee]
   before_action :set_accessible_vehicle, only: %i[show]
 
   def index
@@ -69,6 +69,22 @@ class Api::V1::VehiclesController < ApiController
     render_success(vehicle_json(@vehicle, owner: true))
   end
 
+  # POST /api/v1/vehicles/:id/pay_fee — creates a pending BCEL OnePay
+  # Payment for the one-time registration fee. fee_paid only flips true
+  # once Vehicle#mark_paid_from_payment! fires from the PubNub callback.
+  def pay_fee
+    return render_error("ຈ່າຍຄ່າທຳນຽມແລ້ວ") if @vehicle.fee_paid?
+
+    payment = @vehicle.payments.create!(
+      amount: Vehicle::REGISTRATION_FEE,
+      terminal_id: "MG-VEHICLEFEE",
+      description: "MotoGate Vehicle Registration Fee",
+      expires_at: 15.minutes.from_now
+    )
+    payment.update!(invoice_id: payment.uuid)
+    render_success(payment.as_app_json, status: :created)
+  end
+
   private
 
   def set_owned_vehicle
@@ -86,11 +102,14 @@ class Api::V1::VehiclesController < ApiController
     render_error("Vehicle not found", status: :not_found)
   end
 
+  # fee_paid is intentionally not permitted here — it can only be flipped
+  # by Vehicle#mark_paid_from_payment! once BCEL actually confirms payment
+  # (see #pay_fee), never directly by the client.
   def vehicle_params
     params.permit(:plate_number, :plate_type, :brand, :model, :year, :color, :vehicle_type,
                   :engine_number, :chassis_number, :cc, :province, :usage_type,
                   :owner_name, :fuel_type, :seat_count, :axle_count, :cylinder_count, :weight,
-                  :registration_expiry_date, :fee_paid)
+                  :registration_expiry_date)
   end
 
   def vehicle_json(v, owner:)

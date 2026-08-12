@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_12_100000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_12_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -272,6 +272,35 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_12_100000) do
     t.index ["service_center_id"], name: "index_partner_applications_on_service_center_id"
     t.index ["service_type"], name: "index_partner_applications_on_service_type"
     t.index ["status"], name: "index_partner_applications_on_status"
+  end
+
+  create_table "payments", force: :cascade do |t|
+    t.decimal "amount", precision: 12, scale: 2, null: false
+    t.string "bcel_transaction_id"
+    t.text "callback_payload"
+    t.string "ccy", default: "LAK", null: false
+    t.datetime "created_at", null: false
+    t.string "description"
+    t.datetime "expires_at"
+    t.string "fccref"
+    t.string "invoice_id"
+    t.datetime "paid_at"
+    t.bigint "payable_id", null: false
+    t.string "payable_type", null: false
+    t.string "payer_name"
+    t.string "payer_phone"
+    t.string "provider", default: "bcel_onepay", null: false
+    t.string "refund_reference"
+    t.decimal "refunded_amount", precision: 12, scale: 2
+    t.string "status", default: "pending", null: false
+    t.string "terminal_id"
+    t.string "ticket"
+    t.datetime "updated_at", null: false
+    t.string "uuid", null: false
+    t.datetime "voided_at"
+    t.index ["payable_type", "payable_id"], name: "index_payments_on_payable"
+    t.index ["status"], name: "index_payments_on_status"
+    t.index ["uuid"], name: "index_payments_on_uuid", unique: true
   end
 
   create_table "permissions", force: :cascade do |t|

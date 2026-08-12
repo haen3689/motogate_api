@@ -1,7 +1,7 @@
 class Transaction < ApplicationRecord
   belongs_to :user
 
-  TYPES = %w[road_tax insurance inspection service].freeze
+  TYPES = %w[road_tax insurance inspection service vehicle_fee].freeze
   STATUSES = %w[pending success failed].freeze
   validates :transaction_type, :amount, :status, presence: true
   validates :transaction_type, inclusion: { in: TYPES }

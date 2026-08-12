@@ -11,22 +11,40 @@ class Api::V1::InsurancesController < ApiController
     render_error("ບໍ່ພົບຂໍ້ມູນ", status: :not_found)
   end
 
+  # Price comes from the InsurancePackage the client picked (looked up
+  # server-side by company + package name) — never from the client's own
+  # `amount`. The insurance stays "pending" until BCEL confirms the
+  # payment; see Insurance#mark_paid_from_payment!.
   def create
     vehicle = current_user.vehicles.find(params[:vehicle_id])
-    insurance = vehicle.insurances.build(insurance_params)
-    if insurance.save
-      log_transaction!(
-        type: "insurance",
-        amount: insurance.amount,
-        reference: vehicle.plate_number,
-        description: "ປະກັນໄພ #{insurance.package} - #{vehicle.plate_number}"
+    company = InsuranceCompany.active.find_by(name: params[:company])
+    return render_error("ບໍ່ພົບບໍລິສັດປະກັນໄພ") unless company
+
+    package = company.insurance_packages.active.find_by(name: params[:package])
+    return render_error("ບໍ່ພົບແພັກເກັດປະກັນໄພ") unless package
+
+    insurance = payment = nil
+    Insurance.transaction do
+      insurance = vehicle.insurances.create!(
+        insurance_company: company,
+        company: company.name,
+        package: package.name,
+        amount: package.price,
+        status: 'pending'
       )
-      render_success(insurance_json(insurance), status: :created)
-    else
-      render_error(insurance.errors.full_messages.join(", "))
+      payment = insurance.payments.create!(
+        amount: package.price,
+        terminal_id: "MG-INSURANCE",
+        description: "MotoGate Insurance #{package.name}",
+        expires_at: 15.minutes.from_now
+      )
+      payment.update!(invoice_id: payment.uuid)
     end
+    render_success(insurance_json(insurance).merge(payment: payment.as_app_json), status: :created)
   rescue ActiveRecord::RecordNotFound
     render_error("ບໍ່ພົບລົດ", status: :not_found)
+  rescue ActiveRecord::RecordInvalid => e
+    render_error(e.record.errors.full_messages.join(", "))
   end
 
   # Lets the user attach a photo of their physical policy document to an
@@ -49,10 +67,6 @@ class Api::V1::InsurancesController < ApiController
 
   def user_insurances
     Insurance.joins(:vehicle).where(vehicles: { user_id: current_user.id })
-  end
-
-  def insurance_params
-    params.permit(:company, :package, :amount, :status, :start_date, :end_date)
   end
 
   def insurance_json(i)
