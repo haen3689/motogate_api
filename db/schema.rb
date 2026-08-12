@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_08_200000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_12_100000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -456,6 +456,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_08_200000) do
     t.datetime "updated_at", null: false
   end
 
+  create_table "vehicle_shares", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.bigint "vehicle_id", null: false
+    t.index ["user_id"], name: "index_vehicle_shares_on_user_id"
+    t.index ["vehicle_id", "user_id"], name: "index_vehicle_shares_on_vehicle_id_and_user_id", unique: true
+    t.index ["vehicle_id"], name: "index_vehicle_shares_on_vehicle_id"
+  end
+
   create_table "vehicles", force: :cascade do |t|
     t.string "axle_count"
     t.string "brand"
@@ -506,5 +516,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_08_200000) do
   add_foreign_key "support_cases", "admin_users"
   add_foreign_key "support_cases", "users"
   add_foreign_key "transactions", "users"
+  add_foreign_key "vehicle_shares", "users"
+  add_foreign_key "vehicle_shares", "vehicles"
   add_foreign_key "vehicles", "users"
 end

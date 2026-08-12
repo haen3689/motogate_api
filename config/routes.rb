@@ -27,7 +27,12 @@ Rails.application.routes.draw do
       post "auth/verify_token"
 
       # Vehicles
-      resources :vehicles
+      resources :vehicles do
+        member do
+          post "share"
+          delete "share/:user_id", action: :unshare, as: :unshare
+        end
+      end
 
       # Road Tax
       resources :road_taxes, only: %i[index create show]

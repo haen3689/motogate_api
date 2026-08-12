@@ -4,6 +4,8 @@ class Vehicle < ApplicationRecord
   has_many :insurances, dependent: :destroy
   has_many :inspections, dependent: :destroy
   has_many :documents, dependent: :destroy
+  has_many :vehicle_shares, dependent: :destroy
+  has_many :shared_users, through: :vehicle_shares, source: :user
 
   has_one_attached :registration_front
   has_one_attached :registration_back
