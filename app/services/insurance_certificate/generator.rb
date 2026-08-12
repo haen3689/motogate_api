@@ -81,43 +81,43 @@ module InsuranceCertificate
     # every certificate we produce has a correct, unique number.
     def draw_certificate_no(pdf)
       pdf.fill_color "FFFF00"
-      x, y = xy(1415, 172)
-      pdf.fill_rectangle [x, y], 360 * (PAGE_W / TEMPLATE_PX_W), 26 * (PAGE_H / TEMPLATE_PX_H)
+      x, y = xy(1385, 172)
+      pdf.fill_rectangle [x, y], 395 * (PAGE_W / TEMPLATE_PX_W), 28 * (PAGE_H / TEMPLATE_PX_H)
       pdf.fill_color "000000"
-      text(pdf, certificate_no, 1420, 158, size: 15)
+      text(pdf, certificate_no, 1420, 158, size: 14)
     end
 
     def draw_declaration(pdf)
-      text(pdf, full_name, 250, 503)
-      text(pdf, "ລາວ", 1420, 503)
+      text(pdf, full_name, 470, 503)
+      text(pdf, "ລາວ", 1525, 503)
 
-      text(pdf, @user.village, 615, 543)
-      text(pdf, @user.district, 955, 543)
-      text(pdf, @user.province, 235, 583)
-      text(pdf, @user.phone_number, 530, 583)
+      text(pdf, @user.village, 1000, 543)
+      text(pdf, @user.district, 1400, 543)
+      text(pdf, @user.province, 280, 583)
+      text(pdf, @user.phone_number, 820, 583)
     end
 
     def draw_vehicle_info(pdf)
-      text(pdf, @vehicle.brand, 250, 633)
-      text(pdf, @vehicle.model, 710, 633)
-      text(pdf, @vehicle.year&.to_s, 1220, 633)
+      text(pdf, @vehicle.brand, 580, 633)
+      text(pdf, @vehicle.model, 1030, 633)
+      text(pdf, @vehicle.year&.to_s, 1625, 633)
 
-      text(pdf, @vehicle.color, 165, 673)
-      text(pdf, @vehicle.engine_number, 460, 673)
-      text(pdf, @vehicle.chassis_number, 940, 673)
+      text(pdf, @vehicle.color, 230, 673)
+      text(pdf, @vehicle.engine_number, 630, 673)
+      text(pdf, @vehicle.chassis_number, 1110, 673)
 
-      text(pdf, @vehicle.plate_number, 250, 713)
-      text(pdf, @vehicle.plate_type, 780, 713)
-      text(pdf, @vehicle.province, 1230, 713)
+      text(pdf, @vehicle.plate_number, 310, 713)
+      text(pdf, @vehicle.plate_type, 995, 713)
+      text(pdf, @vehicle.province, 1480, 713)
 
-      text(pdf, @vehicle.cc&.to_s, 170, 753, size: 11)
-      text(pdf, @vehicle.seat_count&.to_s, 430, 753, size: 11)
-      text(pdf, @vehicle.weight&.to_s, 730, 753, size: 11)
+      text(pdf, @vehicle.cc&.to_s, 330, 753, size: 11)
+      text(pdf, @vehicle.seat_count&.to_s, 810, 753, size: 11)
+      text(pdf, @vehicle.weight&.to_s, 1095, 753, size: 11)
 
       # Top-right summary box
-      text(pdf, format_date(@insurance.start_date), 1420, 220, size: 11)
-      text(pdf, format_date(@insurance.end_date), 1360, 253, size: 11)
-      text(pdf, @vehicle.plate_number, 1345, 288, size: 11)
+      text(pdf, format_date(@insurance.start_date), 1600, 190, size: 9)
+      text(pdf, format_date(@insurance.end_date), 1550, 225, size: 9)
+      text(pdf, @vehicle.plate_number, 1550, 260, size: 9)
     end
 
     def draw_checkboxes(pdf)
@@ -133,12 +133,12 @@ module InsuranceCertificate
     end
 
     def draw_period_and_premium(pdf)
-      text(pdf, format_date(@insurance.start_date), 255, 1893, size: 11)
-      text(pdf, format_date(@insurance.start_date), 285, 1928, size: 11)
-      text(pdf, format_date(@insurance.end_date), 275, 1963, size: 11)
+      text(pdf, format_date(@insurance.start_date), 410, 1893, size: 11)
+      text(pdf, format_date(@insurance.start_date), 430, 1928, size: 11)
+      text(pdf, format_date(@insurance.end_date), 420, 1963, size: 11)
 
-      text(pdf, money(@insurance.amount), 1235, 1893, size: 11)
-      text(pdf, money(@insurance.amount), 1135, 2038, size: 13)
+      text(pdf, money(@insurance.amount), 1330, 1893, size: 11)
+      text(pdf, money(@insurance.amount), 1250, 2038, size: 13)
     end
 
     def full_name
