@@ -142,7 +142,10 @@
           <i class="fas fa-receipt"></i>ລາຍງານຊຳລະຄ່າທຳນຽມ
         <% end %>
         <%= link_to admin_road_tax_rates_path, class: "submenu-link" do %>
-          <i class="fas fa-cog"></i>ກຳນົດຄ່າທຳນຽມ
+          <i class="fas fa-cog"></i>ກຳນົດອັດຕາຄ່າທາງ
+        <% end %>
+        <%= link_to edit_admin_vehicle_fee_setting_path(VehicleFeeSetting.current), class: "submenu-link" do %>
+          <i class="fas fa-coins"></i>ຄ່າທຳນຽມລົງທະບຽນລົດ
         <% end %>
       </div>
     </div>
