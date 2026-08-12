@@ -18,4 +18,17 @@ ActiveAdmin.register Vehicle do
   end
 
   form partial: "active_admin/vehicle_form_content"
+
+  # "ຜູ້ໃຊ້ຮອງ" (sub_owner_phone) isn't a Vehicle column — it grants an
+  # already-registered user read-only access via the same VehicleShare
+  # mechanism the app's "ຜູ້ໃຊ້ສຳຮອງ" feature uses.
+  after_save do |vehicle|
+    phone = params.dig(:vehicle, :sub_owner_phone).to_s.strip
+    next if phone.blank?
+
+    target = User.find_by(phone_number: phone)
+    next unless target && target.id != vehicle.user_id
+
+    vehicle.vehicle_shares.find_or_create_by(user: target)
+  end
 end

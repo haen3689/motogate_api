@@ -320,7 +320,7 @@
           <div>
             <div class="vsw-label" style="margin-bottom:8px;">ດ້ານໜ້າ</div>
             <% if vehicle.registration_front.attached? %>
-              <%= image_tag url_for(vehicle.registration_front), style:'width:100%;border-radius:12px;border:1px solid #e2e8f0;max-height:200px;object-fit:cover;' %>
+              <%= image_tag url_for(vehicle.registration_front), style:'width:100%;border-radius:12px;border:1px solid #e2e8f0;max-height:200px;object-fit:cover;cursor:zoom-in;', onclick: "openVswImageModal('#{url_for(vehicle.registration_front)}')" %>
             <% else %>
               <div class="vsw-img-placeholder"><i class="fas fa-image"></i>ຍັງບໍ່ມີຮູບ</div>
             <% end %>
@@ -328,7 +328,7 @@
           <div>
             <div class="vsw-label" style="margin-bottom:8px;">ດ້ານຫຼັງ</div>
             <% if vehicle.registration_back.attached? %>
-              <%= image_tag url_for(vehicle.registration_back), style:'width:100%;border-radius:12px;border:1px solid #e2e8f0;max-height:200px;object-fit:cover;' %>
+              <%= image_tag url_for(vehicle.registration_back), style:'width:100%;border-radius:12px;border:1px solid #e2e8f0;max-height:200px;object-fit:cover;cursor:zoom-in;', onclick: "openVswImageModal('#{url_for(vehicle.registration_back)}')" %>
             <% else %>
               <div class="vsw-img-placeholder"><i class="fas fa-image"></i>ຍັງບໍ່ມີຮູບ</div>
             <% end %>
@@ -340,7 +340,7 @@
       <div class="vsw-card">
         <div class="vsw-section-hd"><i class="fas fa-camera"></i>ຮູບພາຫະນະ</div>
         <% if vehicle.front_photo.attached? %>
-          <%= image_tag url_for(vehicle.front_photo), style:'width:100%;border-radius:12px;border:1px solid #e2e8f0;max-height:240px;object-fit:cover;' %>
+          <%= image_tag url_for(vehicle.front_photo), style:'width:100%;border-radius:12px;border:1px solid #e2e8f0;max-height:240px;object-fit:cover;cursor:zoom-in;', onclick: "openVswImageModal('#{url_for(vehicle.front_photo)}')" %>
         <% else %>
           <div class="vsw-img-placeholder"><i class="fas fa-image"></i>ຍັງບໍ່ມີຮູບ</div>
         <% end %>
@@ -350,7 +350,7 @@
       <div class="vsw-card">
         <div class="vsw-section-hd"><i class="fas fa-book"></i>ປື້ມຂົນສົ່ງ</div>
         <% if vehicle.transport_booklet.attached? %>
-          <%= image_tag url_for(vehicle.transport_booklet), style:'width:100%;border-radius:12px;border:1px solid #e2e8f0;max-height:240px;object-fit:cover;' %>
+          <%= image_tag url_for(vehicle.transport_booklet), style:'width:100%;border-radius:12px;border:1px solid #e2e8f0;max-height:240px;object-fit:cover;cursor:zoom-in;', onclick: "openVswImageModal('#{url_for(vehicle.transport_booklet)}')" %>
         <% else %>
           <div class="vsw-img-placeholder"><i class="fas fa-image"></i>ຍັງບໍ່ມີຮູບ</div>
         <% end %>
@@ -415,9 +415,19 @@
              when 'motorcycle' %>
             <span class="vsw-type-badge vsw-type-moto"><i class="fas fa-motorcycle" style="margin-right:6px;"></i>ລົດຈັກ</span>
           <% when 'car' %>
-            <span class="vsw-type-badge vsw-type-car"><i class="fas fa-car" style="margin-right:6px;"></i>ລົດຍົນ</span>
-          <% when 'truck' %>
-            <span class="vsw-type-badge vsw-type-truck"><i class="fas fa-truck" style="margin-right:6px;"></i>ລົດບັນທຸກ</span>
+            <span class="vsw-type-badge vsw-type-car"><i class="fas fa-car" style="margin-right:6px;"></i>ລົດເກັ່ງ</span>
+          <% when 'pickup' %>
+            <span class="vsw-type-badge vsw-type-car"><i class="fas fa-truck-pickup" style="margin-right:6px;"></i>ລົດກະບະ</span>
+          <% when 'suv' %>
+            <span class="vsw-type-badge vsw-type-car"><i class="fas fa-car-side" style="margin-right:6px;"></i>ລົດຈິບ</span>
+          <% when 'van' %>
+            <span class="vsw-type-badge vsw-type-car"><i class="fas fa-shuttle-van" style="margin-right:6px;"></i>ລົດຕູ້</span>
+          <% when 'bus' %>
+            <span class="vsw-type-badge vsw-type-truck"><i class="fas fa-bus" style="margin-right:6px;"></i>ລົດເມ</span>
+          <% when 'towtruck' %>
+            <span class="vsw-type-badge vsw-type-truck"><i class="fas fa-truck-moving" style="margin-right:6px;"></i>ລົດລາກ</span>
+          <% when 'trailer' %>
+            <span class="vsw-type-badge vsw-type-truck"><i class="fas fa-trailer" style="margin-right:6px;"></i>ລົດພ່ວງ</span>
           <% end %>
         </div>
       </div>
@@ -465,3 +475,21 @@
   </div>
 
 </div>
+
+<%# ── Image zoom modal (shared by all 4 document photos) ── %>
+<div class="modal fade" id="vswImageModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content" style="background:transparent;border:none;">
+      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+              style="position:absolute;top:-36px;right:0;"></button>
+      <img id="vswImageModalImg" src="" style="width:100%;border-radius:12px;">
+    </div>
+  </div>
+</div>
+
+<script>
+  function openVswImageModal(url) {
+    document.getElementById('vswImageModalImg').src = url;
+    new bootstrap.Modal(document.getElementById('vswImageModal')).show();
+  }
+</script>

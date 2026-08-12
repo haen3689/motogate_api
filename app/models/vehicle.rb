@@ -14,7 +14,7 @@ class Vehicle < ApplicationRecord
 
   validates :plate_number, presence: true
 
-  VEHICLE_TYPES = %w[car motorcycle truck].freeze
+  VEHICLE_TYPES = %w[motorcycle car pickup suv van bus towtruck trailer].freeze
 
   def self.ransackable_attributes(auth_object = nil)
     %w[id plate_number plate_type brand model year color vehicle_type created_at updated_at]

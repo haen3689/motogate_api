@@ -134,19 +134,10 @@
         <i class="fas fa-car"></i>ຂໍ້ມູນພາຫະນະ
       </div>
 
-      <%# Row 1 — ຮູບ + ຍີ່ຫໍ້ %>
-      <div class="vef-g-1-2" style="margin-bottom:20px;">
-        <div class="vef-field">
-          <label class="vef-label">ຮູບພາຫະນະ</label>
-          <%= f.file_field :front_photo, class: 'vef-input', accept: 'image/*' %>
-          <% if vehicle.front_photo.attached? %>
-            <span class="vef-attached"><i class="fas fa-check-circle"></i> ມີຮູບຢູ່ແລ້ວ</span>
-          <% end %>
-        </div>
-        <div class="vef-field">
-          <label class="vef-label">ຍີ່ຫໍ້ພາຫະນະ <span>*</span></label>
-          <%= f.text_field :brand, class: 'vef-input', placeholder: 'ເຊັ່ນ: HONDA, TOYOTA' %>
-        </div>
+      <%# Row 1 — ຍີ່ຫໍ້ %>
+      <div class="vef-field" style="margin-bottom:20px;">
+        <label class="vef-label">ຍີ່ຫໍ້ພາຫະນະ <span>*</span></label>
+        <%= f.text_field :brand, class: 'vef-input', placeholder: 'ເຊັ່ນ: HONDA, TOYOTA' %>
       </div>
 
       <%# Row 2 — ລຸ້ນ + ສີ + ຊີຊີ %>
@@ -180,7 +171,9 @@
         <div class="vef-field">
           <label class="vef-label">ປະເພດລົດ <span>*</span></label>
           <%= f.select :vehicle_type,
-                [['ລົດຈັກ','motorcycle'],['ລົດຍົນ','car'],['ລົດບັນທຸກ','truck']],
+                [['ລົດຈັກ','motorcycle'],['ລົດເກັ່ງ','car'],['ລົດກະບະ','pickup'],
+                 ['ລົດຈິບ','suv'],['ລົດຕູ້','van'],['ລົດເມ','bus'],
+                 ['ລົດລາກ','towtruck'],['ລົດພ່ວງ','trailer']],
                 { include_blank: '— ເລືອກ —' }, class: 'vef-input' %>
         </div>
       </div>
@@ -223,8 +216,11 @@
                 { include_blank: '— ເລືອກ —' }, class: 'vef-input' %>
         </div>
         <div class="vef-field">
-          <label class="vef-label">ຜູ້ໃຊ້ຮອງ</label>
-          <input type="text" name="sub_owner" class="vef-input" placeholder="ຊື່ຜູ້ໃຊ້ຮອງ...">
+          <label class="vef-label">ຜູ້ໃຊ້ຮອງ (ເບີໂທ)</label>
+          <input type="text" name="sub_owner_phone" class="vef-input" placeholder="ເບີໂທຜູ້ໃຊ້ຮອງ (ຕ້ອງລົງທະບຽນແອັບໄວ້ກ່ອນ)">
+          <% if vehicle.shared_users.any? %>
+            <span class="vef-attached"><i class="fas fa-check-circle"></i> ມີຜູ້ໃຊ້ຮອງແລ້ວ: <%= vehicle.shared_users.map(&:phone_number).join(', ') %></span>
+          <% end %>
         </div>
       </div>
 
@@ -275,7 +271,7 @@
       <div class="vef-card-hd">
         <i class="fas fa-file-image"></i>ເອກະສານ & ຮູບຖ່າຍ
       </div>
-      <div class="vef-g3">
+      <div class="vef-g2" style="margin-bottom:20px;">
         <div class="vef-field">
           <label class="vef-label">ປຶ້ມຕິດຕາມ — ດ້ານໜ້າ</label>
           <%= f.file_field :registration_front, class: 'vef-input', accept: 'image/*' %>
@@ -287,6 +283,15 @@
           <label class="vef-label">ປຶ້ມຕິດຕາມ — ດ້ານຫຼັງ</label>
           <%= f.file_field :registration_back, class: 'vef-input', accept: 'image/*' %>
           <% if vehicle.registration_back.attached? %>
+            <span class="vef-attached"><i class="fas fa-check-circle"></i> ມີຮູບຢູ່ແລ້ວ</span>
+          <% end %>
+        </div>
+      </div>
+      <div class="vef-g2">
+        <div class="vef-field">
+          <label class="vef-label">ຮູບພາຫະນະ</label>
+          <%= f.file_field :front_photo, class: 'vef-input', accept: 'image/*' %>
+          <% if vehicle.front_photo.attached? %>
             <span class="vef-attached"><i class="fas fa-check-circle"></i> ມີຮູບຢູ່ແລ້ວ</span>
           <% end %>
         </div>
