@@ -47,6 +47,12 @@ Rails.application.configure do
   # Disable active storage variant processor if image_processing gem is not installed
   config.active_storage.variant_processor = :disabled
   
-  # Configure Active Storage service for production
-  config.active_storage.service = :local
+  # Configure Active Storage service for production.
+  #
+  # IMPORTANT: this must NOT be :local. Render's filesystem is ephemeral —
+  # a fresh container is built on every deploy, so anything written to
+  # local disk (uploaded photos, registration books, etc.) is wiped out
+  # the next time this app is deployed. Cloudflare R2 is S3-compatible
+  # object storage that persists independently of the app container.
+  config.active_storage.service = :cloudflare_r2
 end

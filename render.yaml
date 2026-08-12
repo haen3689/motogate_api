@@ -45,3 +45,14 @@ services:
         value: eae747c0-356e-4338-886e-6464789083fc
       - key: TELBIZ_SENDER
         value: MotoGate
+      # Cloudflare R2 (Active Storage) — set these manually in the Render
+      # dashboard, not here, since they're secrets. Required for uploaded
+      # photos to survive deploys (local disk storage does not).
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET
+        sync: false

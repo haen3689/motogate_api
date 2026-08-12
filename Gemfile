@@ -18,6 +18,9 @@ gem "jwt", "~> 2.9"
 # CORS
 gem "rack-cors"
 
+# Active Storage → Cloudflare R2 (S3-compatible object storage)
+gem "aws-sdk-s3", require: false
+
 # Admin panel
 gem "activeadmin"
 gem "devise"
