@@ -72,6 +72,8 @@
   .vef-input[type="date"] { color:var(--ink) !important; }
   select.vef-input { padding-right:36px !important; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7684' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") !important; background-repeat:no-repeat !important; background-position:right 14px center !important; }
   .vef-attached { font-size:11.5px; color:#27bc9c; margin-top:2px; }
+  .vef-thumb-link { display:block; text-decoration:none !important; margin-top:8px; }
+  .vef-thumb { width:100%; max-height:110px; object-fit:cover; border-radius:10px; border:1px solid var(--line); display:block; }
 
   /* ── Status radio ── */
   .vef-status-wrap { display:flex; gap:8px; flex-wrap:wrap; }
@@ -276,14 +278,20 @@
           <label class="vef-label">ປຶ້ມຕິດຕາມ — ດ້ານໜ້າ</label>
           <%= f.file_field :registration_front, class: 'vef-input', accept: 'image/*' %>
           <% if vehicle.registration_front.attached? %>
-            <span class="vef-attached"><i class="fas fa-check-circle"></i> ມີຮູບຢູ່ແລ້ວ</span>
+            <a href="<%= url_for(vehicle.registration_front) %>" target="_blank" rel="noopener" class="vef-thumb-link">
+              <%= image_tag url_for(vehicle.registration_front), class: 'vef-thumb' %>
+              <span class="vef-attached"><i class="fas fa-check-circle"></i> ມີຮູບຢູ່ແລ້ວ — ກົດເພື່ອເບິ່ງ</span>
+            </a>
           <% end %>
         </div>
         <div class="vef-field">
           <label class="vef-label">ປຶ້ມຕິດຕາມ — ດ້ານຫຼັງ</label>
           <%= f.file_field :registration_back, class: 'vef-input', accept: 'image/*' %>
           <% if vehicle.registration_back.attached? %>
-            <span class="vef-attached"><i class="fas fa-check-circle"></i> ມີຮູບຢູ່ແລ້ວ</span>
+            <a href="<%= url_for(vehicle.registration_back) %>" target="_blank" rel="noopener" class="vef-thumb-link">
+              <%= image_tag url_for(vehicle.registration_back), class: 'vef-thumb' %>
+              <span class="vef-attached"><i class="fas fa-check-circle"></i> ມີຮູບຢູ່ແລ້ວ — ກົດເພື່ອເບິ່ງ</span>
+            </a>
           <% end %>
         </div>
       </div>
@@ -292,14 +300,20 @@
           <label class="vef-label">ຮູບພາຫະນະ</label>
           <%= f.file_field :front_photo, class: 'vef-input', accept: 'image/*' %>
           <% if vehicle.front_photo.attached? %>
-            <span class="vef-attached"><i class="fas fa-check-circle"></i> ມີຮູບຢູ່ແລ້ວ</span>
+            <a href="<%= url_for(vehicle.front_photo) %>" target="_blank" rel="noopener" class="vef-thumb-link">
+              <%= image_tag url_for(vehicle.front_photo), class: 'vef-thumb' %>
+              <span class="vef-attached"><i class="fas fa-check-circle"></i> ມີຮູບຢູ່ແລ້ວ — ກົດເພື່ອເບິ່ງ</span>
+            </a>
           <% end %>
         </div>
         <div class="vef-field">
           <label class="vef-label">ປື້ມຂົນສົ່ງ</label>
           <%= f.file_field :transport_booklet, class: 'vef-input', accept: 'image/*' %>
           <% if vehicle.transport_booklet.attached? %>
-            <span class="vef-attached"><i class="fas fa-check-circle"></i> ມີຮູບຢູ່ແລ້ວ</span>
+            <a href="<%= url_for(vehicle.transport_booklet) %>" target="_blank" rel="noopener" class="vef-thumb-link">
+              <%= image_tag url_for(vehicle.transport_booklet), class: 'vef-thumb' %>
+              <span class="vef-attached"><i class="fas fa-check-circle"></i> ມີຮູບຢູ່ແລ້ວ — ກົດເພື່ອເບິ່ງ</span>
+            </a>
           <% end %>
         </div>
       </div>
