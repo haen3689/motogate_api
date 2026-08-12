@@ -1,9 +1,12 @@
 class JwtService
   SECRET = Rails.application.secret_key_base
-  EXPIRY = 30.days
 
-  def self.encode(user_id, expiry: EXPIRY, extra: {})
-    payload = { user_id: user_id, exp: expiry.from_now.to_i }.merge(extra)
+  # expiry: nil means the token never expires — used for the main login
+  # session, which should stay valid until the user explicitly logs out.
+  # Short-lived tokens (e.g. the QR verify_token) pass an explicit expiry.
+  def self.encode(user_id, expiry: nil, extra: {})
+    payload = { user_id: user_id }.merge(extra)
+    payload[:exp] = expiry.from_now.to_i if expiry
     JWT.encode(payload, SECRET, "HS256")
   end
 
