@@ -116,9 +116,18 @@ class VerificationsController < ApplicationController
         :missing
       end
 
+    registration_status =
+      if !has_registration_photo
+        :missing
+      elsif vehicle.registration_expiry_date.present? && vehicle.registration_expiry_date < Date.current
+        :expired
+      else
+        :valid
+      end
+
     values = {
       license:      { status: @license_status, date: @user.license_expiry_date, image_urls: license_urls },
-      registration: { status: has_registration_photo ? :valid : :missing, date: vehicle.registration_expiry_date, image_urls: registration_urls },
+      registration: { status: registration_status, date: vehicle.registration_expiry_date, image_urls: registration_urls },
       road_tax:     { status: status_for(road_tax&.expired_at), date: road_tax&.expired_at, image_urls: no_photos },
       inspection:   { status: inspection_status, date: inspection&.appointment_at, image_urls: no_photos },
       insurance:    { status: status_for(insurance&.end_date), date: insurance&.end_date, image_urls: no_photos },
