@@ -75,8 +75,11 @@ class Api::V1::VehiclesController < ApiController
   def pay_fee
     return render_error("ຈ່າຍຄ່າທຳນຽມແລ້ວ") if @vehicle.fee_paid?
 
+    rate = VehicleFeeRate.for_vehicle(@vehicle)
+    return render_error("ບໍ່ພົບອັດຕາຄ່າທຳນຽມສຳລັບປະເພດລົດນີ້ ກະລຸນາຕິດຕໍ່ບໍລິຫານ") unless rate
+
     payment = @vehicle.payments.create!(
-      amount: VehicleFeeSetting.current.amount,
+      amount: rate.amount,
       terminal_id: "MG-VEHICLEFEE",
       description: "MotoGate Vehicle Registration Fee",
       expires_at: 15.minutes.from_now

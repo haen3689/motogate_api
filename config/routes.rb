@@ -34,7 +34,7 @@ Rails.application.routes.draw do
           post "pay_fee"
         end
       end
-      resource :vehicle_fee_setting, only: %i[show]
+      resources :vehicle_fee_rates, only: %i[index]
 
       # Road Tax
       resources :road_taxes, only: %i[index create show]

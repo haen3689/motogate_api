@@ -1,0 +1,76 @@
+<%
+  vt_label = { "motorcycle" => "ລົດຈັກ", "car" => "ລົດເກັ່ງ", "pickup" => "ລົດກະບະ", "suv" => "ລົດຈິບ",
+               "van" => "ລົດຕູ້", "bus" => "ລົດເມ", "towtruck" => "ລົດລາກ", "trailer" => "ລົດພ່ວງ" }
+  vt_icon = { "motorcycle" => "fa-motorcycle", "car" => "fa-car", "pickup" => "fa-truck-pickup", "suv" => "fa-car-side",
+              "van" => "fa-shuttle-van", "bus" => "fa-bus", "towtruck" => "fa-truck-monster", "trailer" => "fa-trailer" }
+  rates_by_type = VehicleFeeRate.all.index_by(&:vehicle_type)
+%>
+
+<style>
+  .index_content .scopes, #titlebar { display:none !important; }
+  body.active_admin, #wrapper, #active_admin_content, #main_content,
+  .index_content, #main, .flashes { background:#f4f6f9 !important; }
+  .index_content > .panel,
+  .index_as_table,
+  #main_content .panel:first-child { background:transparent !important; border:none !important; box-shadow:none !important; padding:0 !important; margin:0 !important; }
+  .index_content > .panel > .panel_contents,
+  .index_as_table > .panel_contents { padding:0 !important; background:transparent !important; }
+
+  .vfr-page { --brand:#27bc9c; --brand-d:#1e9e82; --ink:#1f2a37; --muted:#6b7684; --line:#e9edf2;
+              color:var(--ink); font-family:"Noto Sans Lao","Phetsarath OT",system-ui,sans-serif;
+              max-width:720px; }
+
+  .vfr-bar { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:24px; }
+  .vfr-bar-l { display:flex; align-items:center; gap:14px; }
+  .vfr-bar-ico { width:48px; height:48px; border-radius:14px; display:grid; place-items:center;
+                 color:#fff; font-size:20px; background:linear-gradient(135deg,#27bc9c,#1e9e82);
+                 box-shadow:0 8px 18px rgba(39,188,156,.35); flex-shrink:0; }
+  .vfr-bar h2 { font-size:20px; font-weight:800; margin:0; letter-spacing:-.2px; }
+  .vfr-bar p  { font-size:12.5px; color:var(--muted); margin:3px 0 0; }
+  .vfr-btn-save { border:none; border-radius:11px; padding:10px 22px; font-size:13.5px; font-weight:700;
+                  background:linear-gradient(135deg,#27bc9c,#1e9e82); color:#fff !important;
+                  box-shadow:0 6px 14px rgba(39,188,156,.32); cursor:pointer; font-family:inherit; }
+  .vfr-btn-save:hover { filter:brightness(1.06); }
+
+  .vfr-card { background:#fff; border-radius:20px; box-shadow:0 4px 20px rgba(16,24,40,.06); overflow:hidden; }
+  .vfr-row { display:flex; align-items:center; gap:16px; padding:16px 24px; border-bottom:1px solid var(--line); }
+  .vfr-row:last-child { border-bottom:none; }
+  .vfr-row-ico { width:42px; height:42px; border-radius:11px; display:grid; place-items:center;
+                 background:#e6f7f3; color:#27bc9c; font-size:17px; flex-shrink:0; }
+  .vfr-row-name { flex:1; font-weight:700; font-size:14px; }
+  .vfr-row-input-wrap { display:flex; align-items:center; gap:8px; }
+  .vfr-input { border:1.5px solid var(--line); border-radius:10px; padding:9px 12px; font-size:13.5px;
+               font-family:inherit; color:var(--ink); width:150px; text-align:right; outline:none; }
+  .vfr-input:focus { border-color:#27bc9c; box-shadow:0 0 0 3px rgba(39,188,156,.13); }
+  .vfr-unit { font-size:13px; color:var(--muted); font-weight:600; }
+</style>
+
+<div class="vfr-page">
+  <%= form_with url: bulk_update_admin_vehicle_fee_rates_path, method: :post, local: true do |f| %>
+    <div class="vfr-bar">
+      <div class="vfr-bar-l">
+        <div class="vfr-bar-ico"><i class="fas fa-car"></i></div>
+        <div>
+          <h2>ຄ່າທຳນຽມລົງທະບຽນລົດ</h2>
+          <p>ກຳນົດຄ່າທຳນຽມແຍກຕາມປະເພດລົດ — ຈ່າຍຜ່ານ BCEL OnePay ຫຼັງເພີ່ມລົດໃໝ່</p>
+        </div>
+      </div>
+      <button type="submit" class="vfr-btn-save"><i class="fas fa-save" style="margin-right:6px;"></i>ບັນທຶກການແກ້ໄຂ</button>
+    </div>
+
+    <div class="vfr-card">
+      <% Vehicle::VEHICLE_TYPES.each do |type| %>
+        <% rate = rates_by_type[type] %>
+        <div class="vfr-row">
+          <div class="vfr-row-ico"><i class="fas <%= vt_icon[type] %>"></i></div>
+          <div class="vfr-row-name"><%= vt_label[type] || type %></div>
+          <div class="vfr-row-input-wrap">
+            <input type="number" step="1" min="0" name="amounts[<%= type %>]"
+                   value="<%= rate&.amount&.to_i %>" class="vfr-input">
+            <span class="vfr-unit">₭</span>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</div>
