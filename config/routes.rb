@@ -43,7 +43,10 @@ Rails.application.routes.draw do
 
       # Insurance
       resources :insurances, only: %i[index create show] do
-        member { patch :upload_document }
+        member do
+          patch :upload_document
+          get :certificate
+        end
       end
 
       # Inspection

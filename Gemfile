@@ -25,6 +25,11 @@ gem "aws-sdk-s3", require: false
 # webhook option in their API) — see app/services/payments/bcel_one_pay
 gem "pubnub", "~> 5.4"
 
+# Insurance certificate PDF — overlays policy data on the Lanexang
+# Assurance template image (see app/services/insurance_certificate)
+gem "prawn", "~> 2.4"
+gem "matrix" # prawn dependency, no longer a Ruby default gem since 3.1
+
 # Admin panel
 gem "activeadmin"
 gem "devise"

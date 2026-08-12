@@ -63,6 +63,20 @@ class Api::V1::InsurancesController < ApiController
     render_error("ບໍ່ພົບຂໍ້ມູນ", status: :not_found)
   end
 
+  # GET /api/v1/insurances/:id/certificate — generates the filled Lanexang
+  # Assurance certificate PDF on demand (not stored; cheap to regenerate,
+  # and always reflects the current record).
+  def certificate
+    insurance = user_insurances.find(params[:id])
+    return render_error("ໃບຢັ້ງຢືນຈະພ້ອມຫຼັງຈາກຊຳລະເງິນສຳເລັດ") unless insurance.status == "active"
+
+    path = InsuranceCertificate::Generator.new(insurance).call
+    send_file path, type: "application/pdf", disposition: "inline",
+                     filename: "motogate-insurance-#{insurance.id}.pdf"
+  rescue ActiveRecord::RecordNotFound
+    render_error("ບໍ່ພົບຂໍ້ມູນ", status: :not_found)
+  end
+
   private
 
   def user_insurances
