@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_12_200000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_12_210000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -464,6 +464,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_12_200000) do
     t.datetime "last_announcements_seen_at"
     t.string "last_name"
     t.date "license_expiry_date"
+    t.string "license_name"
     t.string "license_number"
     t.string "license_type"
     t.string "name"

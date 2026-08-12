@@ -113,13 +113,13 @@ class Api::V1::AuthController < ApiController
     params.permit(:name, :first_name, :last_name, :gender, :date_of_birth,
                   :province, :district, :village,
                   :id_type, :id_number, :id_expiry_date,
-                  :license_number, :license_type, :license_expiry_date)
+                  :license_name, :license_number, :license_type, :license_expiry_date)
   end
 
   def user_json(user)
     data = user.as_json(only: %i[id phone_number name first_name last_name gender date_of_birth
                                   province district village id_type id_number id_expiry_date
-                                  license_number license_type license_expiry_date verified created_at])
+                                  license_name license_number license_type license_expiry_date verified created_at])
     data[:id_card_image_url]  = user.id_card_image.attached?  ? url_for(user.id_card_image)  : nil
     data[:license_image_url]  = user.license_image.attached?  ? url_for(user.license_image)  : nil
     data[:profile_image_url]  = user.profile_image.attached?  ? url_for(user.profile_image)  : nil

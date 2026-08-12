@@ -30,7 +30,7 @@ class User < ApplicationRecord
   def self.ransackable_attributes(auth_object = nil)
     %w[id name first_name last_name phone_number gender date_of_birth
        province district village id_type id_number id_expiry_date
-       license_number license_type license_expiry_date verified created_at updated_at]
+       license_name license_number license_type license_expiry_date verified created_at updated_at]
   end
 
   def self.ransackable_associations(auth_object = nil)
