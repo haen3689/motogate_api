@@ -199,7 +199,12 @@
       <%# Row 4b — ແຂວງ %>
       <div class="vef-field" style="margin-bottom:20px;max-width:33%;">
         <label class="vef-label">ແຂວງ</label>
-        <%= f.text_field :province, class: 'vef-input', placeholder: 'ເຊັ່ນ: ນະຄອນຫຼວງ' %>
+        <%= f.select :province,
+              ['ນະຄອນຫຼວງວຽງຈັນ', 'ຜົ້ງສາລີ', 'ຫຼວງນ້ຳທາ', 'ອຸດົມໄຊ', 'ບໍ່ແກ້ວ',
+               'ຫຼວງພະບາງ', 'ຫົວພັນ', 'ໄຊຍະບູລີ', 'ຊຽງຂວາງ', 'ວຽງຈັນ',
+               'ບໍລິຄຳໄຊ', 'ຄຳມ່ວນ', 'ສະຫວັນນະເຂດ', 'ສາລະວັນ', 'ເຊກອງ',
+               'ຈຳປາສັກ', 'ອັດຕະປື', 'ໄຊສົມບູນ'],
+              { include_blank: '— ເລືອກ —' }, class: 'vef-input' %>
       </div>
 
       <%# Row 5 — ການນຳໃຊ້ + ຜູ້ໃຊ້ຫຼັກ + ຜູ້ໃຊ້ຮອງ %>
