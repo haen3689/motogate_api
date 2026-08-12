@@ -331,7 +331,7 @@
                     <span class="plate-province"><%= v.province %></span>
                   <% end %>
                   <span class="plate-number">
-                    <span class="plate-type"><%= badge.type %></span> <span class="plate-no"><%= badge.number %></span>
+                    <% if badge.type.present? %><span class="plate-type"><%= badge.type %></span> <% end %><span class="plate-no"><%= badge.number %></span>
                   </span>
                 </div>
               </td>

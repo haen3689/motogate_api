@@ -280,7 +280,7 @@
                     <% if badge.show_province %>
                       <span class="plate-province"><%= b.vehicle.province %></span>
                     <% end %>
-                    <span class="plate-number"><%= badge.type %> <%= badge.number %></span>
+                    <span class="plate-number"><%= [badge.type.presence, badge.number].compact.join(' ') %></span>
                   </div>
                   <div style="font-size:12px;color:#94a3b8;"><i class="fas fa-phone-alt"></i> <%= b.vehicle.user.phone_number %></div>
                 </div>

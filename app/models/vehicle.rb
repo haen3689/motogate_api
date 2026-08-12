@@ -18,10 +18,6 @@ class Vehicle < ApplicationRecord
 
   VEHICLE_TYPES = %w[motorcycle car pickup suv van bus towtruck trailer].freeze
 
-  # One-time platform registration fee, charged right after a vehicle is
-  # added — fixed amount, not vehicle-dependent.
-  REGISTRATION_FEE = 200_000
-
   def self.ransackable_attributes(auth_object = nil)
     %w[id plate_number plate_type brand model year color vehicle_type created_at updated_at]
   end

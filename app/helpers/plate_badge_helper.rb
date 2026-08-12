@@ -31,9 +31,14 @@ module PlateBadgeHelper
       number = raw_plate.sub(/\A#{Regexp.escape(type)}\s*/, '').strip
       number = raw_plate if number.blank?
     else
+      # No plate_type on file. Only split off a "type" prefix when the
+      # operator actually typed one (a space-separated first word) — do NOT
+      # guess one by stripping digits out of a run-together plate_number
+      # (e.g. "ຍລ9143"), since that just re-displays the plate's own
+      # letters as a fake type badge next to the number.
       parts  = raw_plate.split(/\s+/, 2)
-      type   = parts.length > 1 ? parts[0] : raw_plate.gsub(/[0-9]+/, '').strip
-      number = parts.length > 1 ? parts[1] : raw_plate.gsub(/[^0-9]/, '').strip
+      type   = parts.length > 1 ? parts[0] : ''
+      number = parts.length > 1 ? parts[1] : raw_plate
     end
 
     pt = PlateType.for_code(type)
