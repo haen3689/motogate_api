@@ -1,5 +1,5 @@
 module PlateBadgeHelper
-  PlateBadge = Struct.new(:type, :number, :color_class, :show_province)
+  PlateBadge = Struct.new(:type, :number, :color_class, :province)
 
   NO_PROVINCE_TYPES = %w[ປກສ ກທ ຂຕ ສປຊ ສປ ສທ].freeze
 
@@ -60,6 +60,14 @@ module PlateBadgeHelper
     # long text next to the plate number.
     type = '' if type.length > 4
 
-    PlateBadge.new(type, number, color_class, show_province)
+    # Only surface the province line when it actually says something the
+    # type badge doesn't already say. Reported bug: a vehicle's province
+    # ended up holding the same short value as its plate type (e.g. both
+    # "ກກ"), so the badge rendered "ກກ ກກ 1234" — the type line and the
+    # province line showing the identical text right on top of each other.
+    province = vehicle.province.to_s.strip
+    province = nil if province.blank? || !show_province || province == type
+
+    PlateBadge.new(type, number, color_class, province)
   end
 end

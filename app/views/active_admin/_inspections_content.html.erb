@@ -277,8 +277,8 @@
               <td>
                 <div style="display:flex;align-items:center;gap:10px;">
                   <div class="plate-badge <%= badge.color_class %>">
-                    <% if badge.show_province %>
-                      <span class="plate-province"><%= b.vehicle.province %></span>
+                    <% if badge.province %>
+                      <span class="plate-province"><%= badge.province %></span>
                     <% end %>
                     <span class="plate-number"><%= [badge.type.presence, badge.number].compact.join(' ') %></span>
                   </div>

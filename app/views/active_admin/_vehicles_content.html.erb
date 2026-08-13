@@ -327,8 +327,8 @@
             <tr>
               <td>
                 <div class="plate-badge <%= badge.color_class %>">
-                  <% if badge.show_province %>
-                    <span class="plate-province"><%= v.province %></span>
+                  <% if badge.province %>
+                    <span class="plate-province"><%= badge.province %></span>
                   <% end %>
                   <span class="plate-number">
                     <% if badge.type.present? %><span class="plate-type"><%= badge.type %></span> <% end %><span class="plate-no"><%= badge.number %></span>

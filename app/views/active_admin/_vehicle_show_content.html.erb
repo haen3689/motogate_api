@@ -126,38 +126,15 @@
 <%
   today = Date.today
 
-  raw_plate = vehicle.plate_number.to_s.strip
-  if vehicle.plate_type.present?
-    plate_code = vehicle.plate_type
-    plate_no   = raw_plate
-  else
-    parts      = raw_plate.split(/\s+/, 2)
-    plate_code = parts.length > 1 ? parts[0] : raw_plate.gsub(/[0-9]+/, '').strip
-    plate_no   = parts.length > 1 ? parts[1] : raw_plate.gsub(/[^0-9]/, '').strip
-  end
-
-  pt = PlateType.for_code(plate_code)
-  if pt
-    plate_color   = pt.color_class
-    show_province = vehicle.province.present? && pt.show_province
-  else
-    no_prov = %w[ປກສ ກທ ຂຕ ສປຊ ສປ ສທ]
-    show_province = vehicle.province.present? && !no_prov.include?(plate_code)
-    plate_color = case plate_code
-      when 'ຂ','ຂໍ','ຂ2','ຂ3','ຂ4','ກນ'                      then 'plate-yellow'
-      when 'ກຄ','ກຍ','ກດ','ກບ','ກປ','ດຂ','ດຄ','ດຍ','ດດ','ດທ' then 'plate-yellow-green'
-      when 'ກຊ'                                                then 'plate-blue'
-      when 'ບຈ','ບສ'                                           then 'plate-white'
-      when 'ກກ'                                                then 'plate-yellow-blue'
-      when 'ຂຕ'                                                then 'plate-white-darkblue'
-      when 'ກມ'                                                then 'plate-white-lightblue'
-      when 'ປກສ'                                               then 'plate-red-underline'
-      when 'ປກ','ປຕ','ກສ','ກທ'                                then 'plate-red'
-      when 'ສ1','1ສ'                                           then 'plate-white-1percent'
-      when 'ສທ','ສປຊ'                                          then 'plate-diplomat'
-      else 'plate-yellow'
-    end
-  end
+  # Was its own copy of the vehicles-list parsing/color logic (including
+  # the digit-stripping type guess plate_badge_helper.rb explicitly warns
+  # against), which is exactly how the "text mixed into the plate" bug
+  # got fixed on one admin page but kept recurring on others. Use the
+  # one shared implementation instead.
+  badge      = plate_badge_for(vehicle)
+  plate_code = badge.type
+  plate_no   = badge.number
+  plate_color = badge.color_class
 
   latest_tax = vehicle.road_taxes.reject { |t| t.expired_at.nil? }.max_by(&:expired_at)
   tax_expiry = latest_tax&.expired_at
@@ -404,8 +381,8 @@
         <div class="vsw-section-hd" style="justify-content:center;"><i class="fas fa-id-card"></i>ປ້າຍທະບຽນ</div>
         <div class="vsw-plate-wrap">
           <div class="plate-badge-lg <%= plate_color %>">
-            <% if show_province %>
-              <span class="plate-province"><%= vehicle.province %></span>
+            <% if badge.province %>
+              <span class="plate-province"><%= badge.province %></span>
             <% end %>
             <span class="plate-number"><%= plate_code %> <%= plate_no %></span>
           </div>
