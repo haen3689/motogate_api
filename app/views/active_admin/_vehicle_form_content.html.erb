@@ -162,8 +162,10 @@
       <div class="vef-g3" style="margin-bottom:20px;">
         <div class="vef-field">
           <label class="vef-label">ປະເພດປ້າຍທະບຽນ</label>
+          <%# Only plate_code shows here — plate_type's "name" field is
+              config-page-only, never surfaced anywhere else. %>
           <%= f.select :plate_type,
-                PlateType.ordered.map { |pt| [pt.name, pt.plate_code] },
+                PlateType.ordered.map(&:plate_code).compact_blank.uniq,
                 { include_blank: '— ເລືອກ —' }, class: 'vef-input' %>
         </div>
         <div class="vef-field">
