@@ -48,7 +48,11 @@ class Payment < ApplicationRecord
       expires_at: expires_at,
       paid_at: paid_at,
       qr_code: qr_code,
-      deeplink: deeplink
+      deeplink: deeplink,
+      # The reference to show/quote for reconciliation once paid — BCEL's
+      # own transaction id when the callback has arrived, otherwise our own
+      # uuid (still traceable in admin, just not BCEL's id yet).
+      reference: bcel_transaction_id.presence || uuid
     }
   end
 

@@ -37,7 +37,7 @@ class Api::V1::InspectionsController < ApiController
       payment = inspection.payments.create!(
         amount: service.price,
         terminal_id: "MG-INSPECTION",
-        description: "MotoGate Inspection #{service.name}",
+        description: "AutoPass Inspection #{service.name}",
         expires_at: 15.minutes.from_now
       )
       payment.update!(invoice_id: payment.uuid)

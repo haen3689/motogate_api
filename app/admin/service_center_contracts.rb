@@ -65,7 +65,7 @@ ActiveAdmin.register ServiceCenterContract do
 
     private
 
-    # Contracts are between MotoGate and the partner — the partner can view
+    # Contracts are between AutoPass and the partner — the partner can view
     # their own contract & payment history but only staff can create/edit
     # terms or record a payment (see the add_payment/mark_payment_paid
     # member_actions above).

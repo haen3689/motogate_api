@@ -35,7 +35,7 @@ class Api::V1::InsurancesController < ApiController
       payment = insurance.payments.create!(
         amount: package.price,
         terminal_id: "MG-INSURANCE",
-        description: "MotoGate Insurance #{package.name}",
+        description: "AutoPass Insurance #{package.name}",
         expires_at: 15.minutes.from_now
       )
       payment.update!(invoice_id: payment.uuid)

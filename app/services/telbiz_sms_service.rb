@@ -9,7 +9,7 @@ class TelbizSmsService
   SECRET    = ENV.fetch("TELBIZ_SECRET_KEY", ENV.fetch("TELBIZ_SECRET", ""))
 
   def self.send_otp(phone_number:, otp:)
-    new(phone_number:, title: "OTP", message: "ລະຫັດ MotoGate OTP ຂອງທ່ານແມ່ນ: #{otp} ").send!
+    new(phone_number:, title: "OTP", message: "ລະຫັດ AutoPass OTP ຂອງທ່ານແມ່ນ: #{otp} ").send!
   end
 
   # Telbiz's "title" is a fixed enum, not freeform text — only

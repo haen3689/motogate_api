@@ -64,7 +64,7 @@ class Api::V1::RoadTaxesController < ApiController
       payment = tax.payments.create!(
         amount: rate.price,
         terminal_id: "MG-ROADTAX",
-        description: "MotoGate Road Tax #{params[:tax_year]}",
+        description: "AutoPass Road Tax #{params[:tax_year]}",
         expires_at: 15.minutes.from_now
       )
       payment.update!(invoice_id: payment.uuid)

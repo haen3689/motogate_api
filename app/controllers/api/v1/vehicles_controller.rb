@@ -81,7 +81,7 @@ class Api::V1::VehiclesController < ApiController
     payment = @vehicle.payments.create!(
       amount: rate.amount,
       terminal_id: "MG-VEHICLEFEE",
-      description: "MotoGate Vehicle Registration Fee",
+      description: "AutoPass Vehicle Registration Fee",
       expires_at: 15.minutes.from_now
     )
     payment.update!(invoice_id: payment.uuid)

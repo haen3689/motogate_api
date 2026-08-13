@@ -4,7 +4,7 @@ ActiveAdmin.setup do |config|
   # Set the title that is displayed on the main layout
   # for each of the active admin pages.
   #
-  config.site_title = "MotoGate Admin"
+  config.site_title = "AutoPass Admin"
 
   # Add Font Awesome, Noto Sans Lao, and Bootstrap 5
   config.head = <<~HTML.html_safe
