@@ -131,9 +131,8 @@
   # against), which is exactly how the "text mixed into the plate" bug
   # got fixed on one admin page but kept recurring on others. Use the
   # one shared implementation instead.
-  badge      = plate_badge_for(vehicle)
-  plate_code = badge.type
-  plate_no   = badge.number
+  badge       = plate_badge_for(vehicle)
+  plate_no    = badge.number
   plate_color = badge.color_class
 
   latest_tax = vehicle.road_taxes.reject { |t| t.expired_at.nil? }.max_by(&:expired_at)
@@ -384,7 +383,7 @@
             <% if badge.province %>
               <span class="plate-province"><%= badge.province %></span>
             <% end %>
-            <span class="plate-number"><%= plate_code %> <%= plate_no %></span>
+            <span class="plate-number"><%= plate_no %></span>
           </div>
         </div>
         <div style="margin-top:8px;">
