@@ -18,7 +18,19 @@ class PlateType < ApplicationRecord
     plate-white-1percent plate-white-foreign plate-diplomat
   ].freeze
 
-  validates :plate_code, presence: true, uniqueness: true
+  # A real plate-type code is a short 1-4 character prefix (see the table
+  # above — every one is ≤3 chars). Without this, the "ຈັດການປ້າຍ" admin
+  # form makes it easy to fat-finger the long descriptive name into the
+  # plate_code field instead of plate_type — that then round-trips
+  # straight through PlateType.for_code and gets rendered next to every
+  # matching vehicle's plate number on the vehicles list.
+  #
+  # plate_code is intentionally NOT unique — multiple active rows can
+  # share the same code (e.g. two "ກກ" entries). When that happens,
+  # #for_code below breaks the tie using `position`, so which one
+  # actually applies is admin-controlled (via the "ລຳດັບ" field) rather
+  # than left to undefined database ordering.
+  validates :plate_code, presence: true, length: { maximum: 6 }
   validates :name,       presence: true
   validates :color_class, inclusion: { in: COLOR_CLASSES }
   validates :status,     inclusion: { in: STATUSES }
@@ -29,7 +41,7 @@ class PlateType < ApplicationRecord
   # ຫາປະເພດປ້າຍ (ທີ່ເປີດໃຊ້ງານ) ຈາກລະຫັດໜ້າປ້າຍ — ໃຊ້ໃນໜ້າສະແດງລົດ
   # ເພື່ອໃຫ້ສີ + ການສະແດງແຂວງ ມາຈາກແຫຼ່ງດຽວ (ໜ້າ "ຈັດການປ້າຍ")
   def self.for_code(code)
-    active.find_by(plate_code: code.to_s.strip)
+    active.where(plate_code: code.to_s.strip).order(:position, :id).first
   end
 
   def self.ransackable_attributes(auth_object = nil)

@@ -50,6 +50,16 @@ module PlateBadgeHelper
       color_class   = FALLBACK_COLOR_BY_TYPE.find { |types, _| types.include?(type) }&.last || 'plate-yellow'
     end
 
+    # A real plate-type code is always short (1-4 Lao characters — see
+    # every key in FALLBACK_COLOR_BY_TYPE above). Guard here regardless of
+    # whether `pt` matched: a *matched* PlateType can still have a garbage
+    # plate_code if someone fat-fingered the "ຈັດການປ້າຍ" admin form and
+    # saved the long descriptive name into the plate_code field instead of
+    # (or as well as) the name field — that record round-trips through
+    # PlateType.for_code just fine and would otherwise still render the
+    # long text next to the plate number.
+    type = '' if type.length > 4
+
     PlateBadge.new(type, number, color_class, show_province)
   end
 end
