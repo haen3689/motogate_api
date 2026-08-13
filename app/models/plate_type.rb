@@ -13,7 +13,7 @@ class PlateType < ApplicationRecord
   # 10 plate-white-foreign  ຂາວ/ຕົວຟ້າ           ອົງການ ສະຫະປະຊາຊາດ
   COLOR_CLASSES = %w[
     plate-yellow plate-yellow-blue plate-blue plate-white
-    plate-white-darkblue plate-white-lightblue
+    plate-white-darkblue
     plate-red-underline plate-red
     plate-white-1percent plate-white-foreign plate-diplomat
   ].freeze
