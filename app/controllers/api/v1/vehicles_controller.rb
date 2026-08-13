@@ -81,7 +81,13 @@ class Api::V1::VehiclesController < ApiController
     payment = @vehicle.payments.create!(
       amount: rate.amount,
       terminal_id: "MG-VEHICLEFEE",
-      description: "AutoPass Vehicle Registration Fee",
+      # Kept short and ASCII-only — field 62's 99-byte EMVCo budget is
+      # shared with invoice_id/transaction_id (22-byte uuids each) and
+      # this terminal_id, leaving very little room. The longer
+      # "AutoPass Vehicle Registration Fee" silently overran that budget
+      # and got truncated mid-word (see the same issue on insurance and
+      # inspection descriptions).
+      description: "AutoPass Vehicle Fee",
       expires_at: 15.minutes.from_now
     )
     payment.update!(invoice_id: payment.uuid)

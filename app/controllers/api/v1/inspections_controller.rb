@@ -37,7 +37,14 @@ class Api::V1::InspectionsController < ApiController
       payment = inspection.payments.create!(
         amount: service.price,
         terminal_id: "MG-INSPECTION",
-        description: "AutoPass Inspection #{service.name}",
+        # Deliberately NOT interpolating service.name here: field 62's
+        # 99-byte EMVCo budget is shared with invoice_id/transaction_id
+        # (uuids, 22 bytes each) and this terminal_id, leaving very little
+        # room — a Lao service name pushed the description past that
+        # budget and got silently truncated mid-character. Keeping this
+        # fixed-length and ASCII-only guarantees it always fits; the full
+        # service name is already in our own DB.
+        description: "AutoPass Inspection",
         expires_at: 15.minutes.from_now
       )
       payment.update!(invoice_id: payment.uuid)

@@ -35,7 +35,14 @@ class Api::V1::InsurancesController < ApiController
       payment = insurance.payments.create!(
         amount: package.price,
         terminal_id: "MG-INSURANCE",
-        description: "AutoPass Insurance #{package.name}",
+        # Deliberately NOT interpolating package.name here: field 62's
+        # 99-byte EMVCo budget is shared with invoice_id/transaction_id
+        # (uuids, 22 bytes each) and this terminal_id, leaving very little
+        # room — a Lao package name pushed the description past that
+        # budget and got silently truncated mid-character (e.g. down to
+        # just "ລໍ"). Keeping this fixed-length and ASCII-only guarantees
+        # it always fits; the full package name is already in our own DB.
+        description: "AutoPass Insurance",
         expires_at: 15.minutes.from_now
       )
       payment.update!(invoice_id: payment.uuid)
