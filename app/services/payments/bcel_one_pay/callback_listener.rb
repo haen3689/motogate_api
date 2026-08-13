@@ -90,7 +90,18 @@ module Payments
       private
 
       def pubnub
-        @pubnub ||= Pubnub.new(subscribe_key: Config.pubnub_subscribe_key, uuid: "BCELBANK-motogate-api")
+        # The pubnub gem defaults to Logger.new("pubnub.log") — a relative
+        # path in the process's working directory — when no :logger is
+        # given. On Render that directory isn't writable, so Pubnub.new
+        # itself raised Errno::EACCES on every call, meaning the listener
+        # (and the reconcile_recent! safety net) never actually connected
+        # at all. Pointing it at IO::NULL avoids touching the filesystem;
+        # our own [BcelOnePay] logging above already covers what matters.
+        @pubnub ||= Pubnub.new(
+          subscribe_key: Config.pubnub_subscribe_key,
+          uuid: "BCELBANK-motogate-api",
+          logger: Logger.new(IO::NULL)
+        )
       end
 
       def callback
