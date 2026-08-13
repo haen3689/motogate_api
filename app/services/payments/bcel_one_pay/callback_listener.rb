@@ -9,12 +9,25 @@ module Payments
     # a payment succeeded, so it must be running whenever the app is live.
     #
     # The `pubnub` gem's #subscribe is non-blocking (it manages its own
-    # background threads), so calling .start once at boot is enough.
+    # background threads), so calling .start once at boot is enough. Even
+    # so, #start! itself runs in its own Thread — it's called from
+    # Rails.application.config.after_initialize (see
+    # config/initializers/bcel_one_pay.rb), and if PubNub's own client
+    # setup (DNS, initial connection) ever stalls or is slow to fail, that
+    # would block the rest of Rails' boot sequence and delay the app from
+    # accepting connections at all — turning a flaky third-party dependency
+    # into a full outage instead of "callbacks are late/missing".
     class CallbackListener
       def self.start!
         return unless Config.listener_enabled?
 
-        new.start
+        Thread.new do
+          begin
+            new.start
+          rescue StandardError => e
+            Rails.logger.error("[BcelOnePay] Listener thread crashed: #{e.message}")
+          end
+        end
       end
 
       def start
