@@ -3,7 +3,13 @@ ActiveAdmin.register Payment do
 
   actions :index, :show
   config.batch_actions = false
-  config.filters = [:status, :provider, :terminal_id, :payable_type, :uuid, :bcel_transaction_id, :created_at]
+  filter :status, as: :select, collection: Payment::STATUSES
+  filter :provider, as: :select, collection: Payment::PROVIDERS
+  filter :terminal_id
+  filter :payable_type
+  filter :uuid
+  filter :bcel_transaction_id
+  filter :created_at
 
   scope :all, default: true
   scope("ລໍຖ້າ") { |s| s.where(status: "pending") }
