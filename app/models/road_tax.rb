@@ -35,7 +35,8 @@ class RoadTax < ApplicationRecord
       amount: payment.amount,
       status: "success",
       reference: vehicle.plate_number,
-      description: "ຄ່າທາງ ປີ #{tax_year} - #{vehicle.plate_number}"
+      description: "ຄ່າທາງ ປີ #{tax_year} - #{vehicle.plate_number}",
+      payment: payment
     )
   rescue StandardError => e
     Rails.logger.error("[RoadTax] Failed to finalize payment #{payment.uuid}: #{e.message}")

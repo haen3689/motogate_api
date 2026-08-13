@@ -36,7 +36,8 @@ class Inspection < ApplicationRecord
       amount: payment.amount,
       status: "success",
       reference: vehicle.plate_number,
-      description: "#{service_name} - #{vehicle.plate_number}"
+      description: "#{service_name} - #{vehicle.plate_number}",
+      payment: payment
     )
     notify_center!
     broadcast_new_booking!

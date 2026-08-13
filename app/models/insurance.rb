@@ -41,7 +41,8 @@ class Insurance < ApplicationRecord
       amount: payment.amount,
       status: "success",
       reference: vehicle.plate_number,
-      description: "ປະກັນໄພ #{package} - #{vehicle.plate_number}"
+      description: "ປະກັນໄພ #{package} - #{vehicle.plate_number}",
+      payment: payment
     )
   rescue StandardError => e
     Rails.logger.error("[Insurance] Failed to finalize payment #{payment.uuid}: #{e.message}")

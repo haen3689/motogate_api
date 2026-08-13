@@ -39,7 +39,8 @@ class Vehicle < ApplicationRecord
       amount: payment.amount,
       status: "success",
       reference: plate_number,
-      description: "ຄ່າທຳນຽມລົງທະບຽນລົດ - #{plate_number}"
+      description: "ຄ່າທຳນຽມລົງທະບຽນລົດ - #{plate_number}",
+      payment: payment
     )
   rescue StandardError => e
     Rails.logger.error("[Vehicle] Failed to finalize payment #{payment.uuid}: #{e.message}")

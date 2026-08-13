@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_12_230000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_13_180000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -446,11 +446,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_12_230000) do
     t.decimal "amount"
     t.datetime "created_at", null: false
     t.string "description"
+    t.bigint "payment_id"
     t.string "reference"
     t.string "status"
     t.string "transaction_type"
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
+    t.index ["payment_id"], name: "index_transactions_on_payment_id"
     t.index ["user_id"], name: "index_transactions_on_user_id"
   end
 
@@ -556,6 +558,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_12_230000) do
   add_foreign_key "service_center_payments", "service_center_contracts"
   add_foreign_key "support_cases", "admin_users"
   add_foreign_key "support_cases", "users"
+  add_foreign_key "transactions", "payments"
   add_foreign_key "transactions", "users"
   add_foreign_key "vehicle_shares", "users"
   add_foreign_key "vehicle_shares", "vehicles"
