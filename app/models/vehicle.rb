@@ -30,6 +30,19 @@ class Vehicle < ApplicationRecord
     user
   end
 
+  # Pushes a newly-registered vehicle to any admin browser currently
+  # subscribed via AdminVehiclesChannel, so the vehicles list updates
+  # live instead of needing a manual refresh. Best-effort — must never
+  # break vehicle registration itself. Same pattern as
+  # Inspection#broadcast_new_booking!.
+  def broadcast_new_vehicle!
+    ActionCable.server.broadcast("admin_vehicles", {
+      vehicle: as_json.merge(owner_name: [user.first_name, user.last_name].compact.join(" ").presence || user.name)
+    })
+  rescue StandardError => e
+    Rails.logger.error("[Vehicle] Failed to broadcast new vehicle #{id}: #{e.message}")
+  end
+
   # Called by Payment#mark_paid! once BCEL confirms the payment via
   # callback — fee_paid can only ever flip true through a real payment now.
   def mark_paid_from_payment!(payment)
