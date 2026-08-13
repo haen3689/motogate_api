@@ -1,20 +1,20 @@
 module PlateBadgeHelper
   PlateBadge = Struct.new(:type, :number, :color_class, :province)
 
-  NO_PROVINCE_TYPES = %w[ປກສ ກທ ຂຕ ສປຊ ສປ ສທ].freeze
+  NO_PROVINCE_TYPES = %w[].freeze
 
   FALLBACK_COLOR_BY_TYPE = {
-    %w[ຂ ຂໍ ຂ2 ຂ3 ຂ4 ກນ] => 'plate-yellow',
-    %w[ກຄ ກຍ ກດ ກບ ກປ ດຂ ດຄ ດຍ ດດ ດທ] => 'plate-yellow-green',
-    %w[ກຊ] => 'plate-blue',
-    %w[ບຈ ບສ] => 'plate-white',
-    %w[ກກ] => 'plate-yellow-blue',
-    %w[ຂຕ] => 'plate-white-darkblue',
-    %w[ກມ] => 'plate-white-lightblue',
-    %w[ປກສ] => 'plate-red-underline',
-    %w[ປກ ປຕ ກສ ກທ] => 'plate-red',
-    %w[ສ1 1ສ] => 'plate-white-1percent',
-    %w[ສທ ສປຊ] => 'plate-diplomat',
+    %w[] => 'plate-yellow',
+    %w[] => 'plate-yellow-green',
+    %w[] => 'plate-blue',
+    %w[] => 'plate-white',
+    %w[] => 'plate-yellow-blue',
+    %w[] => 'plate-white-darkblue',
+    %w[] => 'plate-white-lightblue',
+    %w[] => 'plate-red-underline',
+    %w[] => 'plate-red',
+    %w[] => 'plate-white-1percent',
+    %w[] => 'plate-diplomat',
   }.freeze
 
   # Splits a vehicle's plate_number/plate_type into badge-ready parts and
