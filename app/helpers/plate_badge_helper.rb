@@ -25,10 +25,14 @@ module PlateBadgeHelper
     raw_plate = vehicle.plate_number.to_s.strip
 
     if vehicle.plate_type.present?
-      type = vehicle.plate_type
+      type = vehicle.plate_type.to_s.strip
       # plate_number sometimes already includes the type prefix (e.g. "ກດ1234"
-      # when plate_type is "ກດ") — strip it so the badge doesn't show it twice.
-      number = raw_plate.sub(/\A#{Regexp.escape(type)}\s*/, '').strip
+      # when plate_type is "ກດ") — strip it so the badge doesn't show it
+      # twice. `+` (not just one match) also covers plate_number somehow
+      # having the type typed more than once ("ກກ ກກ 1234"), which would
+      # otherwise only get the first occurrence stripped and still show
+      # the type code duplicated next to the number.
+      number = type.present? ? raw_plate.sub(/\A(?:#{Regexp.escape(type)}\s*)+/, '').strip : raw_plate
       number = raw_plate if number.blank?
     else
       # No plate_type on file. Only split off a "type" prefix when the
