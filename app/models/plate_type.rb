@@ -31,7 +31,6 @@ class PlateType < ApplicationRecord
   # actually applies is admin-controlled (via the "ລຳດັບ" field) rather
   # than left to undefined database ordering.
   validates :plate_code, presence: true, length: { maximum: 6 }
-  validates :name,       presence: true
   validates :color_class, inclusion: { in: COLOR_CLASSES }
   validates :status,     inclusion: { in: STATUSES }
 
