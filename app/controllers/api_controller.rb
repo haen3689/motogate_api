@@ -13,6 +13,16 @@ class ApiController < ActionController::API
     token = request.headers["Authorization"]&.split(" ")&.last || params[:token]
     raise "No token" unless token
     payload = JwtService.decode(token)
+
+    # The short-lived token behind the public /verify/:token QR is minted with
+    # scope "verify" precisely so it can't act as a session if it leaks — and
+    # it leaks by design, since it's displayed on screen as a QR and travels
+    # in a plain URL. That scope was never actually checked here, so anyone
+    # who photographed the QR could call the full authenticated API as its
+    # owner (read ID/licence PII, edit the profile, delete vehicles) for as
+    # long as the token lived. Only VerificationsController accepts it.
+    raise "Token not valid for this API" if payload[:scope].to_s == "verify"
+
     @current_user = User.find(payload[:user_id])
   rescue => e
     render json: { error: e.message }, status: :unauthorized

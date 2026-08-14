@@ -105,15 +105,15 @@ class VerificationsController < ApplicationController
     license_urls = @user.license_image.attached? ? [url_for(@user.license_image)] : []
     no_photos = []
 
+    # Inspection::STATUSES is %w[pending confirmed completed cancelled]. This
+    # used to test for "passed"/"failed", which the model can never hold (they
+    # fail its inclusion validation), so every inspection — including fully
+    # completed ones — fell through to :missing and the QR page told the
+    # officer the vehicle had never been inspected.
     inspection_status =
-      if inspection.nil?
-        :missing
-      elsif inspection.status == "passed"
-        :valid
-      elsif inspection.status == "failed"
-        :expired
-      else
-        :missing
+      case inspection&.status
+      when "completed" then :valid
+      else :missing
       end
 
     registration_status =

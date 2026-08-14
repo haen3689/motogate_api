@@ -99,12 +99,26 @@ module Payments
             end
 
             entries = envelope.result.dig(:data, :channels, Config.merchant_channel) || []
-            fresh = entries.reject { |entry| already_seen?(entry) }
-            fresh.each { |entry| process_payload(entry["message"]) }
+            handled = 0
 
-            if fresh.any?
+            entries.each do |entry|
+              next if seen?(entry)
+
+              # Only record the message as handled once processing actually
+              # succeeded. Marking it before/regardless would defeat the whole
+              # point of reconcile: a callback that failed on a transient error
+              # (DB hiccup, pool timeout) would be skipped by every later run
+              # and the payment would sit "pending" forever with the customer's
+              # money already taken.
+              next unless process_payload(entry["message"])
+
+              mark_seen(entry)
+              handled += 1
+            end
+
+            if handled.positive?
               Rails.logger.info(
-                "[BcelOnePay] Reconcile checked #{entries.size} message(s), #{fresh.size} new"
+                "[BcelOnePay] Reconcile checked #{entries.size} message(s), handled #{handled} new"
               )
             end
           rescue StandardError => e
@@ -117,21 +131,33 @@ module Payments
 
       private
 
-      # Marks a fetched message as handled, returning whether we'd already
-      # seen it. Keyed on PubNub's per-message timetoken, which is unique and
-      # monotonic on the channel. Runs on pubnub's thread, hence the mutex.
-      def already_seen?(entry)
-        token = entry["timetoken"] || entry[:timetoken]
+      # Whether this message was already processed successfully. Keyed on
+      # PubNub's per-message timetoken, which is unique and monotonic on the
+      # channel. Read/written from pubnub's own thread, hence the mutex.
+      #
+      # Deliberately a pure predicate — recording is a separate step
+      # (#mark_seen) so that a message is only ever skipped after it has been
+      # handled, never merely because it was looked at.
+      def seen?(entry)
+        token = timetoken_for(entry)
         return false if token.nil?
 
-        seen_mutex.synchronize do
-          next true if seen_timetokens.key?(token)
+        seen_mutex.synchronize { seen_timetokens.key?(token) }
+      end
 
+      def mark_seen(entry)
+        token = timetoken_for(entry)
+        return if token.nil?
+
+        seen_mutex.synchronize do
           seen_timetokens[token] = true
           # Hashes preserve insertion order, so the first key is the oldest.
           seen_timetokens.delete(seen_timetokens.first[0]) while seen_timetokens.size > SEEN_LIMIT
-          false
         end
+      end
+
+      def timetoken_for(entry)
+        entry["timetoken"] || entry[:timetoken]
       end
 
       def seen_timetokens
@@ -178,10 +204,14 @@ module Payments
         Rails.logger.error("[BcelOnePay] Failed to handle callback: #{e.message}")
       end
 
+      # Returns true when the message reached a final state (applied, or
+      # definitively not ours), false when it failed for a reason that might
+      # succeed on a later attempt. Reconcile uses this to decide whether the
+      # message may be marked as handled.
       def process_payload(message)
         payload = message.is_a?(String) ? JSON.parse(message) : message
         uuid = payload["uuid"] || payload["iid"]
-        return if uuid.blank?
+        return true if uuid.blank?
 
         payment = Payment.find_by(uuid: uuid)
         unless payment
@@ -189,7 +219,8 @@ module Payments
           # a uuid we don't recognise is the normal case, not a fault. Logged
           # at debug so it stops flooding production logs.
           Rails.logger.debug("[BcelOnePay] Callback for unknown payment uuid=#{uuid}")
-          return
+          # Not ours and never will be — final, so it won't be re-examined.
+          return true
         end
 
         # Only announce a real state change — mark_paid! is a no-op for an
@@ -198,8 +229,10 @@ module Payments
         if payment.mark_paid!(payload)
           Rails.logger.info("[BcelOnePay] Payment #{uuid} marked paid via callback")
         end
+        true
       rescue StandardError => e
         Rails.logger.error("[BcelOnePay] Failed to handle callback: #{e.message}")
+        false
       end
     end
   end

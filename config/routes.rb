@@ -1,6 +1,9 @@
 Rails.application.routes.draw do
   root to: proc { [200, { "Content-Type" => "application/json" }, [{ status: "online", message: "AutoPass API Server is running" }.to_json]] }
-  get "debug_admin", to: proc { [200, { "Content-Type" => "application/json" }, [{ count: AdminUser.count, users: AdminUser.select(:id, :email, :role).as_json }.to_json]] }
+  # Removed: an unauthenticated "debug_admin" route that returned every
+  # AdminUser's id, e-mail and role as JSON, in every environment — a
+  # ready-made target list for the ActiveAdmin login, which has no Devise
+  # :lockable. Use `rails console` or the admin UI instead.
 
   mount ActionCable.server => "/cable"
   devise_for :admin_users, ActiveAdmin::Devise.config
