@@ -3,12 +3,13 @@
 # Prepare primary database (creates + migrates)
 ./bin/rails db:prepare || true
 
-# Prepare secondary databases (Solid Cache, Solid Queue, Action Cable).
-# These have no migrations dir, only a schema dump (db/*_schema.rb), so
-# db:migrate:* is a no-op here — db:prepare:* is what actually creates
-# the db and loads that schema.
-./bin/rails db:prepare:cache || true
-./bin/rails db:prepare:queue || true
-./bin/rails db:prepare:cable || true
+# Solid Cache/Queue/Cable have no migrations dir (db/{cache,queue,cable}_migrate
+# don't exist), only a schema dump (db/*_schema.rb). db:prepare only runs
+# pending *migrations*, so with none to run it never loads that dump and the
+# solid_queue_* etc. tables never get created. db:schema:load:<name> is the
+# task that actually loads the dump. There's no db:prepare:<name> variant.
+./bin/rails db:schema:load:cache || true
+./bin/rails db:schema:load:queue || true
+./bin/rails db:schema:load:cable || true
 
 exec "${@}"
