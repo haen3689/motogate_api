@@ -3,9 +3,12 @@
 # Prepare primary database (creates + migrates)
 ./bin/rails db:prepare || true
 
-# Migrate secondary databases (Solid Cache, Solid Queue, Action Cable)
-./bin/rails db:migrate:cache || true
-./bin/rails db:migrate:queue || true
-./bin/rails db:migrate:cable || true
+# Prepare secondary databases (Solid Cache, Solid Queue, Action Cable).
+# These have no migrations dir, only a schema dump (db/*_schema.rb), so
+# db:migrate:* is a no-op here — db:prepare:* is what actually creates
+# the db and loads that schema.
+./bin/rails db:prepare:cache || true
+./bin/rails db:prepare:queue || true
+./bin/rails db:prepare:cable || true
 
 exec "${@}"
