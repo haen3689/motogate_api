@@ -6,7 +6,7 @@ class Api::V1::AuthController < ApiController
     user = User.find_or_initialize_by(phone_number: params[:phone_number])
     user.name = params[:name] if user.new_record?
     otp = user.generate_otp
-    SendOtpSmsJob.perform_later(phone_number: user.phone_number, otp: otp)
+    TelbizSmsService.send_otp(phone_number: user.phone_number, otp: otp)
     render_success({ message: "OTP sent", phone_number: user.phone_number })
   rescue => e
     render_error(e.message)
