@@ -35,7 +35,17 @@ port ENV.fetch("PORT", 3000)
 plugin :tmp_restart
 
 # Run the Solid Queue supervisor inside of Puma for single-server deployments.
-plugin :solid_queue if ENV["SOLID_QUEUE_IN_PUMA"]
+#
+# Two things were wrong here. The guard was truthiness on the variable's
+# presence, so SOLID_QUEUE_IN_PUMA=false still started the supervisor — the
+# only way to turn it off was to delete the variable entirely. And on a 512MB
+# instance the supervisor/dispatcher/worker it forks are a major contributor
+# to the OOM kills, for a single fire-and-forget OTP job; production now uses
+# the :async adapter instead (see config/environments/production.rb).
+#
+# Left in place for when a real worker is warranted, but it must now be opted
+# into explicitly.
+plugin :solid_queue if ENV["SOLID_QUEUE_IN_PUMA"] == "true"
 
 # Specify the PID file. Defaults to tmp/pids/server.pid in development.
 # In other environments, only set the PID file if requested.

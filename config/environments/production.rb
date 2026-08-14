@@ -31,9 +31,27 @@ Rails.application.configure do
   # Use memory store to bypass solid_cache database dependency
   config.cache_store = :solid_cache_store
 
-  # Active Job Adapter (ເຊື່ອມຕໍ່ກັບ SOLID_QUEUE_IN_PUMA: true ໃນ deploy.yml)
-  config.active_job.queue_adapter = :solid_queue
-  config.solid_queue.connects_to = { database: { writing: :queue } }
+  # Active Job Adapter.
+  #
+  # This ran Solid Queue inside Puma (SOLID_QUEUE_IN_PUMA), which forks a
+  # supervisor, a dispatcher and a worker — three additional processes, each a
+  # full copy of a Rails app that also loads ActiveAdmin — plus a worker
+  # polling the queue database ten times a second. All of that existed to run
+  # exactly one job: SendOtpSmsJob, enqueued from a single place. On a 512MB
+  # instance that infrastructure is a large part of why the container keeps
+  # being OOM-killed.
+  #
+  # :async keeps perform_later non-blocking (the reason the SMS was moved off
+  # the request in the first place) using a thread pool inside the web process,
+  # with no extra processes and no queue database. The trade-off is that a job
+  # still in the queue when the process restarts is lost — acceptable for a
+  # fire-and-forget OTP the user can simply request again, and strictly better
+  # than the whole API dying every hour.
+  #
+  # Revisit when there are jobs that must survive a restart or need retries:
+  # move Solid Queue to its own Render Background Worker service rather than
+  # putting it back inside Puma.
+  config.active_job.queue_adapter = :async
 
   # Enable locale fallbacks for I18n
   config.i18n.fallbacks = true
