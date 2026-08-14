@@ -3,12 +3,33 @@ require 'json'
 require 'base64'
 
 class Api::V1::OcrController < ApiController
-  # OCR is called before user is fully authenticated (testing mode / onboarding)
+  include Throttling
+
+  # OCR runs during onboarding, before the user has an account, so it cannot
+  # require authentication. That makes it an open proxy to Google Vision billed
+  # to GOOGLE_VISION_API_KEY — anyone could loop it and run up the bill. Rate
+  # limited per IP instead, with a size cap so a single call can't be enormous.
   skip_before_action :authenticate!
 
+  MAX_IMAGE_BYTES = 8.megabytes
+  SCANS_PER_HOUR = 20
+
   def scan
+    throttle!(
+      bucket: "ocr_scan",
+      limit: SCANS_PER_HOUR,
+      period: 1.hour,
+      message: "ສະແກນຫຼາຍເກີນໄປ ກະລຸນາລອງໃໝ່ພາຍຫຼັງ"
+    )
+
     image = params[:image]
     return render_error('No image provided') unless image.present?
+    unless image.respond_to?(:read)
+      return render_error('Invalid image upload')
+    end
+    if image.respond_to?(:size) && image.size.to_i > MAX_IMAGE_BYTES
+      return render_error('Image too large')
+    end
 
     api_key = ENV['GOOGLE_VISION_API_KEY']
     return render_error('Vision API key not configured') unless api_key.present?

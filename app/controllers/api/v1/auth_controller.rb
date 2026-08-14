@@ -1,8 +1,24 @@
 class Api::V1::AuthController < ApiController
+  include Throttling
+
   skip_before_action :authenticate!, only: %i[request_otp verify_otp login_phone request_otp_debug]
 
   # POST /api/v1/auth/request_otp
+  #
+  # Unauthenticated and sends a real, billable Telbiz SMS, with no throttling
+  # middleware anywhere in the stack — so it could be looped to run up the SMS
+  # bill, or pointed at one number to harass its owner. Limited both per phone
+  # number and per IP.
   def request_otp
+    throttle!(
+      bucket: "request_otp_phone",
+      by: params[:phone_number].to_s,
+      limit: 5,
+      period: 1.hour,
+      message: "ຂໍລະຫັດ OTP ຫຼາຍເກີນໄປ ກະລຸນາລອງໃໝ່ພາຍຫຼັງ"
+    )
+    throttle!(bucket: "request_otp_ip", limit: 20, period: 1.hour)
+
     user = User.find_or_initialize_by(phone_number: params[:phone_number])
     user.name = params[:name] if user.new_record?
     otp = user.generate_otp
@@ -18,6 +34,18 @@ class Api::V1::AuthController < ApiController
   def request_otp_debug
     unless ENV['ALLOW_DEBUG'] == 'true'
       return render_error('Debug endpoint disabled', status: :forbidden)
+    end
+
+    # Handing the OTP back in the response is a complete authentication bypass
+    # for any phone number. It is off unless ALLOW_DEBUG is set, and the beta
+    # runs with RAILS_ENV=production, so make every use loud enough to notice
+    # in the logs if the variable is ever left on by accident.
+    if Rails.env.production?
+      Rails.logger.warn(
+        "[Auth] request_otp_debug returned a plaintext OTP for " \
+        "#{params[:phone_number]} — ALLOW_DEBUG is enabled in production. " \
+        "This bypasses authentication entirely; unset it."
+      )
     end
 
     phone = params[:phone_number]
