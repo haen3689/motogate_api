@@ -14,6 +14,10 @@ services:
     region: singapore # Choose singapore, oregon, frankfurt, or ohio
     plan: starter # or 'free'
     dockerfilePath: ./Dockerfile
+    # Thruster (front) listens on 8080 and proxies to Puma on 3000 internally.
+    # Without this, Render's port auto-detection can pick 3000 instead of the
+    # externally-reachable 8080, causing every request to time out and reset.
+    port: 8080
     envVars:
       - key: DATABASE_URL
         fromDatabase:
