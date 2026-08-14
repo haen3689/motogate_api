@@ -31,8 +31,13 @@ services:
         value: "true"
       - key: SOLID_QUEUE_IN_PUMA
         value: "true"
+      # RAILS_MASTER_KEY, GOOGLE_VISION_API_KEY, TELBIZ_CLIENT_ID, and
+      # TELBIZ_SECRET are secrets — set these manually in the Render
+      # dashboard, not here. (They were previously committed here in
+      # plaintext and have since been rotated; do not put real values
+      # back in this file.)
       - key: RAILS_MASTER_KEY
-        value: 7a693193a36d9da594adacd3cbb93959
+        sync: false
       - key: PORT
         value: "8080"
       - key: HTTP_PORT
@@ -42,13 +47,13 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: GOOGLE_VISION_API_KEY
-        value: AIzaSyAANvNR2UOfx8K84dAv2ztHHKYE8qv_YH0
+        sync: false
       - key: TELBIZ_API_URL
         value: https://api.telbiz.la/sms/send
       - key: TELBIZ_CLIENT_ID
-        value: "17300867325554841"
+        sync: false
       - key: TELBIZ_SECRET
-        value: eae747c0-356e-4338-886e-6464789083fc
+        sync: false
       - key: TELBIZ_SENDER
         value: MotoGate
       # Cloudflare R2 (Active Storage) — set these manually in the Render
