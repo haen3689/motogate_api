@@ -44,23 +44,11 @@ class Insurance < ApplicationRecord
       description: "ປະກັນໄພ #{package} - #{vehicle.plate_number}",
       payment: payment
     )
-    broadcast_new_purchase!
   rescue StandardError => e
     Rails.logger.error("[Insurance] Failed to finalize payment #{payment.uuid}: #{e.message}")
   end
 
   private
-
-  # Pushes the newly-paid policy to any admin browser currently subscribed
-  # via AdminInsurancesChannel, so the list updates live. Best-effort, same
-  # pattern as Inspection#broadcast_new_booking!.
-  def broadcast_new_purchase!
-    ActionCable.server.broadcast("admin_insurances", {
-      insurance: as_json.merge(plate_number: vehicle.plate_number)
-    })
-  rescue StandardError => e
-    Rails.logger.error("[Insurance] Failed to broadcast new purchase #{id}: #{e.message}")
-  end
 
   def set_insurance_company
     self.insurance_company = InsuranceCompany.find_by(name: company)

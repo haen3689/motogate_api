@@ -38,23 +38,7 @@ class RoadTax < ApplicationRecord
       description: "ຄ່າທາງ ປີ #{tax_year} - #{vehicle.plate_number}",
       payment: payment
     )
-    broadcast_new_payment!
   rescue StandardError => e
     Rails.logger.error("[RoadTax] Failed to finalize payment #{payment.uuid}: #{e.message}")
-  end
-
-  # Pushes the newly-paid road tax to any admin browser currently
-  # subscribed via AdminRoadTaxesChannel, so the list updates live.
-  # Best-effort, same pattern as Inspection#broadcast_new_booking!. Public
-  # (unlike Insurance's equivalent) because external_upload road taxes are
-  # already "paid" the moment they're created — RoadTaxesController#create
-  # calls this directly for that path instead of going through
-  # mark_paid_from_payment!, which only fires for app_payment/BCEL.
-  def broadcast_new_payment!
-    ActionCable.server.broadcast("admin_road_taxes", {
-      road_tax: as_json.merge(plate_number: vehicle.plate_number)
-    })
-  rescue StandardError => e
-    Rails.logger.error("[RoadTax] Failed to broadcast new payment #{id}: #{e.message}")
   end
 end

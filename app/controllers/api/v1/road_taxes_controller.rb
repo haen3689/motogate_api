@@ -32,7 +32,6 @@ class Api::V1::RoadTaxesController < ApiController
           reference: vehicle.plate_number,
           description: "ຄ່າທາງ ປີ #{tax.tax_year} - #{vehicle.plate_number}"
         )
-        tax.broadcast_new_payment!
         render_success(tax_json(tax), status: :created)
       else
         render_error(tax.errors.full_messages.join(", "))
