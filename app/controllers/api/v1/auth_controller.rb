@@ -51,13 +51,43 @@ class Api::V1::AuthController < ApiController
     render_success(user_json(current_user))
   end
 
-  # POST /api/v1/auth/login_phone  (Telbiz OTP verified on client)
+  # POST /api/v1/auth/login_phone
+  #
+  # This used to take a phone number and nothing else, trusting that the
+  # client had checked the OTP with Telbiz itself, and hand back a session
+  # token. A client-side check is not a check: anyone could POST any phone
+  # number straight to this endpoint and receive a valid token for that
+  # account — and JwtService.encode issues it with no expiry and there is no
+  # revocation list, so the token was good forever. It also created accounts
+  # for numbers that had never been proven.
+  #
+  # The OTP is now verified server-side, exactly as #verify_otp does. The
+  # phone must already exist (via #request_otp), so this no longer mints
+  # accounts for unproven numbers.
+  #
+  # ROLLOUT: app builds that predate this send no :otp and will fail here. If
+  # login breaks after deploying, set ALLOW_UNVERIFIED_PHONE_LOGIN=true in the
+  # Render dashboard to restore the old behaviour without a redeploy, ship the
+  # updated app, then remove the variable. Leaving it on leaves the account
+  # takeover hole wide open — treat it as a rollback lever, not a setting.
   def login_phone
-    user = User.find_or_initialize_by(phone_number: params[:phone_number])
-    user.verified = true
-    user.save!
-    token = JwtService.encode(user.id)
-    render_success({ token: token, user: user_json(user) })
+    if params[:otp].blank? && ENV["ALLOW_UNVERIFIED_PHONE_LOGIN"] == "true"
+      Rails.logger.warn(
+        "[Auth] login_phone accepted without OTP for #{params[:phone_number]} " \
+        "— ALLOW_UNVERIFIED_PHONE_LOGIN is enabled. This is an account " \
+        "takeover risk; unset it once the OTP-sending app build has shipped."
+      )
+      user = User.find_or_initialize_by(phone_number: params[:phone_number])
+      user.verified = true
+      user.save!
+      return render_success({ token: JwtService.encode(user.id), user: user_json(user) })
+    end
+
+    user = User.find_by!(phone_number: params[:phone_number])
+    user.verify_otp!(params[:otp])
+    render_success({ token: JwtService.encode(user.id), user: user_json(user) })
+  rescue ActiveRecord::RecordNotFound
+    render_error("Phone number not found", status: :not_found)
   rescue => e
     render_error(e.message)
   end
@@ -69,7 +99,13 @@ class Api::V1::AuthController < ApiController
     current_user.license_image.attach(params[:license_image])   if params[:license_image].present?
     current_user.profile_image.attach(params[:profile_image])   if params[:profile_image].present?
     data = user_json(current_user)
-    ActionCable.server.broadcast("user_updates", { user: data })
+    # Two targeted streams instead of the old global "user_updates" one — this
+    # payload carries the user's ID number, licence number and signed document
+    # URLs, so it must not go to whoever happens to be connected. The owner
+    # gets their own stream; ActiveAdmin's header toast gets the admin-only
+    # firehose (see UserUpdatesChannel).
+    ActionCable.server.broadcast("user_updates_#{current_user.id}", { user: data })
+    ActionCable.server.broadcast("admin_user_updates", { user: data })
     render_success({ user: data })
   rescue => e
     render_error(e.message)

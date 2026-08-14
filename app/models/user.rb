@@ -13,18 +13,43 @@ class User < ApplicationRecord
 
   validates :phone_number, presence: true, uniqueness: true
 
+  # A wrong guess used to cost an attacker nothing — the code stayed valid for
+  # its full five minutes, no counter moved, and nothing rate limits the
+  # endpoint — so all 10^6 six-digit codes were reachable inside the window.
+  MAX_OTP_ATTEMPTS = 5
+
   def generate_otp
-    self.otp = rand(100000..999999).to_s
+    # SecureRandom, not rand: Kernel#rand is a Mersenne Twister seeded per
+    # process, which is predictable from observed outputs and must not decide
+    # an authentication secret.
+    self.otp = SecureRandom.random_number(900_000).+(100_000).to_s
     self.otp_expired_at = 5.minutes.from_now
+    self.otp_attempts = 0
     self.verified = false
     save!
     otp
   end
 
   def verify_otp!(code)
+    # otp_expired_at is nil both before any OTP is requested and after a
+    # successful verify, where `nil < Time.current` raised NoMethodError and
+    # surfaced to the client as a 422 containing the raw Ruby error.
+    raise "No OTP requested" if otp.blank? || otp_expired_at.blank?
     raise "OTP expired" if otp_expired_at < Time.current
-    raise "OTP invalid" unless otp == code
-    update!(verified: true, otp: nil, otp_expired_at: nil)
+
+    if otp_attempts.to_i >= MAX_OTP_ATTEMPTS
+      # Burn the code rather than just refusing, so an attacker can't keep
+      # guessing simply by waiting out a counter.
+      update!(otp: nil, otp_expired_at: nil, otp_attempts: 0)
+      raise "Too many incorrect attempts. Request a new OTP."
+    end
+
+    unless ActiveSupport::SecurityUtils.secure_compare(otp.to_s, code.to_s)
+      increment!(:otp_attempts)
+      raise "OTP invalid"
+    end
+
+    update!(verified: true, otp: nil, otp_expired_at: nil, otp_attempts: 0)
   end
 
   def self.ransackable_attributes(auth_object = nil)
