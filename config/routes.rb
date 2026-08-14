@@ -53,7 +53,11 @@ Rails.application.routes.draw do
       end
 
       # Inspection
-      resources :inspections, only: %i[index create show update]
+      resources :inspections, only: %i[index create show update] do
+        # Cancelling is the only status change that belongs to the user;
+        # #update no longer accepts :status at all.
+        member { patch :cancel }
+      end
 
       # Transactions
       resources :transactions, only: %i[index show]

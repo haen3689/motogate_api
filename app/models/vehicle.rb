@@ -55,7 +55,6 @@ class Vehicle < ApplicationRecord
       description: "ຄ່າທຳນຽມລົງທະບຽນລົດ - #{plate_number}",
       payment: payment
     )
-  rescue StandardError => e
-    Rails.logger.error("[Vehicle] Failed to finalize payment #{payment.uuid}: #{e.message}")
   end
+  # No blanket rescue — see the note in Insurance#mark_paid_from_payment!.
 end

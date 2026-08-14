@@ -38,7 +38,8 @@ class RoadTax < ApplicationRecord
       description: "ຄ່າທາງ ປີ #{tax_year} - #{vehicle.plate_number}",
       payment: payment
     )
-  rescue StandardError => e
-    Rails.logger.error("[RoadTax] Failed to finalize payment #{payment.uuid}: #{e.message}")
   end
+  # No blanket rescue — see the note in Insurance#mark_paid_from_payment!.
+  # Swallowing a failed write inside Payment#mark_paid!'s transaction reported
+  # success while rolling the payment back.
 end

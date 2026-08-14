@@ -67,13 +67,43 @@ class Api::V1::InspectionsController < ApiController
     render_error("ບໍ່ພົບຂໍ້ມູນ", status: :not_found)
   end
 
+  # PATCH /api/v1/inspections/:id/cancel
+  #
+  # Replaces the previous "PATCH status=cancelled" path. Cancelling is the one
+  # transition a user may drive; every other status is set by payment
+  # confirmation or by staff.
+  def cancel
+    inspection = user_inspections.find(params[:id])
+
+    if inspection.status == "completed"
+      return render_error("ບໍ່ສາມາດຍົກເລີກການກວດທີ່ສຳເລັດແລ້ວ", status: :unprocessable_entity)
+    end
+
+    inspection.update!(status: "cancelled")
+    render_success(inspection.as_json)
+  rescue ActiveRecord::RecordNotFound
+    render_error("ບໍ່ພົບຂໍ້ມູນ", status: :not_found)
+  rescue ActiveRecord::RecordInvalid => e
+    render_error(e.record.errors.full_messages.join(", "))
+  end
+
   private
 
   def user_inspections
     Inspection.joins(:vehicle).where(vehicles: { user_id: current_user.id })
   end
 
+  # :status used to be permitted here, with no state-machine guard. "confirmed"
+  # is exactly the value Inspection#mark_paid_from_payment! writes to mean
+  # "BCEL confirmed the payment", so a user could book an inspection, close the
+  # QR without paying, PATCH status=confirmed, and hold a slot at the centre
+  # that looks paid to staff. #create already computes the amount server-side
+  # for the same reason, and vehicles_controller deliberately excludes
+  # fee_paid; this was the gap.
+  #
+  # Cancelling is the one transition that legitimately belongs to the user, so
+  # it goes through #cancel below rather than through arbitrary status writes.
   def inspection_params
-    params.permit(:center_name, :center_address, :appointment_at, :status, :notes)
+    params.permit(:center_name, :center_address, :appointment_at, :notes)
   end
 end

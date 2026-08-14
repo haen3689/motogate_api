@@ -41,9 +41,11 @@ class Inspection < ApplicationRecord
     )
     notify_center!
     broadcast_new_booking!
-  rescue StandardError => e
-    Rails.logger.error("[Inspection] Failed to finalize payment #{payment.uuid}: #{e.message}")
   end
+  # No blanket rescue — see the note in Insurance#mark_paid_from_payment!.
+  # notify_center! and broadcast_new_booking! already rescue individually, so
+  # this only ever swallowed the database writes above, which are exactly the
+  # part that must not fail silently.
 
   private
 

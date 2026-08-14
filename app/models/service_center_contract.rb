@@ -82,6 +82,9 @@ class ServiceCenterContract < ApplicationRecord
 
   def generate_contract_number
     year = Date.current.year
+    # Read-then-write against a uniquely-indexed column; see the note on
+    # ApplicationRecord.with_advisory_lock_on.
+    self.class.with_advisory_lock_on("service_center_contract_#{year}")
     last = ServiceCenterContract.where("contract_number LIKE ?", "CT-#{year}-%").order(:contract_number).last
     seq = last ? last.contract_number.split("-").last.to_i + 1 : 1
     self.contract_number = "CT-#{year}-#{seq.to_s.rjust(4, '0')}"
