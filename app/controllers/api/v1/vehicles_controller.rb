@@ -19,7 +19,6 @@ class Api::V1::VehiclesController < ApiController
     vehicle.front_photo.attach(params[:front_photo])               if params[:front_photo].present?
     vehicle.transport_booklet.attach(params[:transport_booklet])   if params[:transport_booklet].present?
     if vehicle.save
-      vehicle.broadcast_new_vehicle!
       render_success(vehicle_json(vehicle, owner: true), status: :created)
     else
       render_error(vehicle.errors.full_messages.join(", "))
