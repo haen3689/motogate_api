@@ -17,7 +17,13 @@ default: &default
   encoding: unicode
   # For details on connection pooling, see Rails configuration guide
   # https://guides.rubyonrails.org/configuring.html#database-pooling
-  max_connections: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  #
+  # NB: the key Active Record reads is `pool`. This previously said
+  # `max_connections`, which Rails does not recognise, so the value was
+  # silently ignored and each of the four production databases below
+  # (primary, cache, queue, cable) fell back to the default pool size
+  # instead of tracking RAILS_MAX_THREADS.
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
 
 
 development:

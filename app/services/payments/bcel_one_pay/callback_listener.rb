@@ -25,7 +25,21 @@ module Payments
       # to process due to a transient error (DB hiccup, etc). Reconciling
       # is idempotent (see #reconcile_recent!), so re-running it on a
       # schedule is safe.
-      RECONCILE_INTERVAL = 5.minutes
+      RECONCILE_INTERVAL = 15.minutes
+
+      # How many stored messages to pull per reconcile. The merchant channel
+      # is shared with every other OnePay merchant, so most of what comes
+      # back is other people's traffic — pulling 100 every 5 minutes meant
+      # re-parsing ~1,200 foreign payloads an hour for nothing.
+      RECONCILE_MAX_MESSAGES = 50
+
+      # Reconcile used to re-process *every* message it fetched on *every*
+      # run, forever: the same payloads were JSON-parsed and looked up in the
+      # DB again every interval, and each already-paid payment re-logged
+      # "marked paid" as if it had just happened. We now remember which
+      # PubNub timetokens we've already handled and skip them. The set is
+      # capped so it can't grow without bound (the bug this replaced).
+      SEEN_LIMIT = 500
 
       def self.start!
         return unless Config.listener_enabled?
@@ -73,21 +87,60 @@ module Payments
       # cannot double-apply a payment or affect ones that are still
       # genuinely pending.
       def reconcile_recent!
-        pubnub.fetch_messages(channels: [Config.merchant_channel], max: 100) do |envelope|
-          if envelope.status[:error]
-            Rails.logger.error("[BcelOnePay] Reconcile fetch failed: #{envelope.status[:error]}")
-            next
-          end
+        pubnub.fetch_messages(channels: [Config.merchant_channel], max: RECONCILE_MAX_MESSAGES) do |envelope|
+          # fetch_messages is asynchronous when given a block — this runs on
+          # a pubnub-owned thread, so an exception escaping here is invisible
+          # to the caller's rescue below and would silently kill reconcile.
+          # Keep the whole body guarded.
+          begin
+            if envelope.status[:error]
+              Rails.logger.error("[BcelOnePay] Reconcile fetch failed: #{envelope.status[:error]}")
+              next
+            end
 
-          entries = envelope.result.dig(:data, :channels, Config.merchant_channel) || []
-          entries.each { |entry| process_payload(entry["message"]) }
-          Rails.logger.info("[BcelOnePay] Reconcile checked #{entries.size} recent callback message(s)")
+            entries = envelope.result.dig(:data, :channels, Config.merchant_channel) || []
+            fresh = entries.reject { |entry| already_seen?(entry) }
+            fresh.each { |entry| process_payload(entry["message"]) }
+
+            if fresh.any?
+              Rails.logger.info(
+                "[BcelOnePay] Reconcile checked #{entries.size} message(s), #{fresh.size} new"
+              )
+            end
+          rescue StandardError => e
+            Rails.logger.error("[BcelOnePay] Reconcile callback failed: #{e.message}")
+          end
         end
       rescue StandardError => e
         Rails.logger.error("[BcelOnePay] Reconcile failed to start: #{e.message}")
       end
 
       private
+
+      # Marks a fetched message as handled, returning whether we'd already
+      # seen it. Keyed on PubNub's per-message timetoken, which is unique and
+      # monotonic on the channel. Runs on pubnub's thread, hence the mutex.
+      def already_seen?(entry)
+        token = entry["timetoken"] || entry[:timetoken]
+        return false if token.nil?
+
+        seen_mutex.synchronize do
+          next true if seen_timetokens.key?(token)
+
+          seen_timetokens[token] = true
+          # Hashes preserve insertion order, so the first key is the oldest.
+          seen_timetokens.delete(seen_timetokens.first[0]) while seen_timetokens.size > SEEN_LIMIT
+          false
+        end
+      end
+
+      def seen_timetokens
+        @seen_timetokens ||= {}
+      end
+
+      def seen_mutex
+        @seen_mutex ||= Mutex.new
+      end
 
       def pubnub
         # The pubnub gem defaults to Logger.new("pubnub.log") — a relative
@@ -132,12 +185,19 @@ module Payments
 
         payment = Payment.find_by(uuid: uuid)
         unless payment
-          Rails.logger.warn("[BcelOnePay] Callback for unknown payment uuid=#{uuid}")
+          # The merchant channel carries every OnePay merchant's traffic, so
+          # a uuid we don't recognise is the normal case, not a fault. Logged
+          # at debug so it stops flooding production logs.
+          Rails.logger.debug("[BcelOnePay] Callback for unknown payment uuid=#{uuid}")
           return
         end
 
-        payment.mark_paid!(payload)
-        Rails.logger.info("[BcelOnePay] Payment #{uuid} marked paid via callback")
+        # Only announce a real state change — mark_paid! is a no-op for an
+        # already-paid payment, and logging unconditionally made replayed
+        # messages look like fresh payments in the log every interval.
+        if payment.mark_paid!(payload)
+          Rails.logger.info("[BcelOnePay] Payment #{uuid} marked paid via callback")
+        end
       rescue StandardError => e
         Rails.logger.error("[BcelOnePay] Failed to handle callback: #{e.message}")
       end

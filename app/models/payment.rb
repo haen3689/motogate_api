@@ -59,8 +59,12 @@ class Payment < ApplicationRecord
   # Idempotent — BCEL's PubNub callback can be redelivered (e.g. on client
   # reconnect within the 1hr replay window), so re-marking an already-paid
   # payment must be a no-op rather than double-firing payable side effects.
+  #
+  # Returns true only when this call performed the transition, false when the
+  # payment was already paid, so callers can tell a fresh payment from a
+  # replay instead of logging every redelivery as if it were new.
   def mark_paid!(callback_data)
-    return true if status == "paid"
+    return false if status == "paid"
 
     transaction do
       update!(
