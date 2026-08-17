@@ -23,7 +23,7 @@ gem "aws-sdk-s3", require: false
 
 # BCEL OnePay payment callbacks are delivered over PubNub (no plain HTTP
 # webhook option in their API) — see app/services/payments/bcel_one_pay
-gem "pubnub", "~> 5.4"
+gem "pubnub", "~> 6.1"
 
 # Insurance certificate PDF — overlays policy data on the Lanexang
 # Assurance template image (see app/services/insurance_certificate)
