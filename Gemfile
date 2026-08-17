@@ -27,7 +27,7 @@ gem "pubnub", "~> 5.4"
 
 # Insurance certificate PDF — overlays policy data on the Lanexang
 # Assurance template image (see app/services/insurance_certificate)
-gem "prawn", "~> 2.4"
+gem "prawn", "~> 2.5"
 gem "matrix" # prawn dependency, no longer a Ruby default gem since 3.1
 
 # Admin panel
